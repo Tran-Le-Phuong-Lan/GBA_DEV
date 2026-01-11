@@ -1,5 +1,12 @@
 # NOTE 
+- This project is a copy and modification from the original TONC code and the newer version TONC code (libtonc-examples).
 
+  - The `Makefile` (copied from libtonc-examples) is modified to not to use the `/opt/devkit/libtonc`, but use the simplified-version of libtonc in the `./include` and `./source`. It helps the learning process much more fundamental.
+
+  - The all the source codes in folder `./include` and `./source` are copied from the original TONC code.
+
+  - The `./graphics` contains exact `<image>.png` from original TONC/ libtonc-examples. The file `./graphics/<image>.grit` is copied from libtonc-examples.
+  
 - 0. **In TONC tutorial** - section 7->9 (Regular Sprite & Regular Tile background), **8x8 tile = 1 tile is made of 8 pixel x 8 pixel x pixel bit depth**; the pixel bit depth is either 4 bit per pixel (bpp) or 8bpp. **Any notation of \<number\>x\<number\> (e.g 8x8 tile, 64x64 tile, 16x16 tile, 16x64 tile, etc) tile = \<number\>-pixel-x-\<number\>-pixel tile (e.g 8-pixel-x-8-pixel tile, 64-pixel-x-16-pixel tile) (i.e unit pixel)**; unless \<number\>x\<number\>t tile = \<number\>-tile-x-\<number\>-tile tile (i.e unit tile).
 
 - 1. `tile_mem` is defined in `./include/memmap.h`
