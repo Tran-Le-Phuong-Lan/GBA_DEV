@@ -1,0 +1,8 @@
+#
+# Metroid : 4bpp, not compressed. 
+# -ar64: Only use the first 64 columns.
+# -ar: Right side of the work bitmap's rectangle. 
+#      If this falls outside of the source bitmap, 
+#      the latter will be extended.
+#
+-gB4
