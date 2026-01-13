@@ -1,0 +1,11 @@
+#
+# Brinstar : 64x64t, 4bpp, SBB-layout, not compressed.
+#
+# -gB4: 4bpp
+# -mR4: Tile reduction combo for regular backgrounds with 4bpp tiles
+# -mLs: Map layout for regular backgrounds. 16-bit entries, broken down into screenblocks. 
+# -mLf: Map layout for regular backgrounds. 16-bit entries, but a flat map (i.e., not broken down into screenblocks). 
+-gt -gB4 -mR4 -mLs
+
+
+
