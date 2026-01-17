@@ -20,6 +20,18 @@
 
 - Method 2: See the trouble shooting 1 below
 
+## install WineHQ (Fedora) to run other GBA tools (e.g Mappy Map editor, No$GBA, etc)
+
+- [WineHQ website - Download - Fedora](https://gitlab.winehq.org/wine/wine/-/wikis/Fedora) 
+  
+  - checking [fedora version in terminal](https://www.fosslinux.com/121978/how-to-check-your-fedora-version-via-gui-and-command-line.htm):  `cat /etc/fedora-release`
+
+    - then only follow the section **Installing WineHQ packages**
+
+    - after the wine installation process is finished, follow the mentioned wine tutorial above, to run mappy program: 
+
+    - run `cd ~/Downloads/Apps/mapwin1423`, then run `wine mapwin.exe`
+
 ## Follow GBA tutorials
 
 - fundamental tutorials (GBA system, C code): 
