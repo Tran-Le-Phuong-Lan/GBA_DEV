@@ -38,6 +38,17 @@
 
     - in the link, skip the steps for setting up devkitpro-debkitarm-gba-dev if they are already installed.
 
+- nice materials for learning curve of GBA game development: https://forum.gbadev.net/topic/21-getting-started-with-gba-development
+
+- C learning: https://beej.us/guide/bgc/html/split/index.html
+
+- Jasper Vijn: https://www.coranac.com/projects/
+
+- **INLINE function** explantion: https://stackoverflow.com/questions/31108159/what-is-the-use-of-the-inline-keyword-in-c
+
+- setup debug C code GBA in Emacs (Linux) with mGBA: https://themkat.net/2022/05/09/debugging_gba_in_emacs.html
+
+- **No$GBA Debugger version** for nice debugging of GBA game with visual (moving screen on background, etc): https://www.nogba.com/
 
 # Trouble shooting
 
