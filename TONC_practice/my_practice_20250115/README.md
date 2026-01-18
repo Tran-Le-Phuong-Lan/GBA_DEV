@@ -77,7 +77,7 @@ OAM 1024 byte long = 128 OBJ_ATTR = 32 OBJ_AFFINE
 
   - **Attribute 2**:
 
-    - **OBJ_ATTR.attr2** (**MSB(F) ->LSB(0)**): **Palette Bank (F,E,D,C)**: only valid in 16-color mode, otherwise, no effect | **Priority (B, A)**: **higher priority** drawn first (**=back**), therefore they can be **covered by lower priority (= in the front)** | **Base Tile Index (9-0)**: Note in bitmap mode, the base tile index must be 512 or higher.
+    - **OBJ_ATTR.attr2** (**MSB(F) ->LSB(0)**): **Palette Bank (F,E,D,C)**: only valid in 16-color mode, otherwise, no effect | **Priority (B, A)**: **higher priority** drawn first (**=back**), therefore they can be **covered by lower priority (= in the front)**, **Sprites cover backgrounds of the same priority**, and **for sprites of the same priority, the higher OBJ_ATTRs are drawn first** | **Base Tile Index (9-0)**: Note in bitmap mode, the base tile index must be 512 or higher.
 
 - **OAM double buffering**
 
