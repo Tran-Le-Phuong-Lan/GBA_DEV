@@ -37,6 +37,8 @@ void init_reg_bg ()
 	//			P  C
 	pal_bg_bank[0][1]= RGB15(31,  0,  0);
 	pal_bg_bank[1][1]= RGB15(0,  31,  0);
+	pal_bg_bank[2][1]= RGB15(0,  0,  31);
+	pal_bg_bank[3][1]= RGB15(31,  31,  0);
 
 }
 
@@ -111,7 +113,9 @@ void obj_test()
 		if(key_hit(KEY_A))
 			{
 				// update the palette according to Se_index
-				pse[se_curr] = SE_PALBANK(1) | 0;
+				// use the tonc `qran_range` to generate the
+				// random palette.
+				pse[se_curr] = SE_PALBANK(qran_range(1, 4)) | 0;
 			};
 		// redo a wrong green tile	
 		if(key_hit(KEY_B))

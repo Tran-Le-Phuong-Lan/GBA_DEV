@@ -119,6 +119,16 @@ attr2= (attr&~ATTR2_ID_MASK) | ((id<<ATTR2_ID_SHIFT) & ATTR2_ID_MASK);
 
 - To understand the **keypad manipulation (`./include/input.h`): see TONC tutorial - chapter 6. The GBA keypad**.
 
+- **Random generator**: TONC tutorial - chapter 13 Graphic Effects - 13.3.4 Demo There's a rocket in my pocket
+
+  - function `qran()` in `tonc_core.h/.c`: a "quick, dirty" pseudo-random generator 
+
+  - function `sqran()` in `tonc_core.h/.c`: is used to *seed* the generator.
+
+  - ranged random numbers: `qran_range(min, max)` to randomly give out a number in a range. Note: the generated number is actually in the range [min, max-1].
+
+- **Windowing**: TONC tutorial - chapter 13 Graphic Effects - 13.3.Windowing
+
 ## Successful attemps
 
 
