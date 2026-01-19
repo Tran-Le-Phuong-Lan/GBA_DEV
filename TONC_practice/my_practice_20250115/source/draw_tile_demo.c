@@ -11,8 +11,9 @@ OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
 #define CBB_0  0
-// ? while graphic error when SBB_0  = 0 
+// ? while some graphic error when SBB_0  = 0 
 #define SBB_0  1
+SCR_ENTRY *bg0_map= se_mem[SBB_0];
 
 void init_reg_bg ()
 {
@@ -33,7 +34,9 @@ void init_reg_bg ()
 	tile_mem[CBB_0][0] = tiles[0];
 
 	// create and place a palette for bg
+	//			P  C
 	pal_bg_bank[0][1]= RGB15(31,  0,  0);
+	pal_bg_bank[1][1]= RGB15(0,  31,  0);
 
 }
 
@@ -77,7 +80,7 @@ void obj_test()
 	obj_set_pos(cursor, x, y);
 
 	// enable a timer
-	REG_TM2D =  -0x065E; // 1630 ticks until 1 increment in TM3 (CASCADE)
+	REG_TM2D =  -0x065E;
 	REG_TM2CNT= TM_ENABLE | TM_FREQ_1024; 
 	// 1 period = 1024 default clock cycle
 	// = 1024 * (1/16.78 Mhz) = 61 us 
@@ -85,7 +88,7 @@ void obj_test()
 	// tick every ~ 100ms
 	REG_TM3CNT=  TM_ENABLE | TM_CASCADE; 
 	
-	u32 sec = 0;
+	u32 sec = -1;
 
 	while(1)
 	{
@@ -95,11 +98,26 @@ void obj_test()
 		// // increment/decrement starting tile with R/L
 		// tid += bit_tribool(key_hit(-1), KI_R, KI_L);
 
-		// // flip
-		// if(key_hit(KEY_A))	// horizontally
-		// 	cursor->attr1 ^= ATTR1_HFLIP;
-		// if(key_hit(KEY_B))	// vertically
-		// 	cursor->attr1 ^= ATTR1_VFLIP;
+		
+		SCR_ENTRY *pse= bg0_map;
+		u16 obj_x_coord, obj_y_coord;
+		u32 se_curr;
+		// get the cursor (object) position (using Tonc BF_GET())
+		obj_x_coord = BFN_GET(cursor->attr1, ATTR1_X);
+		obj_y_coord = BFN_GET(cursor->attr0, ATTR0_Y);
+		// calculate the Se_index, map size 32x32t
+		se_curr = (obj_y_coord >> 3)*32 + (obj_x_coord >>3);
+		// draw a green tile
+		if(key_hit(KEY_A))
+			{
+				// update the palette according to Se_index
+				pse[se_curr] = SE_PALBANK(1) | 0;
+			};
+		// redo a wrong green tile	
+		if(key_hit(KEY_B))
+			{
+				pse[se_curr] = SE_PALBANK(0) | 0;
+			};
 		
 		// make it change color (via palette swapping)
 		pb= key_is_down(KEY_SELECT) ? 1 : 0;
