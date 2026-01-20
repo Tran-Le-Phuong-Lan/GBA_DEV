@@ -44,12 +44,47 @@ void init_reg_bg ()
 
 void init_reg_obj ()
 {
-		const TILE tiles[1]=
+		const unsigned int tiles[128]=
 	{
-		// cursor tile
-		{{0x01111110, 0x10000001, 0x10000001, 0x10000001,
-		  0x10000001, 0x10000001, 0x10000001, 0x01111110}},
+		// cursor tile 64x64p
+			// tile 1 , Graphic RIGHT -> Graphic LEFT
+			0x01111111, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001,
+			// tile 2
+			0x11111111, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			//tile 3
+			0x11111111, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			// tile 4
+			0x11111110, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000,
+
+			// tile 5
+			0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001,
+			// tile 6
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			// tile 7
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			// tile 8
+			0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000,
+
+			// tile 9
+			0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001,
+			// tile 10
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			// tile 11
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000,
+			// tile 12
+			0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000,
+
+			// tile 13
+			0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x01111111,
+			// tile 14
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x11111111, 
+			//tile 15
+			0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x11111111,
+			// tile 16
+			0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x10000000, 0x11111110
+
 	};
+	
 
 	// creat a obj palette (already put into the OBJPALMEM)
 	pal_obj_bank[0][1]= RGB15(0,  31,  0);
@@ -57,9 +92,9 @@ void init_reg_obj ()
 	
 	// Place the cursor 
 	// into VRAM: LOW obj memory (cbb == 4)
-	tile_mem[4][0] = tiles[0];
+	// tile_mem[4][0] = tiles[0];
 
-	// memcpy(&tile_mem[4][0], LinkZeldaTiles, LinkZeldaTilesLen);
+	memcpy32(&tile_mem[4][0], tiles, 128);
 	// memcpy(pal_obj_mem, LinkZeldaPal, LinkZeldaPalLen);
 }
 
@@ -72,8 +107,7 @@ void obj_test()
 	OBJ_ATTR *cursor= &obj_buffer[0];
 	obj_set_attr(cursor, 
 		ATTR0_SQUARE,				// Square, regular sprite
-		ATTR1_SIZE_8,					// 64x64p,
-		// SQUARE + SIZE 64 = TILE size is 64pixel x 64 pixel 
+		ATTR1_SIZE_32,					// 32x32p,
 		// the object priority is zero
 		ATTR2_PALBANK(pb) | tid);		// palbank 0, tile 0
 
@@ -145,9 +179,9 @@ void obj_test()
 		{
 			sec = REG_TM3D;
 
-			x += 8*key_tri_horz();
+			x += 32*key_tri_horz();
 			// move up/down
-			y += 8*key_tri_vert();
+			y += 32*key_tri_vert();
 			obj_set_pos(cursor, x, y);
 		}
 		// x += 1*horz_prev;
