@@ -8,6 +8,12 @@
 #include <tonc.h>
 #include "tiles-gbc.h"
 
+// define the access to cacasone-tile map
+typedef u32 CAS_TILE_MAP[9];
+#define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap)
+#define elem_cas_tile_set	((TILE*)tiles_gbcTiles)
+
+
 OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
@@ -50,7 +56,7 @@ void init_reg_obj ()
 {
 		const unsigned int tiles[128]=
 	{
-		// cursor tile 64x64p
+		// cursor tile 32x32p
 			// tile 1 , Graphic RIGHT -> Graphic LEFT
 			0x01111111, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001, 0x00000001,
 			// tile 2
@@ -93,6 +99,8 @@ void init_reg_obj ()
 	// creat a obj palette (already put into the OBJPALMEM)
 	pal_obj_bank[0][1]= RGB15(0,  31,  0);
 	pal_obj_bank[1][1]= RGB15(0,  0, 31);
+	memcpy16(&pal_obj_bank[2][0], tiles_gbcPal, tiles_gbcPalLen/sizeof(u16));
+	
 	
 	// Place the cursor 
 	// into VRAM: LOW obj memory (cbb == 4)
@@ -114,6 +122,7 @@ void draw_func()
 		ATTR1_SIZE_32,					// 32x32p,
 		// the object priority is zero
 		ATTR2_PALBANK(pb) | tid);		// palbank 0, tile 0 = base tile of the sprite
+										// tile 0 = &tile_mem[4][0]
 
 	// set the starting position of the obj
 	// x,y [pixel] = position of the top-left pixel of the obj
@@ -140,61 +149,58 @@ void draw_func()
 
 		
 		SCR_ENTRY *pse= bg0_map;
-		u16 obj_x_coord, obj_y_coord;
+		u16 obj_x_coord, obj_y_coord; // in unit [pixel]
 		u32 se_curr;
 		// get the cursor (object) position (using Tonc BF_GET())
 		obj_x_coord = BFN_GET(cursor->attr1, ATTR1_X);
 		obj_y_coord = BFN_GET(cursor->attr0, ATTR0_Y);
 		// calculate the Se_index, map size 32x32t
+		// >> 3: divided by 8 to convert to unit [tile] (tile = TILE)
+		//							 32 = width of the map size in unit [tile]	
 		se_curr = (obj_y_coord >> 3)*32 + (obj_x_coord >>3);
 		// draw a green tile
 		int cas_r, cas_col;
 		int rand_pal;
-		u16 map_width_unit_tile = 32;
+		// u16 map_width_unit_tile = 32;
 
 		if(key_hit(KEY_A))
 			{
 				// update the palette according to Se_index
 				// use the tonc `qran_range` to generate the
 				// random palette.
-				rand_pal = qran_range(1, 4);
+				rand_pal = qran_range(0, 3);
+
+				// load the cas graphics into the cas_tile_buffer = buffer of the cursor
 				for (cas_r = 0; cas_r < 3; cas_r++)
 				{
 					for (cas_col=0; cas_col<3; cas_col++)
 					{
-						pse[se_curr + cas_r*map_width_unit_tile + cas_col] = SE_PALBANK(rand_pal) | 0;
+						//				  CBB TILE_index	
+						memcpy32(&tile_mem[4][cas_r*4 + cas_col], 
+							&elem_cas_tile_set[cas_tile_map_id[rand_pal][cas_r*3 + cas_col]], 
+							8 // 1 TILE = 8x u32
+						);
 					}
 				}
+
+				// example of using BFN_GET to set only the palette bank bit 
+				// in the object attribute 2.
+				// need palette 2 because this is the same palette of the tileset
+				BFN_SET(cursor->attr2, 2, ATTR2_PALBANK);
+
 			};
 		// redo a wrong green tile	
 		if(key_hit(KEY_B))
 			{
-				for (cas_r = 0; cas_r < 3; cas_r++)
-				{
-					for (cas_col=0; cas_col<3; cas_col++)
-					{
-						pse[se_curr + cas_r*map_width_unit_tile + cas_col] = SE_PALBANK(0) | 0;
-					}
-				}
+				// for (cas_r = 0; cas_r < 3; cas_r++)
+				// {
+				// 	for (cas_col=0; cas_col<3; cas_col++)
+				// 	{
+				// 		pse[se_curr + cas_r*map_width_unit_tile + cas_col] = SE_PALBANK(0) | 0;
+				// 	}
+				// }
 			};
-		
-		// make it change color (via palette swapping)
-		pb= key_is_down(KEY_SELECT) ? 1 : 0;
-
-		// // toggle mapping mode
-		// if(key_hit(KEY_START))
-		// 	REG_DISPCNT ^= DCNT_OBJ_1D;
-
-		// Hey look, it's one of them build macros!
-		cursor->attr2= ATTR2_BUILD(tid, pb, 0);
-
-		// debounce key algorithm
-		// https://www.digikey.com/en/maker/tutorials/2024/how-to-implement-a-software-based-debounce-algorithm-for-button-inputs-on-a-microcontroller
-		// The easiest solution is to have a timer (to mark a debouncing period, during which no button state is updated)
-		// So we need to use timers?
-		// More easy solution, but not the best:
-		// move left/right
-		
+				
 		// start timer, wait for 10ms ~ 163 ticks
 		if (REG_TM3D != sec)
 		{
@@ -205,24 +211,7 @@ void draw_func()
 			y += 24*key_tri_vert();
 			obj_set_pos(cursor, x, y);
 		}
-		// x += 1*horz_prev;
-		// move up/down
-		// y += 1*vert_prev;
-		// snap to 8x8 pixel TILE grid (defined by the bg)
-		// snap_x = (x >> 3) << 3; 
-		// snap_y = (y >> 3) << 3;
-		// // if (snap_x+ )
-		// obj_set_pos(cursor, snap_x, snap_y);
-		
-
-		// count = how many sprites to update.
-		// even though there are 128 sprite objs are initiated 
-		// (as the author already explains, this step of initialization of all 128
-		// sprite obj is to avoid the weird behavior of the hardware. The weird behavior is
-		// when OAM is all 0s, the screen will be populated with the graphic sprite tid 0.
-		// The initialization is important to hide these unmeaningful graphics on the screen),
-		// we actually have only one obj metr starting at tid 0 defined 
-		// (see the code line 27 of this file). 
+	
 		// In this example, there is only 1 sprite of size 64 pixel x 64 pixel (= 8 TILE x 8 TILE)
 		oam_copy(oam_mem, obj_buffer, 1);	// only need to update one
 	}
