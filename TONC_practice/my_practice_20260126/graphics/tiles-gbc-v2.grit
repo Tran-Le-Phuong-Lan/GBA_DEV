@@ -1,0 +1,8 @@
+#
+# Carcasonne tiles : 2x8t, 4bpp, Exclude map from output (default), not compressed.
+# -gt: Tiled graphics output (default). 
+# -gB4: Bit depth of the output. Can be 1, 2, 4, 8 or 16. 16 bpp is a truecolor mode, the rest are paletted. 
+# -m!: Exclude map from output (default). 
+# -ps<n>: Starting palette entry
+# -pn<n>: Number of palette entries
+-gt -gB4 -m! -ps0  -pn8
