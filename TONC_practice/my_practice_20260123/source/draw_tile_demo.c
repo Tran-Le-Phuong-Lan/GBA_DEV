@@ -161,7 +161,7 @@ void draw_func()
 		// draw a green tile
 		int cas_r, cas_col;
 		int rand_pal;
-		// u16 map_width_unit_tile = 32;
+		u16 map_width_unit_tile = 32;
 
 		if(key_hit(KEY_A))
 			{
@@ -192,13 +192,14 @@ void draw_func()
 		// redo a wrong green tile	
 		if(key_hit(KEY_B))
 			{
-				// for (cas_r = 0; cas_r < 3; cas_r++)
-				// {
-				// 	for (cas_col=0; cas_col<3; cas_col++)
-				// 	{
-				// 		pse[se_curr + cas_r*map_width_unit_tile + cas_col] = SE_PALBANK(0) | 0;
-				// 	}
-				// }
+				for (cas_r = 0; cas_r < 3; cas_r++)
+				{
+					for (cas_col=0; cas_col<3; cas_col++)
+					{
+						//																	 the TID drawn from `cas_tile_map_id` need `+1` because of a manual-created tile stored at base index 0
+						pse[se_curr + cas_r*map_width_unit_tile + cas_col] = SE_PALBANK(4) | (cas_tile_map_id[rand_pal][cas_r*3 + cas_col]+1);
+					}
+				}
 			};
 				
 		// start timer, wait for 10ms ~ 163 ticks
