@@ -174,18 +174,20 @@ void draw_func()
 		se_curr = (obj_y_coord >> 3)*32 + (obj_x_coord >>3);
 		// draw a green tile
 		int cas_r, cas_col;
-		int rand_pal;
+		int rand_cat, rand_cat_min, rand_cat_max;
 		u16 map_width_unit_tile = 32;
 
-		//if(key_hit(KEY_A))
-		//	{
 		if (current_game_state == PUT_DOWN_TILE)
 		// allow to draw a tile
 		{
 			// update the palette according to Se_index
 			// use the tonc `qran_range` to generate the
 			// random palette.
-			rand_pal = qran_range(0, 8);
+			rand_cat = qran_range(0, 2);
+			// real Carcassonne Tile ID
+			rand_cat = rand_cat << 2;
+			rand_cat_min = rand_cat;
+			rand_cat_max = rand_cat + 3;
 
 			// load the cas graphics into the cas_tile_buffer = buffer of the cursor
 			for (cas_r = 0; cas_r < 3; cas_r++)
@@ -194,7 +196,7 @@ void draw_func()
 				{
 					//				  CBB TILE_index	
 					memcpy32(&tile_mem[4][cas_r*4 + cas_col], 
-						&elem_cas_tile_set[cas_tile_map_id[rand_pal][cas_r*3 + cas_col]], 
+						&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col]], 
 						8 // 1 TILE = 8x u32
 					);
 				}
@@ -208,34 +210,73 @@ void draw_func()
 			// change to a new game state
 			current_game_state = GET_TILE;
 		};
-				
+		
 
 		//	};
 		// put down a tile	
 		int se_idx = 0;
 		int cur_se_tid;
-		if(key_hit(KEY_B))
+		// int rot_dir = 0;
+		if(current_game_state == GET_TILE)
 			{
-				if (current_game_state == GET_TILE)
+				if (key_hit(KEY_A))
 				// allow to put down the drawn tile
 				{
+					cur_se_tid = pse[se_curr] & 0x03FF;
+					// Tile allowed to be put down if the back ground is empty.
+					if (cur_se_tid == 0) 
+					{
+						for (cas_r = 0; cas_r < 3; cas_r++)
+						{
+							for (cas_col=0; cas_col<3; cas_col++)
+							{
+								se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
+								pse[se_idx] = SE_PALBANK(4) | (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1);
+							}
+						}
+
+						// game state is allowed to change only when the tile is put down
+						current_game_state = PUT_DOWN_TILE;
+					};
+
+				}
+				else
+				{
+					// (tonc_input.h) INLINE int key_tri_shoulder()   // R/L : +/-
+					// rot_dir = rot_dir + 1*key_tri_shoulder();
+					if (key_hit(KEY_R))
+					{
+						if ( rand_cat == rand_cat_max)
+							rand_cat = rand_cat_min;
+						else
+							rand_cat = rand_cat + 1;
+					}
+					else if (key_hit(KEY_L))
+					{
+						if (rand_cat == rand_cat_min)
+							rand_cat = rand_cat_max;
+						else
+							rand_cat = rand_cat -1;
+					}
+					else
+					{
+						// nothing
+					};
+					
+					//rand_cat = rand_cat + rot_dir;
+					// load the cas graphics into the cas_tile_buffer = buffer of the cursor
 					for (cas_r = 0; cas_r < 3; cas_r++)
 					{
 						for (cas_col=0; cas_col<3; cas_col++)
 						{
-							se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
-							cur_se_tid = pse[se_idx] & 0x03FF;
-							// Tile allowed to be put down if the back ground is empty.
-							if (cur_se_tid == 0)
-							{
-								pse[se_idx] = SE_PALBANK(4) | (cas_tile_map_id[rand_pal][cas_r*3 + cas_col]+1);
-								
-								// game state is allowed to change only when the tile is put down
-								current_game_state = PUT_DOWN_TILE;
-							};
+							//				  CBB TILE_index	
+							memcpy32(&tile_mem[4][cas_r*4 + cas_col], 
+								&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col]], 
+								8 // 1 TILE = 8x u32
+							);
 						}
 					}
-
+	
 				};
 
 			};
