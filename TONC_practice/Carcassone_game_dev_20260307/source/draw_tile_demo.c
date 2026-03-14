@@ -8,6 +8,8 @@
 #include <tonc.h>
 #include "tiles-gbc-v2.h"
 
+int carcassonne_number_of_tiles = 0; // assume 72 carcasonne tiles
+
 // FSM for game state
 enum GAME_STATE {
 	START,
@@ -169,7 +171,7 @@ void draw_func()
 		obj_x_coord = BFN_GET(cursor->attr1, ATTR1_X);
 		obj_y_coord = BFN_GET(cursor->attr0, ATTR0_Y);
 		// calculate the Se_index, map size 32x32t
-		// >> 3: divided by 8 to convert to unit [tile] (tile = TILE)
+		// >> 3: divided by 8 to convert to unit [tile]
 		//							 32 = width of the map size in unit [tile]	
 		se_curr = (obj_y_coord >> 3)*32 + (obj_x_coord >>3);
 		// draw a green tile
@@ -177,8 +179,8 @@ void draw_func()
 		int rand_cat, rand_cat_min, rand_cat_max;
 		u16 map_width_unit_tile = 32;
 
+		// allow to get a tile
 		if (current_game_state == PUT_DOWN_TILE)
-		// allow to draw a tile
 		{
 			// update the palette according to Se_index
 			// use the tonc `qran_range` to generate the
@@ -212,31 +214,146 @@ void draw_func()
 		};
 		
 
-		//	};
-		// put down a tile	
+		// put allow to draw/putdown a tile
 		int se_idx = 0;
 		int cur_se_tid;
 		// int rot_dir = 0;
 		if(current_game_state == GET_TILE)
 			{
 				if (key_hit(KEY_A))
-				// allow to put down the drawn tile
+				// allow to put down the drawn tile + with conditions
 				{
 					cur_se_tid = pse[se_curr] & 0x03FF;
-					// Tile allowed to be put down if the back ground is empty.
-					if (cur_se_tid == 0) 
+					// Tile allowed to be put down if the back ground is empty, and its the first carcas tile
+					if (cur_se_tid == 0)
 					{
-						for (cas_r = 0; cas_r < 3; cas_r++)
+						if(carcassonne_number_of_tiles == 0)
 						{
-							for (cas_col=0; cas_col<3; cas_col++)
+							for (cas_r = 0; cas_r < 3; cas_r++)
 							{
-								se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
-								pse[se_idx] = SE_PALBANK(4) | (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1);
+								for (cas_col=0; cas_col<3; cas_col++)
+								{
+									se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
+									pse[se_idx] = SE_PALBANK(4) | (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1);
+								}
 							}
-						}
 
-						// game state is allowed to change only when the tile is put down
-						current_game_state = PUT_DOWN_TILE;
+							// game state is allowed to change only when the tile is put down
+							carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
+							current_game_state = PUT_DOWN_TILE;
+						}
+						else
+						{
+							// must be adjacent to another tile, and match its edge
+							//    MSB                      LSB
+							// 0x ADL_ML_ADR_MR_ADB_MB_ADT_MT : cnd_flg
+							// ADx: adjacent @ x (x: Top, Bottom, Right, Left)
+							// Mx: match @ x
+							// 1 = match/ adj; 0 = not match/ not adj
+							// 0x 0000_CL_CR_CB_CT: cnd_chk
+							// Cx: check @ condition x = ADx == 1 & Mx == 1 
+							// 1 = valid; 0 = not valid
+							// => the condition for not first carcassonne tile to be put down
+							// cnd_flg != 0 && cnd_chk == 0x00001111 == 15
+							int cnd_flg = 0x00000000, cnd_chk = 0x00000000;
+							
+							// check AdT and MT => CT
+							int se_indx_top = se_curr - 1*map_width_unit_tile;
+							int se_tid_top = pse[se_indx_top] & 0x03FF;
+							if (se_tid_top != 0 )
+							{
+								cnd_flg = cnd_flg | 0x00000010;
+								int cnt=0;
+									// - middle top tile of obj
+									// - middle tile of bg
+								if ((cas_tile_map_id[rand_cat][0*3 + 1]+1) == (pse[se_indx_top + 1] & 0x03FF))
+								{
+									cnd_chk = cnd_chk | 0x00000001;
+								}  
+			
+							}
+							else // no top adjacent
+							{
+								cnd_chk = cnd_chk | 0x00000001;
+							}
+
+							// check AdB and MB => CB
+							int se_indx_bot = se_curr + 3*map_width_unit_tile;
+							int se_tid_bot = pse[se_indx_bot] & 0x03FF;
+							if (se_tid_bot != 0 )
+							{
+								cnd_flg = cnd_flg | 0x00001000;
+									// - middle bot tile of obj
+									// - middle tile of bg
+								if ((cas_tile_map_id[rand_cat][2*3 + 1]+1) == (pse[se_indx_bot + 1] & 0x03FF))
+								{
+									cnd_chk = cnd_chk | 0x00000010;
+								}  
+							}
+							else // no bot adjacent
+							{
+								cnd_chk = cnd_chk | 0x00000010;
+							}
+
+							// check AdR and MR => CR
+							int se_indx_r = se_curr + 3;
+							int se_tid_r = pse[se_indx_r] & 0x03FF;
+							if (se_tid_r != 0 )
+							{
+								cnd_flg = cnd_flg | 0x00100000;
+							
+								//	miidle r tiles of obj
+								//  middle l tiles of bg
+								if ((cas_tile_map_id[rand_cat][1*3 + 2]+1) == (pse[se_indx_r + 1*map_width_unit_tile] & 0x03FF))
+								{
+									cnd_chk = cnd_chk | 0x00000100;
+								}  
+							}
+							else // no r adjacent
+							{
+								cnd_chk = cnd_chk | 0x00000100;
+							}
+
+							// check AdL and ML => CL
+							int se_indx_l = se_curr - 1;
+							int se_tid_l = pse[se_indx_l] & 0x03FF;
+							if (se_tid_l != 0 )
+							{
+								cnd_flg = cnd_flg | 0x10000000;
+								//	middle l tiles of obj
+								//  middle r tiles of bg
+								if ((cas_tile_map_id[rand_cat][1*3 + 0]+1) == (pse[se_indx_l + 1*map_width_unit_tile] & 0x03FF))
+								{
+									cnd_chk = cnd_chk | 0x00001000;
+								}  
+								
+							}
+							else // no r adjacent
+							{
+								cnd_chk = cnd_chk | 0x00001000;
+							}
+
+							// cnd_flg = 0x00000000 | 0x00001000;
+							// cnd_chk =  0x00001111;
+							// adj and match conds are valid, then allow put down the tile
+							if (cnd_flg != 0 && cnd_chk == 0x00001111)
+							{
+								for (cas_r = 0; cas_r < 3; cas_r++)
+								{
+									for (cas_col=0; cas_col<3; cas_col++)
+									{
+										se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
+										pse[se_idx] = SE_PALBANK(4) | (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1);
+									}
+								}
+
+								// game state is allowed to change only when the tile is put down
+								carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
+								current_game_state = PUT_DOWN_TILE;
+
+							}
+
+						};
 					};
 
 				}
