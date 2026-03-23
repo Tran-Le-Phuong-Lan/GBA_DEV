@@ -211,13 +211,24 @@ void draw_func()
 				{
 					// pse[se_curr] = 2 SAE at once = the current one and the one adjacent to it
 					// , because SAE is 8-bit, while pse[se_curr] is 16-bit.
-					cur_se_tid = pse[se_curr] & 0x00FF;
+					if (sae_curr % 2 == 0)
+					{
+						// lower 8-bit of pse
+						cur_se_tid = pse[se_curr] & 0x00FF;
+					}
+					else
+					{
+						// higer 8-bit of pse
+						cur_se_tid = pse[se_curr] & 0xFF00;
+					}
+					
 					// Tile allowed to be put down if the back ground is empty, and its the first carcas tile
 					if (cur_se_tid == 0)
 					{
 						if(carcassonne_number_of_tiles == 0)
 						{
-							// ERROR !!! -> check the conversion for se_curr
+							// ERROR !!! -> check the conversion for se_curr -> Solved
+							// ERROR !!! finish this function
 							// for (cas_r = 0; cas_r < 3; cas_r++)
 							// {
 							// 	for (cas_col=0; cas_col<3; cas_col++)
@@ -226,9 +237,17 @@ void draw_func()
 							// 		pse[se_idx] = (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1) & 0x00FF;
 							// 	}
 							// }
-									se_idx = se_curr; 
-									pse[se_idx] = (cas_tile_map_id[rand_cat][0*3 + 0]+1) & 0x00FF;
-
+							se_idx = se_curr; 
+							if (sae_curr % 2 == 0)
+							{
+								// write to lower 8-bit of pse, preseve the higher 8-bit of pse
+								pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][0*3 + 0]+1) & 0x00FF);
+							}
+							else
+							{
+								// write higer 8-bit of pse, preserve the lower 8 bit of pse
+								pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][0*3 + 0]+1)<<8)  & 0xFF00);
+							}
 
 							// game state is allowed to change only when the tile is put down
 							carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;

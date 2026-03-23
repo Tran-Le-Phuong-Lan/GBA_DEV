@@ -2,11 +2,41 @@
 
 - bg2 -aff = carcassonne game background, linear map layout (using array row*w + col for addressing SE), 256 color pallete only
 
-    - **SE of aff bg is only 8 bit** ! instead of 16-bit SE in case of reg bg
+    - **SE of aff bg is only 8 bit, which is called SAE (screen affine entry, in TONC). SE, in TONC and in this context, is screen entry of regular background** ! instead of 16-bit SE in case of reg bg
 
     - each **tile in aff bg** is **8x8p@8bpp = DTILE** instead of STILE (8x8p@4bpp)
 
-    - **SE is in VRAM**, which only allows **16-/32-bit write** => each time, we have to **write 2/4 DTILEs at once**
+    - **SE is in VRAM**, which only allows **16-/32-bit write** => each time, we have to **write 2/4 DTILEs at once, DTILE = SAE (screen affine entry).**
+
+    - **on the screen**, we are seeing **SAE tiles** !. The step of **converting pixel unit into Tile unit = converting pixel unit into SAE tile unit**. Because we can not write to VRAM in 8-bit, we need to write to SAE through SE. Therefore, we need to **convert SAE index to SE index in order to use `pse`** (`SCR_ENTRY *bg0_map= se_mem[SBB_0]; SCR_ENTRY *pse= bg0_map;`). see the code below (extracted from the `./source/draw_tile_demo.c`) 
+
+    ```
+    SCR_ENTRY *pse= bg0_map;
+    u16 obj_x_coord, obj_y_coord; // in unit [pixel]
+    u32 se_curr;
+    u32 sae_curr;
+    ...
+    // calculate the Se_index, map size 32x32t
+    // >> 3: divided by 8 to convert to unit [tile]
+    //							 32 = width of the map size in unit [tile]	
+    sae_curr = (obj_y_coord >> 3)*32 + (obj_x_coord >>3);
+    se_curr = sae_curr >> 1;
+    ```
+
+    - Because each time we adress 2 adjacent SAEs at once, in order to write to a specific SAE among the two, the code below (extracted from the `./source/draw_tile_demo.c`) is the solution
+
+    ```
+        if (sae_curr % 2 == 0)
+    {
+        // write to lower 8-bit of pse, preseve the higher 8-bit of pse
+        pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][0*3 + 0]+1) & 0x00FF);
+    }
+    else
+    {
+        // write higer 8-bit of pse, preserve the lower 8 bit of pse
+        pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][0*3 + 0]+1)<<8)  & 0xFF00);
+    }
+    ``` 
 
 - From [GBATEK](https://problemkaputt.de/gbatek.htm#lcdcolorpalettes), 
 
