@@ -45,15 +45,15 @@ BG_AFFINE bgaff;
 // typedef u16 SCR_ENTRY, SE;			//!< Type for screen entries
 SCR_ENTRY *bg0_map= se_mem[SBB_0];
 // int map_width_unit_tile = 128; // [DTILE]
-int map_width_unit_tile = 32;
+int map_width_unit_tile = 128;
 
 void init_reg_bg ()
 {
 	// initialize a background
 	// REG_BG0CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_REG_32x32;
 											  // BG size: 32x32 DTILEs
-	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
-	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_128x128; 
+	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
+	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_128x128; 
 	bgaff= bg_aff_default;
 
 		const TILE8 tiles[1]=
@@ -146,8 +146,8 @@ void draw_func()
 		obj_y_coord = BFN_GET(cursor->attr0, ATTR0_Y);
 		// calculate the Se_index, map size 32x32t
 		// >> 3: divided by 8 to convert to unit [tile]
-		//							 32 = width of the map size in unit [tile]	
-		sae_curr = (obj_y_coord >> 3)*32 + (obj_x_coord >>3);
+		//							 * 32 = width of the map size in unit [tile]	
+		sae_curr = (obj_y_coord >> 3)*map_width_unit_tile + (obj_x_coord >>3);
 		se_curr = sae_curr >> 1;
 		// draw a green tile
 		int cas_r, cas_col;
@@ -594,7 +594,7 @@ int main()
 
 	// 1st row
 	pse_tiles[1*(map_width_unit_tile >> 1) + 0] = 0x1211;
-	pse_tiles[1*16 + 1] = 0x1615; 
+	pse_tiles[1*(map_width_unit_tile >> 1) + 1] = 0x1615; 
 
 	draw_func();
 
