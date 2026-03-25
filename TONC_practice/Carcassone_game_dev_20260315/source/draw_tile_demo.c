@@ -23,7 +23,7 @@ enum GAME_STATE {
 enum GAME_STATE current_game_state = PUT_DOWN_TILE;
 
 // define the access to cacasone-tile map
-typedef u16 CAS_TILE_MAP[9];
+typedef unsigned short CAS_TILE_MAP[9];
 #define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap_v2)
 #define elem_cas_tile_set	((TILE8*)tiles_gbc_v2Tiles)
 
@@ -44,7 +44,8 @@ BG_AFFINE bgaff;
 // typedef u8  SCR_AFF_ENTRY, SAE;		//!< Type for affine screen entries (tonc_types)
 // typedef u16 SCR_ENTRY, SE;			//!< Type for screen entries
 SCR_ENTRY *bg0_map= se_mem[SBB_0];
-u16 map_width_unit_tile = 32; // [DTILE]
+// int map_width_unit_tile = 128; // [DTILE]
+int map_width_unit_tile = 32;
 
 void init_reg_bg ()
 {
@@ -52,6 +53,7 @@ void init_reg_bg ()
 	// REG_BG0CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_REG_32x32;
 											  // BG size: 32x32 DTILEs
 	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
+	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_128x128; 
 	bgaff= bg_aff_default;
 
 		const TILE8 tiles[1]=
@@ -188,20 +190,13 @@ void draw_func()
 			// 			&elem_cas_tile_set[3], 
 			// 			16); // 1 DTILE = 16 x u32
 			
-			// memcpy32(&tile_mem[4][4], 
-			// 			&elem_cas_tile_set[7], 
-			// 			16); // 1 DTILE = 16 x u32
-
-			// memcpy32(&tile_mem[4][2*8 + 2*2], 
-			// 			&elem_cas_tile_set[8], 
-			// 			16); // 1 DTILE = 16 x u32
 			// change to a new game state
 			current_game_state = GET_TILE;
 		};
 		
 
 		// put allow to draw/putdown a tile
-		int se_idx = 0;
+		int se_idx = 0, sea_idx = 0;
 		int cur_se_tid;
 		// int rot_dir = 0;
 		if(current_game_state == GET_TILE)
@@ -227,27 +222,35 @@ void draw_func()
 					{
 						if(carcassonne_number_of_tiles == 0)
 						{
-							// ERROR !!! -> check the conversion for se_curr -> Solved
-							// ERROR !!! finish this function
-							// for (cas_r = 0; cas_r < 3; cas_r++)
+							for (cas_r = 0; cas_r < 3; cas_r++)
+							{
+								for (cas_col=0; cas_col<3; cas_col++)
+								{
+									sea_idx = sae_curr + cas_r*map_width_unit_tile + cas_col; 
+									se_idx = sea_idx >> 1;
+									if (sea_idx % 2 == 0)
+									{
+										// write to lower 8-bit of pse, preseve the higher 8-bit of pse
+										pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1) & 0x00FF);
+									}
+									else
+									{
+										// write higer 8-bit of pse, preserve the lower 8 bit of pse
+										pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1)<<8)  & 0xFF00);
+									}
+								}
+							}
+							// se_idx = se_curr; 
+							// if (sae_curr % 2 == 0)
 							// {
-							// 	for (cas_col=0; cas_col<3; cas_col++)
-							// 	{
-							// 		se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
-							// 		pse[se_idx] = (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1) & 0x00FF;
-							// 	}
+							// 	// write to lower 8-bit of pse, preseve the higher 8-bit of pse
+							// 	pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][0*3 + 0]+1) & 0x00FF);
 							// }
-							se_idx = se_curr; 
-							if (sae_curr % 2 == 0)
-							{
-								// write to lower 8-bit of pse, preseve the higher 8-bit of pse
-								pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][0*3 + 0]+1) & 0x00FF);
-							}
-							else
-							{
-								// write higer 8-bit of pse, preserve the lower 8 bit of pse
-								pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][0*3 + 0]+1)<<8)  & 0xFF00);
-							}
+							// else
+							// {
+							// 	// write higer 8-bit of pse, preserve the lower 8 bit of pse
+							// 	pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][0*3 + 0]+1)<<8)  & 0xFF00);
+							// }
 
 							// game state is allowed to change only when the tile is put down
 							carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
@@ -269,15 +272,41 @@ void draw_func()
 							int cnd_flg = 0x00000000, cnd_chk = 0x00000000;
 							
 							// check AdT and MT => CT
-							int se_indx_top = se_curr - 1*map_width_unit_tile;
-							int se_tid_top = pse[se_indx_top] & 0x03FF;
-							if (se_tid_top != 0 )
+							int sea_indx_top = sae_curr - 1*map_width_unit_tile;
+							int se_indx_top = sea_indx_top >> 1;
+							unsigned short sae_tid_top;
+							int lower_or_higher;
+							lower_or_higher = sea_indx_top % 2; 
+							if (lower_or_higher == 0)
+							{
+								// extract lower 8-bit of pse
+								sae_tid_top = pse[se_indx_top] & 0x00FF;
+							}
+							else
+							{
+								// extract higher 8-bit of pse
+								sae_tid_top = (pse[se_indx_top] & 0xFF00) >> 8;
+							}
+							if (sae_tid_top != 0 )
 							{
 								cnd_flg = cnd_flg | 0x00000010;
-								int cnt=0;
 									// - middle top tile of obj
 									// - middle tile of bg
-								if ((cas_tile_map_id[rand_cat][0*3 + 1]+1) == (pse[se_indx_top + 1] & 0x03FF))
+								int sea_indx_top_next = sea_indx_top + 1;
+								int se_indx_top_next = sea_indx_top_next >> 1;
+								unsigned short sae_tid_top_next;
+								lower_or_higher = sea_indx_top_next % 2;
+								if (lower_or_higher == 0)
+								{
+									// extract lower 8-bit of pse
+									sae_tid_top_next = pse[se_indx_top_next] & 0x00FF;
+								}
+								else
+								{
+									// extract lower 8-bit of pse
+									sae_tid_top_next = (pse[se_indx_top_next] & 0xFF00) >> 8;
+								}
+								if ((cas_tile_map_id[rand_cat][0*3 + 1]+1) == sae_tid_top_next)
 								{
 									cnd_chk = cnd_chk | 0x00000001;
 								}  
@@ -289,14 +318,40 @@ void draw_func()
 							}
 
 							// check AdB and MB => CB
-							int se_indx_bot = se_curr + 3*map_width_unit_tile;
-							int se_tid_bot = pse[se_indx_bot] & 0x03FF;
-							if (se_tid_bot != 0 )
+							int sae_indx_bot = sae_curr + 3*map_width_unit_tile;
+							int se_indx_bot = sae_indx_bot >> 1;
+							lower_or_higher = sae_indx_bot % 2;
+							unsigned short sae_tid_bot;
+							if (lower_or_higher == 0)
+							{
+								// extract lower 8-bit of pse
+								sae_tid_bot = pse[se_indx_bot] & 0x00FF;
+							}
+							else
+							{
+								// extract higher 8-bit of pse
+								sae_tid_bot = (pse[se_indx_bot] & 0xFF00) >> 8;
+							}
+							if (sae_tid_bot != 0 )
 							{
 								cnd_flg = cnd_flg | 0x00001000;
 									// - middle bot tile of obj
 									// - middle tile of bg
-								if ((cas_tile_map_id[rand_cat][2*3 + 1]+1) == (pse[se_indx_bot + 1] & 0x03FF))
+								int sea_indx_bot_next = sae_indx_bot + 1;
+								int se_indx_bot_next = sea_indx_bot_next >> 1;
+								unsigned short sae_tid_bot_next;
+								lower_or_higher = sea_indx_bot_next % 2;
+								if (lower_or_higher == 0)
+								{
+									// extract lower 8-bit of pse
+									sae_tid_bot_next = pse[se_indx_bot_next] & 0x00FF;
+								}
+								else
+								{
+									// extract lower 8-bit of pse
+									sae_tid_bot_next = (pse[se_indx_bot_next] & 0xFF00) >> 8;
+								}
+								if ((cas_tile_map_id[rand_cat][2*3 + 1]+1) == sae_tid_bot_next)
 								{
 									cnd_chk = cnd_chk | 0x00000010;
 								}  
@@ -307,15 +362,41 @@ void draw_func()
 							}
 
 							// check AdR and MR => CR
-							int se_indx_r = se_curr + 3;
-							int se_tid_r = pse[se_indx_r] & 0x03FF;
-							if (se_tid_r != 0 )
+							int sae_indx_r = sae_curr + 3;
+							int se_indx_r = sae_indx_r >> 1;
+							lower_or_higher = sae_indx_r % 2;
+							unsigned short sae_tid_r;
+							if (lower_or_higher == 0)
+							{
+								// extract lower 8-bit of pse
+								sae_tid_r = pse[se_indx_r] & 0x00FF;
+							}
+							else
+							{
+								// extract higher 8-bit of pse
+								sae_tid_r = (pse[se_indx_r] & 0xFF00) >> 8;
+							}
+							if (sae_tid_r != 0 )
 							{
 								cnd_flg = cnd_flg | 0x00100000;
 							
 								//	miidle r tiles of obj
 								//  middle l tiles of bg
-								if ((cas_tile_map_id[rand_cat][1*3 + 2]+1) == (pse[se_indx_r + 1*map_width_unit_tile] & 0x03FF))
+								int sea_indx_r_mid = sae_indx_r + 1*map_width_unit_tile;
+								int se_indx_r_mid = sea_indx_r_mid >> 1;
+								unsigned short sae_tid_r_mid;
+								lower_or_higher = sea_indx_r_mid % 2;
+								if (lower_or_higher == 0)
+								{
+									// extract lower 8-bit of pse
+									sae_tid_r_mid = pse[se_indx_r_mid] & 0x00FF;
+								}
+								else
+								{
+									// extract lower 8-bit of pse
+									sae_tid_r_mid = (pse[se_indx_r_mid] & 0xFF00) >> 8;
+								}
+								if ((cas_tile_map_id[rand_cat][1*3 + 2]+1) == sae_tid_r_mid)
 								{
 									cnd_chk = cnd_chk | 0x00000100;
 								}  
@@ -326,14 +407,40 @@ void draw_func()
 							}
 
 							// check AdL and ML => CL
-							int se_indx_l = se_curr - 1;
-							int se_tid_l = pse[se_indx_l] & 0x03FF;
-							if (se_tid_l != 0 )
+							int sae_indx_l = sae_curr - 1;
+							int se_indx_l = sae_indx_l >> 1;
+							lower_or_higher = sae_indx_l % 2;
+							unsigned short sae_tid_l;
+							if (lower_or_higher == 0)
+							{
+								// extract lower 8-bit of pse
+								sae_tid_l = pse[se_indx_l] & 0x00FF;
+							}
+							else
+							{
+								// extract higher 8-bit of pse
+								sae_tid_l = (pse[se_indx_l] & 0xFF00) >> 8;
+							}
+							if (sae_tid_l != 0 )
 							{
 								cnd_flg = cnd_flg | 0x10000000;
 								//	middle l tiles of obj
 								//  middle r tiles of bg
-								if ((cas_tile_map_id[rand_cat][1*3 + 0]+1) == (pse[se_indx_l + 1*map_width_unit_tile] & 0x03FF))
+								int sea_indx_l_mid = sae_indx_l + 1*map_width_unit_tile;
+								int se_indx_l_mid = sea_indx_l_mid >> 1;
+								unsigned short sae_tid_l_mid;
+								lower_or_higher = sea_indx_l_mid % 2;
+								if (lower_or_higher == 0)
+								{
+									// extract lower 8-bit of pse
+									sae_tid_l_mid = pse[se_indx_l_mid] & 0x00FF;
+								}
+								else
+								{
+									// extract lower 8-bit of pse
+									sae_tid_l_mid = (pse[se_indx_l_mid] & 0xFF00) >> 8;
+								}
+								if ((cas_tile_map_id[rand_cat][1*3 + 0]+1) == sae_tid_l_mid)
 								{
 									cnd_chk = cnd_chk | 0x00001000;
 								}  
@@ -353,8 +460,18 @@ void draw_func()
 								{
 									for (cas_col=0; cas_col<3; cas_col++)
 									{
-										se_idx = se_curr + cas_r*map_width_unit_tile + cas_col; 
-										pse[se_idx] = (cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1);
+										sea_idx = sae_curr + cas_r*map_width_unit_tile + cas_col; 
+										se_idx = sea_idx >> 1;
+										if (sea_idx % 2 == 0)
+										{
+											// write to lower 8-bit of pse, preseve the higher 8-bit of pse
+											pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1) & 0x00FF);
+										}
+										else
+										{
+											// write higer 8-bit of pse, preserve the lower 8 bit of pse
+											pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1)<<8)  & 0xFF00);
+										}
 									}
 								}
 
