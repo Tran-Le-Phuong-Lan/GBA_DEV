@@ -60,4 +60,124 @@
 
         - Inside the folder `graphic_process`: `grit tiles-gbc-v2.png -fts -ff tiles-gbc-v2.grit`
 
+- in this context, tile = 8x8p. GBA screen size = X_Width x Y_Height = 30 x 20 tiles. This could be check by:
+    
+    1. open a game ROM in NO$GGBA: such as tonc-example `brin_demo` -> open the BG view map, count the tiles.
+    
+    2. looking at the tonc-example `sbb_reg`:
 
+```
+		bg0_pt.x += key_tri_horz(); // unit [pixel]
+		bg0_pt.y += key_tri_vert();
+
+		// Testing bg_se_id()
+		// If all goes well the cross should be around the center of
+		// the screen at all times.
+		tx= ((bg0_pt.x>>3)+CROSS_TX) & 0x3F; // unit [tile], because bg0_pt.x>>3 = bg0_pt.x [pixel] / 8 [pixel/ tile] = [tile] 
+                                             // Therefore, the  CROSS_TX and CROSS_TY are also in unit [tile].
+                                             // The author wants to cross to always be in the middle, so CROSS_TX = screen width in unit tile /2 => screen X_Width = 30 [tile]; similarly the CROSS_TY = screen height in unit tile /2 => screen Y_Height = 20 [tile]
+		ty= ((bg0_pt.y>>3)+CROSS_TY) & 0x3F;
+```
+
+- BG2 in mode 1 - aff bg, according to GBATEK:
+
+    - for rolling, BG2 has 4 registers: 
+
+```
+4000028h - BG2X_L - BG2 Reference Point X-Coordinate, lower 16 bit (W)
+400002Ah - BG2X_H - BG2 Reference Point X-Coordinate, upper 12 bit (W)
+400002Ch - BG2Y_L - BG2 Reference Point Y-Coordinate, lower 16 bit (W)
+400002Eh - BG2Y_H - BG2 Reference Point Y-Coordinate, upper 12 bit (W)
+
+  Bit   Expl.
+  0-7   Fractional portion (8 bits)
+  8-26  Integer portion    (19 bits)
+  27    Sign               (1 bit)
+  28-31 Not used
+
+Because values are shifted left by eight, fractional portions may be specified in steps of 1/256 pixels (this would be relevant only if the screen is actually rotated or scaled). Normal signed 32bit values may be written to above registers (the most significant bits will be ignored and the value will be cut-down to 28bits, but this is no actual problem because signed values have set all MSBs to the same value).
+```
+- with practice in `./source/draw_tile_demo.c`, **in simple case**, we do **not roate/scale the bg**, so the **bit 8-26 integer potion of the `REG_BGX` and `REG_BG_Y` =** value in **pixel unit** movement.
+
+    - **IMPORTANT**: the inital position of the sprite is relative to the screen position, because when the screen is moved, the sprite is also moved the same distance refering to the map/text/static graphic background.
+
+```
+BG_AFFINE bgaff;
+//-- tonc_types.h
+//! Affine parameters for backgrounds; range : 0400:0020 - 0400:003F
+typedef struct AFF_DST_EX BG_AFFINE;
+typedef struct AFF_DST_EX
+{
+	s16 pa, pb;
+	s16 pc, pd;
+	s32 dx, dy;
+} ALIGN4 AFF_DST_EX, BgAffineDest;
+.....
+bgaff= bg_aff_default;
+//-- tonc_core.c
+const BG_AFFINE bg_aff_default= { 256, 0, 0, 256, 0, 0 };
+....
+AFF_SRC_EX asx=
+{
+    32<<8, 64<<8,			// Map coords.
+    120, 80,				// Screen coords.
+    0x0100, 0x0100, 0		// Scales and angle.
+};
+
+// dir + A : move map in screen coords
+if(key_is_down(KEY_A))
+{
+    asx.scr_x += key_tri_horz();
+    asx.scr_y += key_tri_vert();
+}
+else	// dir : move map in map coords
+{
+    asx.tex_x -= DX*key_tri_horz();
+    asx.tex_y -= DX*key_tri_vert();
+}
+
+bg_rotscale_ex(&bgaff, &asx);
+REG_BG_AFFINE[2]= bgaff;
+
+//-- tonc_types.h
+typedef struct AFF_SRC_EX
+{
+	s32 tex_x;	//!< Texture-space anchor, x coordinate	(.8f)
+	s32 tex_y;	//!< Texture-space anchor, y coordinate	(.8f)
+	s16 scr_x;	//!< Screen-space anchor, x coordinate	(.0f)
+	s16 scr_y;	//!< Screen-space anchor, y coordinate	(.0f)
+	s16 sx;		//!< Horizontal zoom	(8.8f)
+	s16 sy;		//!< Vertical zoom		(8.8f)
+	u16 alpha;	//!< Counter-clockwise angle ( range [0, 0xFFFF] )
+} ALIGN4 AFF_SRC_EX, BgAffineSource;
+
+//-- tonc_memmap.h
+//! \name Affine background parameters. (write only!)
+#define REG_BG_AFFINE		((BG_AFFINE*)(REG_BASE+0x0000))	//!< Bg affine array
+
+//-- tonc_video.h
+void bg_rotscale_ex(BG_AFFINE *bgaff, const AFF_SRC_EX *asx);
+
+//-- tonc_legacy.h 
+#define bga_rs_ex				bg_rotscale_ex
+
+//-- tonc_bg_affine.c
+void bg_rotscale_ex(BG_AFFINE *bgaff, const AFF_SRC_EX *asx)
+{
+	int sx= asx->sx, sy= asx->sy;
+	int sina= lu_sin(asx->alpha), cosa= lu_cos(asx->alpha);
+
+	FIXED pa, pb, pc, pd;
+	pa=  sx*cosa>>12;	pb=-sx*sina>>12;	// .8f
+	pc=  sy*sina>>12;	pd= sy*cosa>>12;	// .8f
+	
+	bgaff->pa= pa;	bgaff->pb= pb;
+	bgaff->pc= pc;	bgaff->pd= pd;
+
+	bgaff->dx= asx->tex_x - (pa*asx->scr_x + pb*asx->scr_y);
+	bgaff->dy= asx->tex_y - (pc*asx->scr_x + pd*asx->scr_y);
+}
+
+
+        
+```

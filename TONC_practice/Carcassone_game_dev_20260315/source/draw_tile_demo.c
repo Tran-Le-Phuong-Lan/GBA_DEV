@@ -1,8 +1,8 @@
 //
-// obj_demo.c
-// testing various sprite related things
-//
-// (20031003 - 20060924, Cearn)
+// reference: obj_demo.c, sbb_aff.c, 
+// Carcassonne GBA
+// 20250115 - , Tran Le Phuong Lan & David Guttandin
+// 
 
 #include <string.h>
 #include <tonc.h>
@@ -54,7 +54,14 @@ void init_reg_bg ()
 											  // BG size: 32x32 DTILEs
 	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
 	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_128x128; 
-	bgaff= bg_aff_default;
+	// set the initial position of the screen
+	bgaff.pa = bg_aff_default.pa;
+	bgaff.pb = bg_aff_default.pb;
+	bgaff.pc = bg_aff_default.pc;
+	bgaff.pd = bg_aff_default.pd;
+	bgaff.dx = 32<<8; // = 24 [pixel] to the right 
+	bgaff.dy = 0<<8;
+	REG_BG_AFFINE[2]= bgaff;
 
 		const TILE8 tiles[1]=
 	{
@@ -100,7 +107,17 @@ void init_reg_obj ()
 
 void draw_func()
 {
-	int x= 0, y= 0; // [pixel]
+	// aff bg
+	// AFF_SRC_EX asx=
+	// {
+	// 	32<<8, 64<<8,			// Map coords.
+	// 	0, 0,				// Screen coords.
+	// 	0x0100, 0x0100, 0		// Scales and angle.
+	// };
+
+	// obj
+	// set the inital position of the cursor sprite
+	int x= 232, y= 0; // [pixel] 
 
 	u32 tid= 0, pb= 0;		// tile id, pal-bank
 
