@@ -101,6 +101,8 @@ Because values are shifted left by eight, fractional portions may be specified i
 
     - **IMPORTANT**: the inital position of the sprite is relative to the screen position, because when the screen is moved, the sprite is also moved the same distance refering to the map/text/static graphic background.
 
+    - default reference **point (0,0) of the map/ screen is upper left pixel**, **right = positive x** direction, **down = positive y** direction
+
 ```
 BG_AFFINE bgaff;
 //-- tonc_types.h
@@ -174,10 +176,9 @@ void bg_rotscale_ex(BG_AFFINE *bgaff, const AFF_SRC_EX *asx)
 	bgaff->pa= pa;	bgaff->pb= pb;
 	bgaff->pc= pc;	bgaff->pd= pd;
 
-	bgaff->dx= asx->tex_x - (pa*asx->scr_x + pb*asx->scr_y);
-	bgaff->dy= asx->tex_y - (pc*asx->scr_x + pd*asx->scr_y);
+	bgaff->dx= asx->tex_x - (pa*asx->scr_x + pb*asx->scr_y); // scr_x = dx = REG_BGX ?
+	bgaff->dy= asx->tex_y - (pc*asx->scr_x + pd*asx->scr_y); // scr_y = dy = REG_BGY ?
 }
-
 
         
 ```
