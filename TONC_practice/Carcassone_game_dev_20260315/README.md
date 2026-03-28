@@ -179,6 +179,7 @@ void bg_rotscale_ex(BG_AFFINE *bgaff, const AFF_SRC_EX *asx)
 	bgaff->dx= asx->tex_x - (pa*asx->scr_x + pb*asx->scr_y); // scr_x = dx = REG_BGX ?
 	bgaff->dy= asx->tex_y - (pc*asx->scr_x + pd*asx->scr_y); // scr_y = dy = REG_BGY ?
 }
-
-        
+     
 ```
+
+- Try to modify global variable (outside of the `while(1)` -main game loop) causes corrupted data somewhere -> make the whole rom fails !

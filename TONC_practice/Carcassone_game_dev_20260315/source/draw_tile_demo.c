@@ -31,74 +31,72 @@ typedef unsigned short CAS_TILE_MAP[9];
 
 #define CAR_CAT 32 // cacarcasonne category number (tile with different graphic features)
 
-// int car_cat_max[32] = {
-// 	// CAT 1
-// 	8,
-// 	// CAT 2
-// 	1,
-// 	// CAT 3
-// 	7,
-// 	// CAT 4
-// 	1,
-// 	// CAT 5
-// 	4,
-// 	// CAT 6
-// 	1,
-// 	// CAT 7
-// 	4,
-// 	// CAT 8
-// 	2,
-// 	// CAT 9
-// 	4,
-// 	// CAT 10
-// 	1,
-// 	// CAT 11
-// 	3,
-// 	// CAT 12
-// 	3,
-// 	// CAT 13
-// 	1,
-// 	// CAT 14
-// 	1,
-// 	// CAT 15
-// 	2,
-// 	// CAT 16
-// 	1,
-// 	// CAT 17
-// 	4,
-// 	// CAT 18
-// 	3,
-// 	// CAT 19
-// 	2,
-// 	// CAT 20
-// 	1,
-// 	// CAT 21
-// 	1,
-// 	// CAT 22
-// 	1,
-// 	// CAT 23
-// 	3,
-// 	// CAT 24
-// 	2,
-// 	// CAT 25
-// 	1,
-// 	// CAT 26
-// 	2,
-// 	// CAT 27
-// 	1,
-// 	// CAT 28
-// 	2,
-// 	// CAT 29
-// 	1,
-// 	// CAT 30
-// 	1,
-// 	// CAT 31
-// 	1,
-// 	// CAT 32
-// 	2
-// };
-
-// int car_cat_track[32] = {0};
+int car_cat_max[32] = {
+	// CAT 17
+	4,
+	// CAT 1
+	8,
+	// CAT 2
+	1,
+	// CAT 3
+	7,
+	// CAT 4
+	1,
+	// CAT 5
+	4,
+	// CAT 6
+	1,
+	// CAT 7
+	4,
+	// CAT 8
+	2,
+	// CAT 9
+	4,
+	// CAT 10
+	1,
+	// CAT 11
+	3,
+	// CAT 12
+	3,
+	// CAT 13
+	1,
+	// CAT 14
+	1,
+	// CAT 15
+	2,
+	// CAT 16
+	1,
+	// CAT 18
+	3,
+	// CAT 19
+	2,
+	// CAT 20
+	1,
+	// CAT 21
+	1,
+	// CAT 22
+	1,
+	// CAT 23
+	3,
+	// CAT 24
+	2,
+	// CAT 25
+	1,
+	// CAT 26
+	2,
+	// CAT 27
+	1,
+	// CAT 28
+	2,
+	// CAT 29
+	1,
+	// CAT 30
+	1,
+	// CAT 31
+	1,
+	// CAT 32
+	2
+};
 
 // ===========
 // OBJ/ SPRITE
@@ -183,6 +181,8 @@ void init_reg_obj ()
 
 void draw_func()
 {
+	int car_cat_track[32] = {0};
+
 	// === aff bg
 	AFF_SRC_EX asx=
 	{
@@ -273,7 +273,7 @@ void draw_func()
 		se_curr = sae_curr >> 1;
 		// draw a green tile
 		int cas_r, cas_col;
-		int rand_cat, rand_cat_min, rand_cat_max;
+		int rand_cat, rand_cat_min, rand_cat_max, rand_cat_id;
 
 		// game start
 		if (current_game_state == START)
@@ -302,7 +302,7 @@ void draw_func()
 
 			// game state is allowed to change only when the tile is put down
 			carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
-			// car_cat_track[0] = car_cat_track[0] + 1; 
+			car_cat_track[0] = car_cat_track[0] + 1; 
 			current_game_state = PUT_DOWN_TILE;
 		}
 
@@ -313,11 +313,13 @@ void draw_func()
 			// use the tonc `qran_range` to generate the
 			// random Carcassonne category.
 			rand_cat = qran_range(0, CAR_CAT);
+			rand_cat_id = rand_cat;
 				// generate another carcasonne category, if the generated category is out of tiles.
-			// while(car_cat_track[rand_cat] == car_cat_max[rand_cat])
-			// {
-			// 	rand_cat = qran_range(0, CAR_CAT);
-			// }
+			while(car_cat_track[rand_cat_id] == car_cat_max[rand_cat_id])
+			{
+				rand_cat = qran_range(0, CAR_CAT);
+				rand_cat_id = rand_cat;
+			}
 			// real Carcassonne Tile ID
 			rand_cat = rand_cat << 2;
 			rand_cat_min = rand_cat;
@@ -629,7 +631,8 @@ void draw_func()
 
 							// game state is allowed to change only when the tile is put down
 							carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
-							// car_cat_track[rand_cat] = car_cat_track[rand_cat] + 1;
+							// ERROR !!!
+							car_cat_track[rand_cat_id] = car_cat_track[rand_cat_id] + 1;
 							current_game_state = PUT_DOWN_TILE;
 
 						}
