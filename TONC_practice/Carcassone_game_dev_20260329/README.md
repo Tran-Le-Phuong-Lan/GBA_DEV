@@ -238,3 +238,7 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 #define BLDY_BUILD(ey)				\
 	( (ey)&31 )
 ```
+
+- PROBLEM: the meeple must be on another bg from the bg 2 used for the whole map. BUT the biggest size regular/text background can have is 512x512 [pixel], so we have the change the bg 2 size to 512 x 512 [pixel] => with this 512 x 512 pixel aff bg, the map is too small for the game.
+
+    - To solve the problem: we need to allow bg wrapping + real time rendering.

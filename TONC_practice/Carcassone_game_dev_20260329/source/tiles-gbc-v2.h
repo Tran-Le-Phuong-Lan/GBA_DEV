@@ -23,9 +23,6 @@ extern const unsigned int tiles_gbc_v2Tiles[432];
 #define tiles_gbc_v2PalLen 512
 extern const unsigned short tiles_gbc_v2Pal[256];
 
-#define tiles_gbc_v2MapLen 256
-extern const unsigned short tiles_gbcMap_v2[128];
-
 #endif // GRIT_TILES_GBC_V2_H
 
 //}}BLOCK(tiles_gbc_v2)

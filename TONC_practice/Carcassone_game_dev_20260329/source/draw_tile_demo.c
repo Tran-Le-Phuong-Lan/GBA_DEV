@@ -6,7 +6,8 @@
 
 #include <string.h>
 #include <tonc.h>
-#include "tiles-gbc-v2.h"
+#include "tiles-carcas_v20260329.h"
+#include "carcas_data.h"
 
 // ===========
 // CARCASSONNE GAME RULES
@@ -19,6 +20,7 @@ enum GAME_STATE {
 	START,
 	GET_TILE,
 	PUT_DOWN_TILE,
+	MEEPLE,
 	END
 };
 
@@ -27,7 +29,7 @@ enum GAME_STATE current_game_state = START;
 // define the access to cacasone-tile map
 typedef unsigned short CAS_TILE_MAP[9];
 #define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap_v2)
-#define elem_cas_tile_set	((TILE8*)tiles_gbc_v2Tiles)
+#define elem_cas_tile_set	((TILE8*)tiles_carcas_v20260329Tiles)
 
 #define CAR_CAT 32 // cacarcasonne category number (tile with different graphic features)
 
@@ -104,13 +106,16 @@ int car_cat_max[32] = {
 OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
+#define INIT_OBJ_X 104 // [pixel]
+#define INIT_OBJ_Y 56
+
 // ===========
 // BG
 // ===========
 BG_AFFINE bgaff; // .8f = the last eight bit representing the fractional, 1 fraction = 1/256 [pixel]
 
-#define INIT_SCR_X_OFF  0x0188 // = 392 [pixel]
-#define INIT_SCR_Y_OFF  0x01B0 // = 432 [pixel]
+#define INIT_BG_X_OFF  0x0088 // = 136 [pixel]
+#define INIT_BG_Y_OFF  0x00B0 // = 176 [pixel]
 
 #define CBB_0  0
 // 1 CBB = 8 SBBs
@@ -121,8 +126,8 @@ BG_AFFINE bgaff; // .8f = the last eight bit representing the fractional, 1 frac
 // typedef u8  SCR_AFF_ENTRY, SAE;		//!< Type for affine screen entries (tonc_types)
 // typedef u16 SCR_ENTRY, SE;			//!< Type for screen entries
 SCR_ENTRY *bg0_map= se_mem[SBB_0];
-// aff bg 128 x 128 tile = 8 SBBs 
-int map_width_unit_tile = 128; // [DTILE]
+// aff bg 64 x 64 tile = 2 SBBs 
+int map_width_unit_tile = 64; // [DTILE]
 
 // ===========
 // BG TEXT
@@ -154,14 +159,14 @@ void init_reg_bg ()
 	// REG_BG0CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_REG_32x32;
 											  // BG size: 32x32 DTILEs
 	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
-	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_128x128; 
+	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_64x64 | BG_WRAP; 
 	// set the initial position of the screen
 	bgaff.pa = bg_aff_default.pa;
 	bgaff.pb = bg_aff_default.pb;
 	bgaff.pc = bg_aff_default.pc;
 	bgaff.pd = bg_aff_default.pd;
-	bgaff.dx = INIT_SCR_X_OFF<<8; // = 24 [pixel] to the right 
-	bgaff.dy = INIT_SCR_Y_OFF<<8;
+	bgaff.dx = INIT_BG_X_OFF<<8; // = 24 [pixel] to the right 
+	bgaff.dy = INIT_BG_Y_OFF<<8;
 	REG_BG_AFFINE[2]= bgaff;
 
 		const TILE8 tiles[1]=
@@ -184,10 +189,10 @@ void init_reg_bg ()
 	// into VRAM: cbb == 0
 	tile8_mem[CBB_0][0] = tiles[0];
 	// tid for Carcassonne graphic starts from 1, tid 0 is the bg tile.
-	memcpy32(&tile8_mem[CBB_0][1], tiles_gbc_v2Tiles, tiles_gbc_v2TilesLen/sizeof(u32));
+	memcpy32(&tile8_mem[CBB_0][1], tiles_carcas_v20260329Tiles, tiles_carcas_v20260329TilesLen/sizeof(u32));
 
 	// no palette, only 256 colors
-	memcpy32(pal_bg_mem, tiles_gbc_v2Pal, tiles_gbc_v2PalLen/sizeof(u32));
+	memcpy32(pal_bg_mem, tiles_carcas_v20260329Pal, tiles_carcas_v20260329PalLen/sizeof(u32));
 
 }
 
@@ -196,7 +201,7 @@ void init_reg_obj ()
 	// SPrite is 8x8p@8bpp, bcz it shares data with the background (8x8p@8bpp)
 
 	// load in 256 palette (shared data with the background), 
-	memcpy32(pal_obj_mem, tiles_gbc_v2Pal, tiles_gbc_v2PalLen/sizeof(u32));
+	memcpy32(pal_obj_mem, tiles_carcas_v20260329Pal, tiles_carcas_v20260329PalLen/sizeof(u32));
 	
 	
 	// Place the cursor/sprite
@@ -213,14 +218,14 @@ void draw_func()
 	// === aff bg
 	AFF_SRC_EX asx=
 	{
-		INIT_SCR_X_OFF<<8, INIT_SCR_Y_OFF<<8,			// Map coords.
+		INIT_BG_X_OFF<<8, INIT_BG_Y_OFF<<8,			// Map coords.
 		0, 0,				// Screen coords.
 		0x0100, 0x0100, 0		// Scales (= x1) and angle (= 0 degree).
 	};
 
 	// ==== obj
 	// set the inital position of the cursor sprite
-	int x= 104, y= 56; // [pixel] 
+	int x= INIT_OBJ_X, y= INIT_OBJ_Y; // [pixel] 
 
 	u32 tid= 0, pb= 0;		// tile id, pal-bank
 
@@ -255,6 +260,8 @@ void draw_func()
 		
 		// === obj
 		u16 obj_x_coord, obj_y_coord; // in unit [pixel]
+		int obj_x_min=INIT_OBJ_X, obj_x_max=INIT_OBJ_X + 2*8, // 2 tiles * 8 pixel per tile 
+			obj_y_min=INIT_OBJ_Y, obj_y_max=INIT_OBJ_Y + 2*8;
 
 		// === BG
 		SCR_ENTRY *pse= bg0_map;
@@ -268,26 +275,59 @@ void draw_func()
 		if (REG_TM3D != sec)
 		{
 			sec = REG_TM3D;
-			// == OBJ, moving relative to the screen = screen is static
-			// left/right
-			x += 0; // 24*key_tri_horz(); // [pixel]
-			// move up/down
-			y += 0; // 24*key_tri_vert(); // [pixel]
-			obj_set_pos(cursor, x, y);
-			
-			// == BG rolling, i am moving the map, the screen/camera is static
-			asx.tex_x += (24*key_tri_horz()) << 8;
-			asx.tex_y += (24*key_tri_vert()) << 8;
 
-			// == SCR rolling, i am moving the screen, the map is static
-			// scr_x_offset = 24*key_tri_horz();  // [pixel]
-			// scr_y_offset = 24*key_tri_vert(); 
-			// asx.scr_x += (scr_x_offset); // converted to unit [pixel] for REG_BGX
-			// asx.scr_y += (scr_y_offset); // converted to unit [pixel] for REG_BGY
+			if (current_game_state == MEEPLE)
+			{
+				// == OBJ, moving relative to the screen = screen is static
+				// left/right
+				x += 8*key_tri_horz(); // [pixel]
+				// move up/down
+				y += 8*key_tri_vert(); // [pixel]
+				if (x > obj_x_max)
+				{
+					x = obj_x_max;
+				}
+				if (x < obj_x_min)
+				{
+					x = obj_x_min;
+				}
+				if (y > obj_y_max)
+				{
+					y = obj_y_max;
+				}
+				if (y < obj_y_min)
+				{
+					y = obj_y_min;
+				}
+				obj_set_pos(cursor, x, y);
 
-			bg_rotscale_ex(&bgaff, &asx);
-			REG_BG_AFFINE[2]= bgaff;
+				// BG MUST BE STATIC
+			}
+
 			
+			if (current_game_state == PUT_DOWN_TILE)
+			{
+				// === allow bg rolling, sprite static
+				x += 0; // 24*key_tri_horz(); // [pixel]
+				// move up/down
+				y += 0; // 24*key_tri_vert(); // [pixel]
+				obj_set_pos(cursor, x, y);
+				
+				// == BG rolling, i am moving the map, the screen/camera is static
+				asx.tex_x += (24*key_tri_horz()) << 8;
+				asx.tex_y += (24*key_tri_vert()) << 8;
+
+				// == SCR rolling, i am moving the screen, the map is static
+				// scr_x_offset = 24*key_tri_horz();  // [pixel]
+				// scr_y_offset = 24*key_tri_vert(); 
+				// asx.scr_x += (scr_x_offset); // converted to unit [pixel] for REG_BGX
+				// asx.scr_y += (scr_y_offset); // converted to unit [pixel] for REG_BGY
+
+				bg_rotscale_ex(&bgaff, &asx);
+				REG_BG_AFFINE[2]= bgaff;
+
+			}
+
 		}
 
 		// get the cursor (object) position (using Tonc BF_GET())
@@ -330,11 +370,11 @@ void draw_func()
 			// game state is allowed to change only when the tile is put down
 			carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
 			car_cat_track[0] = car_cat_track[0] + 1; 
-			current_game_state = PUT_DOWN_TILE;
+			current_game_state = GET_TILE;
 		}
 
 		// allow to get a tile, only if there is still carcassonne tiles to take
-		if (current_game_state == PUT_DOWN_TILE && carcassonne_number_of_tiles < CAR_TILES_MAX)
+		if (current_game_state == GET_TILE && carcassonne_number_of_tiles < CAR_TILES_MAX)
 		{
 			// update the palette according to Se_index
 			// use the tonc `qran_range` to generate the
@@ -366,12 +406,12 @@ void draw_func()
 			}
 			
 			// change to a new game state
-			current_game_state = GET_TILE;
+			current_game_state = PUT_DOWN_TILE;
 		};
 		
 
 		// put allow to draw/putdown a tile
-		if(current_game_state == GET_TILE && carcassonne_number_of_tiles < CAR_TILES_MAX)
+		if(current_game_state == PUT_DOWN_TILE && carcassonne_number_of_tiles < CAR_TILES_MAX)
 			{
 				int se_idx = 0, sea_idx = 0;
 				int cur_se_tid;
@@ -659,7 +699,8 @@ void draw_func()
 							// game state is allowed to change only when the tile is put down
 							carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
 							car_cat_track[rand_cat_id] = car_cat_track[rand_cat_id] + 1;
-							current_game_state = PUT_DOWN_TILE;
+							// current_game_state = MEEPLE;
+							current_game_state = GET_TILE;
 
 						}
 
@@ -706,6 +747,55 @@ void draw_func()
 				};
 
 			};
+		
+		// if (current_game_state == MEEPLE && carcassonne_number_of_tiles < CAR_TILES_MAX)
+		// {
+		// 		const TILE8 transparent_tiles[1]=
+		// 	{
+		// 		// bg tile8: 8bit/pixel = 2hex/pixel
+		// 		// {{0x10000001, 0x01111110, 0x01111110, 0x01111110,
+		// 		//   0x01111110, 0x01111110, 0x01111110, 0x10000001}},
+
+		// 	{{0x00000000, 0x00000000, 
+		// 	  0x00000000, 0x00000000,
+		// 	  0x00000000, 0x00000000, 
+		// 	  0x00000000, 0x00000000,
+		// 	  0x00000000, 0x00000000, 
+		// 	  0x00000000, 0x00000000,
+		// 	  0x00000000, 0x00000000, 
+		// 	  0x00000000, 0x00000000}}
+		// 	};
+
+		// 	// load the cas graphics into the buffer of the cursor: the meeple
+		// 	for (cas_r = 0; cas_r < 3; cas_r++)
+		// 	{
+		// 		for (cas_col=0; cas_col<3; cas_col++)
+		// 		{
+		// 			if (cas_r == 0 && cas_col == 0)
+		// 			{
+		// 				// meeple TID = 26 [index in .s file]
+		// 				memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+		// 					&elem_cas_tile_set[26], 
+		// 					16 // 1 DTILE = 16 x u32
+		// 				);						
+		// 			}
+		// 			else
+		// 			{
+		// 				//  transparent tile
+		// 				memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+		// 					&transparent_tiles[0], 
+		// 					16 // 1 DTILE = 16 x u32
+		// 				);					
+		// 			}
+
+		// 		}
+		// 	}
+		// 	if (key_hit(KEY_A))
+		// 	{
+		// 		// put down the meeple -> on another background, otherwise the graphic is BAD
+		// 		// change game state
+		// 	}
+		// }
 		
 		if (carcassonne_number_of_tiles == CAR_TILES_MAX)
 		{
