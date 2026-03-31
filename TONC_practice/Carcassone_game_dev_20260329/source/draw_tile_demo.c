@@ -128,6 +128,7 @@ BG_AFFINE bgaff; // .8f = the last eight bit representing the fractional, 1 frac
 SCR_ENTRY *bg0_map= se_mem[SBB_0];
 // aff bg 64 x 64 tile = 2 SBBs 
 int map_width_unit_tile = 64; // [DTILE]
+int map_height_unit_tile = 64; // [DTILE]
 
 // ===========
 // BG TEXT
@@ -138,6 +139,48 @@ int map_width_unit_tile = 64; // [DTILE]
 // ==========
 // FUNCS
 // ==========
+// [ctile] = 3x3 [tile]
+// [tile] = 8x8 [pixel]
+//					 = sae_curr_x		= sae_curr_y
+void map_tile_to_ctile (int tile_dx, int tile_dy, s32* ctile_dx, s32* ctile_dy)
+{
+	s32 REFERENCE_CTILE = 20; // [ctile], ctile_dx = 20, ctile_dy=20, bcz index starts from 0
+	s32 INIT_TILE_DX = (INIT_OBJ_X + (INIT_BG_X_OFF)) >> 3; // [tile]
+	s32 INIT_TILE_DY = (INIT_OBJ_Y + (INIT_BG_Y_OFF)) >> 3; //
+
+	*ctile_dx = ((tile_dx - INIT_TILE_DX)/3) + REFERENCE_CTILE;
+	*ctile_dy = ((tile_dy - INIT_TILE_DY)/3) + REFERENCE_CTILE;  
+}
+
+void map_ctile_to_tile (s32 ctile_dx, s32 ctile_dy, s32* tile_dx, s32* tile_dy)
+{
+	// must be within the bg size
+	s32 REFERENCE_CTILE = 20; // [ctile], ctile_dx = 20, ctile_dy=20, bcz index starts from 0
+	s32 INIT_TILE_DX = (INIT_OBJ_X + (INIT_BG_X_OFF)) >> 3; // tile
+	s32 INIT_TILE_DY = (INIT_OBJ_Y + (INIT_BG_Y_OFF)) >> 3; // 
+
+
+	*tile_dx = (ctile_dx - REFERENCE_CTILE) * 3 + INIT_TILE_DX;
+	if (*tile_dx > map_width_unit_tile) 
+	{
+		*tile_dx = *tile_dx - map_width_unit_tile;
+	}
+	if (*tile_dx < 0)
+	{
+		*tile_dx = map_width_unit_tile + *tile_dx;
+	}
+
+	*tile_dy = (ctile_dy - REFERENCE_CTILE)*3 + INIT_TILE_DY;
+	if (*tile_dy > map_height_unit_tile) 
+	{
+		*tile_dy = *tile_dy - map_height_unit_tile;
+	}
+	if (*tile_dy < 0)
+	{
+		*tile_dy = map_height_unit_tile + *tile_dy;
+	}  
+}
+
 void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 {
 	REG_WIN0H= left<<8 | right; 
@@ -159,7 +202,8 @@ void init_reg_bg ()
 	// REG_BG0CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_REG_32x32;
 											  // BG size: 32x32 DTILEs
 	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
-	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_64x64 | BG_WRAP; 
+	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_64x64 | BG_WRAP;
+	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_64x64; 
 	// set the initial position of the screen
 	bgaff.pa = bg_aff_default.pa;
 	bgaff.pb = bg_aff_default.pb;
@@ -213,7 +257,11 @@ void init_reg_obj ()
 
 void draw_func()
 {
+	// === Carcassonne data
 	int car_cat_track[32] = {0};
+	// (virtual/conceptual) carcassonne map = 41 x 41 ctiles = 1681.
+	// graphical stored tiles in VRAM, the transparent TID =29.
+	int carcassonne_full_map[1681] = {[0 ... 1680]=29};
 
 	// === aff bg
 	AFF_SRC_EX asx=
@@ -836,9 +884,24 @@ void draw_func()
 		oam_copy(oam_mem, obj_buffer, 1);	// only need to update one
 
 		// write text
-		tte_printf("#{es;P}Tile ID: %d %d/%d\t\nLeft: %d/%d",
-			rand_cat_id, car_cat_track[rand_cat_id], car_cat_max[rand_cat_id],
-			carcassonne_number_of_tiles, CAR_TILES_MAX);
+		s32 ctile_idx=0, ctile_idy=0;
+		s32 render_tile_idx=0, render_tile_idy=0;
+		int sae_curr_x = (obj_x_coord + (bgaff.dx >> 8)) >>3, sae_curr_y = (obj_y_coord+ (bgaff.dy >> 8)) >> 3;
+		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
+		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy);
+		// tte_printf("#{es;P}Tile ID#: %d\t\nLeft: %d/%d - %d/%d - bgdx/y: %ld/%ld %ld/%ld\nctile_dx/y: %ld/%ld - tile_idx/y: %ld/%ld",
+		// 	rand_cat_id, 
+		// 	car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
+		// 	carcassonne_number_of_tiles, CAR_TILES_MAX,
+		// 	bgaff.dx >> 8, (bgaff.dx >> 8)/3, bgaff.dy >> 8,(bgaff.dy >> 8)/3,
+		// 	ctile_idx, ctile_idy,
+		// 	tile_idx, tile_idy);
+		tte_printf("#{es;P}Tile ID#: %d\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld - car_ID: %d",
+			rand_cat_id, 
+			sae_curr_x, sae_curr_y,
+			ctile_idx, ctile_idy,
+			render_tile_idx, render_tile_idy,
+			carcassonne_full_map[ctile_idx*41 + ctile_idy]);
 	}
 }
 

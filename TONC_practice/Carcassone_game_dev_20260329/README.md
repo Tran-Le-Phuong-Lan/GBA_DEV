@@ -239,6 +239,17 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 	( (ey)&31 )
 ```
 
-- PROBLEM: the meeple must be on another bg from the bg 2 used for the whole map. BUT the biggest size regular/text background can have is 512x512 [pixel], so we have the change the bg 2 size to 512 x 512 [pixel] => with this 512 x 512 pixel aff bg, the map is too small for the game.
+- **PROBLEM**: the meeple must be on another bg from the bg 2 used for the whole map. BUT the biggest size regular/text background can have is 512x512 [pixel], so we have the change the bg 2 size to 512 x 512 [pixel] => with this 512 x 512 pixel aff bg, the map is too small for the game.
 
-    - To solve the problem: we need to allow bg wrapping + real time rendering.
+    - **To solve the problem**: we need to allow bg wrapping + real time rendering.
+
+    - Assume a conceptual ctile (i.e Carcassonne tile = 3x3 tile) map : width = height = 41 ctile. The position of the 0th ctile @ relatively on the middle of the screen and the screen is relatively on the middle of the bg map = the 21th ctile (on both axes) of the conceptual ctile map. This 21th ctile is used as reference:
+
+        1. Bg rolls every +/-3 tiles in dx =  move +/- 1 ctile in dx, refered to the 21th ctile
+
+        2. Bg rolls every +/- 3 tiles in dy = move +/- 1 ctile in dy, refered to the 21th ctile
+
+        3. based on 1. and 2., a function to map tile dx/dy to ctile dx/dy: to save the dynamic drawn map. the ctile map is saved as 1D array access with (ctile dy)*ctile_map_width + (ctile_dx). The ctile map is stored in array 41x41 u32.
+
+        4. based on 1. and 2., a function to map ctile to tile: for rendering when the bg rolls.
+
