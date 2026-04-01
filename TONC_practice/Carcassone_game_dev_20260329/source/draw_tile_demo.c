@@ -29,6 +29,7 @@ enum GAME_STATE current_game_state = START;
 // define the access to cacasone-tile map
 typedef unsigned short CAS_TILE_MAP[9];
 #define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap_v2)
+#define bg_tile_map_id	((CAS_TILE_MAP*)Bg_tile)
 #define elem_cas_tile_set	((TILE8*)tiles_carcas_v20260329Tiles)
 
 #define CAR_CAT 32 // cacarcasonne category number (tile with different graphic features)
@@ -122,13 +123,15 @@ BG_AFFINE bgaff; // .8f = the last eight bit representing the fractional, 1 frac
 // 1 SBB either = 2048 byte long  = 64 TILEs (1 TILE 8x8p@ 4bpp = 32 bytes) = 32 TILE8s (1 TILE8 8x8p@ 8bpp = 64 bytes)
 // 		 or = 32 x 32 [tile] regular map (bcz 1 SE = 16 bits = 2 bytes) = 64 x 32 [tile] aff map (1 SAE = 8 bit = 1 byte)
 // In this context, we store 28 Tiles from 0th CBB ~ 0th SBB in 0th CBB 
-#define SBB_0  1
+#define SBB_0  2
 // typedef u8  SCR_AFF_ENTRY, SAE;		//!< Type for affine screen entries (tonc_types)
 // typedef u16 SCR_ENTRY, SE;			//!< Type for screen entries
 SCR_ENTRY *bg0_map= se_mem[SBB_0];
 // aff bg 64 x 64 tile = 2 SBBs 
 int map_width_unit_tile = 64; // [DTILE]
 int map_height_unit_tile = 64; // [DTILE]
+// because of 2 manual tile added manually (background tile, transparent tile)
+#define CAR_TILE_OFFSET_IN_VRAM 2
 
 // ===========
 // BG TEXT
@@ -136,9 +139,23 @@ int map_height_unit_tile = 64; // [DTILE]
 #define CBB_0_TEXT 2  // tiles for text	
 #define SBB_0_TEXT 31 // map for text
 
+// ===========
+// GBA SCREEN
+// ===========
+#define SCR_WIDTH_uPx 240 // [pixel]
+#define SCR_HEIGHT_uPx 160  
+
 // ==========
 // FUNCS
 // ==========
+// void render_bg (s32 tile_cur_x, s32 tile_cur_y)
+// {
+// 	s32 DIST_TO_LIMIT_R_SCR = SCR_WIDTH_uPx - INIT_OBJ_X; // [pixel]
+// 	s32 DIST_TO_LIMIT_L_SCR = INIT_OBJ_X; 
+// 	s32 DIST_TO_LIMIT_T_SCR = SCR_;
+// 	// check the limit
+// 	if 
+// }
 // [ctile] = 3x3 [tile]
 // [tile] = 8x8 [pixel]
 //					 = sae_curr_x		= sae_curr_y
@@ -213,27 +230,10 @@ void init_reg_bg ()
 	bgaff.dy = INIT_BG_Y_OFF<<8;
 	REG_BG_AFFINE[2]= bgaff;
 
-		const TILE8 tiles[1]=
-	{
-		// bg tile8: 8bit/pixel = 2hex/pixel
-		// {{0x10000001, 0x01111110, 0x01111110, 0x01111110,
-		//   0x01111110, 0x01111110, 0x01111110, 0x10000001}},
-
-		{{0x00000010, 0x01000000, 
-		  0x01010100, 0x00010101,
-		  0x01010100, 0x00010101, 
-		  0x01010100, 0x00010101,
-		  0x01010100, 0x00010101, 
-		  0x01010100, 0x00010101,
-		  0x01010100, 0x00010101, 
-		  0x00000010, 0x01000000}}
-	};
-
 	// Place the bg tile 
 	// into VRAM: cbb == 0
-	tile8_mem[CBB_0][0] = tiles[0];
 	// tid for Carcassonne graphic starts from 1, tid 0 is the bg tile.
-	memcpy32(&tile8_mem[CBB_0][1], tiles_carcas_v20260329Tiles, tiles_carcas_v20260329TilesLen/sizeof(u32));
+	memcpy32(&tile8_mem[CBB_0][0], tiles_carcas_v20260329Tiles, tiles_carcas_v20260329TilesLen/sizeof(u32));
 
 	// no palette, only 256 colors
 	memcpy32(pal_bg_mem, tiles_carcas_v20260329Pal, tiles_carcas_v20260329PalLen/sizeof(u32));
@@ -255,7 +255,7 @@ void init_reg_obj ()
 
 }
 
-void draw_func()
+void game_loop()
 {
 	// === Carcassonne data
 	int car_cat_track[32] = {0};
@@ -313,12 +313,26 @@ void draw_func()
 
 		// === BG
 		SCR_ENTRY *pse= bg0_map;
-		u32 se_curr;
-		u32 sae_curr;
+		s32 se_curr;
+		s32 sae_curr;
 		// int scr_x_offset = 0, scr_y_offset =0;
 		int bg_x_offset = 0, bg_y_offset =0;
+		// get the cursor (object) position (using Tonc BF_GET())
+		obj_x_coord = BFN_GET(cursor->attr1, ATTR1_X);
+		obj_y_coord = BFN_GET(cursor->attr0, ATTR0_Y);
+		// calculate the Se_index, map size 32x32t
+		// >> 3: divided by 8 to convert to unit [tile]
+		//							 * 32 = width of the map size in unit [tile]	
+		s32 sae_curr_x = (obj_x_coord + (bgaff.dx >> 8)) >>3;
+		s32 sae_curr_y = (obj_y_coord+ (bgaff.dy >> 8)) >> 3;
+		sae_curr = sae_curr_y*map_width_unit_tile + sae_curr_x;
+		se_curr = sae_curr >> 1;
+
 
 		// === FUNCS/ ACTIONS
+		// check the cursor position, render the background.
+		// render_bg (sae_curr_x, sae_curr_x);
+
 		// start timer, wait for 10ms ~ 163 ticks
 		if (REG_TM3D != sec)
 		{
@@ -378,15 +392,6 @@ void draw_func()
 
 		}
 
-		// get the cursor (object) position (using Tonc BF_GET())
-		obj_x_coord = BFN_GET(cursor->attr1, ATTR1_X);
-		obj_y_coord = BFN_GET(cursor->attr0, ATTR0_Y);
-		// calculate the Se_index, map size 32x32t
-		// >> 3: divided by 8 to convert to unit [tile]
-		//							 * 32 = width of the map size in unit [tile]	
-		sae_curr = ((obj_y_coord+ (bgaff.dy >> 8)) >> 3)*map_width_unit_tile + ((obj_x_coord + (bgaff.dx >> 8)) >>3);
-		se_curr = sae_curr >> 1;
-		// draw a green tile
 		int cas_r, cas_col;
 		int rand_cat, rand_cat_min, rand_cat_max, rand_cat_id;
 
@@ -405,12 +410,12 @@ void draw_func()
 					{
 						// write to lower 8-bit of pse, preseve the higher 8-bit of pse
 						//														0 = CARCASONNE CAT 0 = STARTER TILE
-						pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[0][cas_r*3 + cas_col]+1) & 0x00FF);
+						pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[0][cas_r*3 + cas_col]+CAR_TILE_OFFSET_IN_VRAM) & 0x00FF);
 					}
 					else
 					{
 						// write higer 8-bit of pse, preserve the lower 8 bit of pse
-						pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[0][cas_r*3 + cas_col]+1)<<8)  & 0xFF00);
+						pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[0][cas_r*3 + cas_col]+CAR_TILE_OFFSET_IN_VRAM)<<8)  & 0xFF00);
 					}
 				}
 			}
@@ -447,7 +452,7 @@ void draw_func()
 				{
 					//				  CBB TILE_index	
 					memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-						&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col]], 
+						&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col] + CAR_TILE_OFFSET_IN_VRAM], 
 						16 // 1 DTILE = 16 x u32
 					);
 				}
@@ -532,16 +537,16 @@ void draw_func()
 								sae_tid_top_next = (pse[se_indx_top_next] & 0xFF00) >> 8;
 							}
 						
-							if ((cas_tile_map_id[rand_cat][0*3 + 1]+1) == sae_tid_top_next)
+							if ((cas_tile_map_id[rand_cat][0*3 + 1]+CAR_TILE_OFFSET_IN_VRAM) == sae_tid_top_next)
 							{
 								cnd_chk = cnd_chk | 0x00000001;
 							}  
 							else
 							{
-								// CARCAS TID 25 (garden) == CARCAS TID 1 (green) [index in VRAM ]
-								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in .s file]
-								if ((sae_tid_top_next == 25 && cas_tile_map_id[rand_cat][0*3 + 1] == 0) 
-									|| (sae_tid_top_next == 1 && cas_tile_map_id[rand_cat][0*3 + 1] == 24))
+								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in carcas_data.s file]
+								// CARCAS TID 26 (garden) == CARCAS TID 2 (green) [index in tiles-carcas_v20260329.s file / VRAM]
+								if ((sae_tid_top_next == 26 && cas_tile_map_id[rand_cat][0*3 + 1] == 0) 
+									|| (sae_tid_top_next == 2 && cas_tile_map_id[rand_cat][0*3 + 1] == 24))
 								{
 									cnd_chk = cnd_chk | 0x00000001;
 								} 
@@ -588,16 +593,16 @@ void draw_func()
 								sae_tid_bot_next = (pse[se_indx_bot_next] & 0xFF00) >> 8;
 							}
 
-							if ((cas_tile_map_id[rand_cat][2*3 + 1]+1) == sae_tid_bot_next)
+							if ((cas_tile_map_id[rand_cat][2*3 + 1]+CAR_TILE_OFFSET_IN_VRAM) == sae_tid_bot_next)
 							{
 								cnd_chk = cnd_chk | 0x00000010;
 							}
 							else
 							{
-								// CARCAS TID 25 (garden) == CARCAS TID 1 (green) [index in VRAM ]
-								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in .s file]
-								if ((sae_tid_bot_next == 25 && cas_tile_map_id[rand_cat][2*3 + 1] == 0) 
-									|| (sae_tid_bot_next == 1 && cas_tile_map_id[rand_cat][2*3 + 1] == 24))
+								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in carcas_data.s file]
+								// CARCAS TID 26 (garden) == CARCAS TID 2 (green) [index in tiles-carcas_v20260329.s file / VRAM]
+								if ((sae_tid_bot_next == 26 && cas_tile_map_id[rand_cat][2*3 + 1] == 0) 
+									|| (sae_tid_bot_next == 2 && cas_tile_map_id[rand_cat][2*3 + 1] == 24))
 								{
 									cnd_chk = cnd_chk | 0x00000010;
 								} 
@@ -644,16 +649,16 @@ void draw_func()
 								sae_tid_r_mid = (pse[se_indx_r_mid] & 0xFF00) >> 8;
 							}
 
-							if ((cas_tile_map_id[rand_cat][1*3 + 2]+1) == sae_tid_r_mid)
+							if ((cas_tile_map_id[rand_cat][1*3 + 2]+CAR_TILE_OFFSET_IN_VRAM) == sae_tid_r_mid)
 							{
 								cnd_chk = cnd_chk | 0x00000100;
 							}
 							else
 							{
-								// CARCAS TID 25 (garden) == CARCAS TID 1 (green) [index in VRAM ]
-								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in .s file]
-								if ((sae_tid_r_mid == 25 && cas_tile_map_id[rand_cat][1*3 + 2] == 0) 
-									|| (sae_tid_r_mid == 1 && cas_tile_map_id[rand_cat][1*3 + 2] == 24))
+								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in carcas_data.s file]
+								// CARCAS TID 26 (garden) == CARCAS TID 2 (green) [index in tiles-carcas_v20260329.s file / VRAM]
+								if ((sae_tid_r_mid == 26 && cas_tile_map_id[rand_cat][1*3 + 2] == 0) 
+									|| (sae_tid_r_mid == 2 && cas_tile_map_id[rand_cat][1*3 + 2] == 24))
 								{
 									cnd_chk = cnd_chk | 0x00000100;
 								} 
@@ -699,16 +704,16 @@ void draw_func()
 								sae_tid_l_mid = (pse[se_indx_l_mid] & 0xFF00) >> 8;
 							}
 
-							if ((cas_tile_map_id[rand_cat][1*3 + 0]+1) == sae_tid_l_mid)
+							if ((cas_tile_map_id[rand_cat][1*3 + 0]+CAR_TILE_OFFSET_IN_VRAM) == sae_tid_l_mid)
 							{
 								cnd_chk = cnd_chk | 0x00001000;
 							}
 							else
 							{
-								// CARCAS TID 25 (garden) == CARCAS TID 1 (green) [index in VRAM ]
-								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in .s file]
-								if ((sae_tid_l_mid == 25 && cas_tile_map_id[rand_cat][1*3 + 0] == 0) 
-									|| (sae_tid_l_mid == 1 && cas_tile_map_id[rand_cat][1*3 + 0] == 24))
+								// CARCAS TID 24 (garden) == CARCAS TID 0 (green) [index in carcas_data.s file]
+								// CARCAS TID 26 (garden) == CARCAS TID 2 (green) [index in tiles-carcas_v20260329.s file / VRAM]
+								if ((sae_tid_l_mid == 26 && cas_tile_map_id[rand_cat][1*3 + 0] == 0) 
+									|| (sae_tid_l_mid == 2 && cas_tile_map_id[rand_cat][1*3 + 0] == 24))
 								{
 									cnd_chk = cnd_chk | 0x00001000;
 								} 
@@ -734,12 +739,12 @@ void draw_func()
 									if (sea_idx % 2 == 0)
 									{
 										// write to lower 8-bit of pse, preseve the higher 8-bit of pse
-										pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1) & 0x00FF);
+										pse[se_idx] = (pse[se_idx] & 0xFF00) | ((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+CAR_TILE_OFFSET_IN_VRAM) & 0x00FF);
 									}
 									else
 									{
 										// write higer 8-bit of pse, preserve the lower 8 bit of pse
-										pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+1)<<8)  & 0xFF00);
+										pse[se_idx] = (pse[se_idx] & 0x00FF) | (((cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+CAR_TILE_OFFSET_IN_VRAM)<<8)  & 0xFF00);
 									}
 								}
 							}
@@ -786,7 +791,7 @@ void draw_func()
 						{
 							//				  CBB TILE_index	
 							memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-								&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col]], 
+								&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col]+CAR_TILE_OFFSET_IN_VRAM], 
 								16 // 1 DTILE = 16 x u32
 							);
 						}
@@ -886,7 +891,6 @@ void draw_func()
 		// write text
 		s32 ctile_idx=0, ctile_idy=0;
 		s32 render_tile_idx=0, render_tile_idy=0;
-		int sae_curr_x = (obj_x_coord + (bgaff.dx >> 8)) >>3, sae_curr_y = (obj_y_coord+ (bgaff.dy >> 8)) >> 3;
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy);
 		// tte_printf("#{es;P}Tile ID#: %d\t\nLeft: %d/%d - %d/%d - bgdx/y: %ld/%ld %ld/%ld\nctile_dx/y: %ld/%ld - tile_idx/y: %ld/%ld",
@@ -972,9 +976,7 @@ int main()
 	pse_tiles[1*(map_width_unit_tile >> 1) + 0] = 0x1211;
 	pse_tiles[1*(map_width_unit_tile >> 1) + 1] = 0x1615; 
 
-	draw_func();
-
-	while(1);
+	game_loop();
 
 	return 0;
 }

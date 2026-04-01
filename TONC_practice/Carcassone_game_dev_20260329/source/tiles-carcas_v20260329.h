@@ -17,8 +17,8 @@
 #ifndef GRIT_TILES_CARCAS_V20260329_H
 #define GRIT_TILES_CARCAS_V20260329_H
 
-#define tiles_carcas_v20260329TilesLen 1792
-extern const unsigned int tiles_carcas_v20260329Tiles[448];
+#define tiles_carcas_v20260329TilesLen 1920
+extern const unsigned int tiles_carcas_v20260329Tiles[480];
 
 #define tiles_carcas_v20260329PalLen 512
 extern const unsigned short tiles_carcas_v20260329Pal[256];

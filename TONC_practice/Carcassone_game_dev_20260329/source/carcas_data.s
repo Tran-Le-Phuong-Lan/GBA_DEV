@@ -1,6 +1,8 @@
 
 @{{BLOCK(carcas_data)
 
+	@ the index of the car tile id in vram must be offset by 2
+	@ , because of manual added 2 tiles (bg tile, transparent tile) (see tiles-carcas_v20260329.s)
 	.section .rodata 			@ rodata = read-only data
 	.align	2
 	.global tiles_gbcMap_v2		@  Max 288 unsigned chars
@@ -167,4 +169,16 @@ tiles_gbcMap_v2:				@  Map = Carcassone Tile graphic, Carcassonne starter catego
 	.hword 20,2,19,12,21,12,12,12,12
 	.hword 12,12,17,12,21,1,12,12,20
 
-@}}BLOCK(tiles_gbc_v2)
+	@ for Bg_tile, their id in vram has no offset,
+	@ because they are the 2 manual added tiles
+	.section .rodata 			@ rodata = read-only data
+	.align	2
+	.global Bg_tile		@  2 unsigned chars
+	.hidden Bg_tile
+Bg_tile:				@  Map = Carcassone Tile graphic, but for bg purpose
+	@ transparent tile
+	.hword 1,1,1,1,1,1,1,1,1	
+	@ background tile
+	.hword 0,0,0,0,0,0,0,0,0
+
+@}}BLOCK(carcas_data)
