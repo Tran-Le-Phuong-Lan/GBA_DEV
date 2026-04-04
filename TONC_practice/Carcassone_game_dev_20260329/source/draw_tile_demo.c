@@ -372,9 +372,10 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 		tst_end_ctile->y = end_ctile_col.y;
 	
 			COORD_2D tile_curr_coord;
-			tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
-			tile_curr_coord.y = tile_cur_y;
-			wrapping_tile_coord(&tile_curr_coord);
+			// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
+			// tile_curr_coord.y = tile_cur_y;
+			map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, true);
+			// wrapping_tile_coord(&tile_curr_coord);
 			COORD_2D tile_render_coord;
 					tile_render_coord.x = tile_curr_coord.x + 0;
 					tile_render_coord.y = tile_curr_coord.y + 0;
@@ -389,40 +390,51 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 			int car_map_id;
 			CAS_TILE_MAP* car_map_ptr = NULL;
 			int car_off_vram = 0;
-			// if (start_ctile_col.x <41 && start_ctile_col.y <41)
-			// {
-			// 	// extract the CAR MAP TID
-			// 	car_map_id = car_fmap[start_ctile_col.x*CAR_MAP_WIDTH_x + start_ctile_col.y];
-			// 	if (car_map_id == CAR_BG_ID)
-			// 	{
-			// 		car_map_ptr = bg_tile_map_id;
-			// 		car_map_id = 1;
-			// 		car_off_vram = 0;
-			// 	}
-			// 	else
-			// 	{
-			// 		car_map_ptr = cas_tile_map_id;
-			// 		car_off_vram = CAR_TILE_OFFSET_IN_VRAM;
-			// 	}
 
-			// }
-			// else
-			// {
-			// 	// outside of the CAR MAP, it should be transparent background
-			// 	car_map_ptr = bg_tile_map_id;
-			// 	car_map_id = 0;
-			// 	car_off_vram = 0;
-			// }
+			if (start_ctile_col.x <41 && start_ctile_col.y <41)
+			{
+				if (start_ctile_col.x >=0 && start_ctile_col.y >=0)
+				{
+					// extract the CAR MAP TID
+					car_map_id = car_fmap[start_ctile_col.x*CAR_MAP_WIDTH_x + start_ctile_col.y];
+					if (car_map_id == CAR_BG_ID)
+					{
+						car_map_ptr = bg_tile_map_id;
+						car_map_id = 1;
+						car_off_vram = 0;
+					}
+					else
+					{
+						car_map_ptr = cas_tile_map_id;
+						car_off_vram = CAR_TILE_OFFSET_IN_VRAM;
+					}
+				}
+				else
+				{
+					// outside of the CAR MAP, it should be transparent background
+					car_map_ptr = bg_tile_map_id;
+					car_map_id = 0;
+					car_off_vram = 0;
+				}
 
+			}
+			else
+			{
+				// outside of the CAR MAP, it should be transparent background
 				car_map_ptr = bg_tile_map_id;
 				car_map_id = 0;
 				car_off_vram = 0;
+			}
+
+				// car_map_ptr = bg_tile_map_id;
+				// car_map_id = 0;
+				// car_off_vram = 0;
 			// render
 			int se_idx = 0, sea_idx = 0;
 			COORD_2D tile_curr_coord;
-			tile_curr_coord.x = tile_cur_x;
-			tile_curr_coord.y = tile_cur_y;
-			wrapping_tile_coord(&tile_curr_coord);
+			// tile_curr_coord.x = tile_cur_x;
+			// tile_curr_coord.y = tile_cur_y;
+			map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
 			COORD_2D tile_render_coord;
 		
 			// put down the starter tile
