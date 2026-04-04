@@ -346,8 +346,8 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 	}
 	else
 	{
-		start_ctile_col.y = reference_ctile.y - SAFE_ZONE_T;
-		end_ctile_col.y = start_ctile_col.y + SAFE_ZONE_T + SAFE_ZONE_B;
+		start_ctile_col.y = reference_ctile.y - (SAFE_ZONE_T+1);
+		end_ctile_col.y = start_ctile_col.y + (SAFE_ZONE_T + SAFE_ZONE_B+1);
 		if ((mv_flg & 0x0001) == 0x0001)
 		{
 			// *update_tfg = mv_flg;
@@ -473,14 +473,14 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 		{
 			*update_tfg = mv_flg;
 			// move down, (increase y)
-			start_ctile_row.y = reference_ctile.y + (SAFE_ZONE_B);
+			start_ctile_row.y = reference_ctile.y + (SAFE_ZONE_B+1);
 			end_ctile_row.y = start_ctile_row.y; 	
 		}
 		else
 		{
 			*update_tfg = mv_flg;
 			// move up
-			start_ctile_row.y = reference_ctile.y - (SAFE_ZONE_T);
+			start_ctile_row.y = reference_ctile.y - (SAFE_ZONE_T+1);
 			end_ctile_row.y = start_ctile_row.y;
 		}
 
@@ -679,7 +679,7 @@ void game_loop()
 	obj_set_pos(cursor, x, y);
 
 	// === enable a timer
-	REG_TM2D =  -0x4009;
+	REG_TM2D =  -0x0667;
 	REG_TM2CNT= TM_ENABLE | TM_FREQ_1024; 
 	// 1 period = 1024 default clock cycle
 	// = 1024 * (1/16.78 Mhz) = 61 us 
@@ -791,8 +791,8 @@ void game_loop()
 			//							 * 32 = width of the map size in unit [tile]	
 			sae_curr_x = (obj_x_coord + (bgaff.dx >> 8)) >>3;
 			sae_curr_y = (obj_y_coord+ (bgaff.dy >> 8)) >> 3;
-			sae_curr = sae_curr_y*map_width_unit_tile + sae_curr_x;
-			se_curr = sae_curr >> 1;
+			// sae_curr = sae_curr_y*map_width_unit_tile + sae_curr_x;
+			// se_curr = sae_curr >> 1;
 		}
 
 
@@ -806,17 +806,21 @@ void game_loop()
 
 		int cas_r, cas_col;
 		int rand_cat, rand_cat_min, rand_cat_max, rand_cat_id;
-
+		
 		// game start
 		if (current_game_state == START)
 		{
 			int se_idx = 0, sea_idx = 0;
+			COORD_2D tile_wrap_coord;	
 			// put down the starter tile
 			for (cas_r = 0; cas_r < 3; cas_r++)
 			{
 				for (cas_col=0; cas_col<3; cas_col++)
 				{
-					sea_idx = sae_curr + cas_r*map_width_unit_tile + cas_col; 
+					tile_wrap_coord.x = sae_curr_x + cas_col;
+					tile_wrap_coord.y = sae_curr_y + cas_r;
+					wrapping_tile_coord(&tile_wrap_coord);
+					sea_idx = tile_wrap_coord.y*map_width_unit_tile + tile_wrap_coord.x; 
 					se_idx = sea_idx >> 1;
 					if (sea_idx % 2 == 0)
 					{
@@ -889,6 +893,12 @@ void game_loop()
 				{
 					// pse[se_curr] = 2 SAE at once = the current one and the one adjacent to it
 					// , because SAE is 8-bit, while pse[se_curr] is 16-bit.
+					COORD_2D tile_wrap_coord;
+					tile_wrap_coord.x = sae_curr_x;
+					tile_wrap_coord.y = sae_curr_y;
+					wrapping_tile_coord(&tile_wrap_coord);
+					sae_curr = tile_wrap_coord.y * map_width_unit_tile + tile_wrap_coord.x;
+					se_curr = sae_curr >>1;
 					if (sae_curr % 2 == 0)
 					{
 						// lower 8-bit of pse
@@ -918,7 +928,11 @@ void game_loop()
 						int cnd_flg = 0x00000000, cnd_chk = 0x00000000;
 						
 						// check AdT and MT => CT
-						int sea_indx_top = sae_curr - 1*map_width_unit_tile;
+						COORD_2D sae_indx_top_coord;
+						sae_indx_top_coord.x = sae_curr_x;
+						sae_indx_top_coord.y = sae_curr_y -1;
+						wrapping_tile_coord(&sae_indx_top_coord);
+						int sea_indx_top = sae_indx_top_coord.y*map_width_unit_tile + sae_indx_top_coord.x;
 						int se_indx_top = sea_indx_top >> 1;
 						unsigned short sae_tid_top;
 						int lower_or_higher;
@@ -938,7 +952,11 @@ void game_loop()
 							cnd_flg = cnd_flg | 0x00000010;
 								// - middle top tile of obj
 								// - middle tile of bg
-							int sea_indx_top_next = sea_indx_top + 1;
+							COORD_2D sae_indx_top_next_coord;
+							sae_indx_top_next_coord.x = sae_indx_top_coord.x +1;
+							sae_indx_top_next_coord.y = sae_indx_top_coord.y;
+							wrapping_tile_coord(&sae_indx_top_next_coord);
+							int sea_indx_top_next = sae_indx_top_next_coord.y*map_width_unit_tile + sae_indx_top_next_coord.x;
 							int se_indx_top_next = sea_indx_top_next >> 1;
 							unsigned short sae_tid_top_next;
 							lower_or_higher = sea_indx_top_next % 2;
@@ -975,7 +993,11 @@ void game_loop()
 						}
 
 						// check AdB and MB => CB
-						int sae_indx_bot = sae_curr + 3*map_width_unit_tile;
+						COORD_2D sae_indx_bot_coord;
+						sae_indx_bot_coord.x = sae_curr_x;
+						sae_indx_bot_coord.y = sae_curr_y +3;
+						wrapping_tile_coord(&sae_indx_bot_coord);
+						int sae_indx_bot = sae_indx_bot_coord.y*map_width_unit_tile + sae_indx_bot_coord.x;
 						int se_indx_bot = sae_indx_bot >> 1;
 						lower_or_higher = sae_indx_bot % 2;
 						unsigned short sae_tid_bot;
@@ -994,7 +1016,11 @@ void game_loop()
 							cnd_flg = cnd_flg | 0x00001000;
 								// - middle bot tile of obj
 								// - middle tile of bg
-							int sea_indx_bot_next = sae_indx_bot + 1;
+							COORD_2D sae_indx_bot_next_coord;
+							sae_indx_bot_next_coord.x = sae_indx_bot_coord.x +1;
+							sae_indx_bot_next_coord.y = sae_indx_bot_coord.y;
+							wrapping_tile_coord(&sae_indx_bot_next_coord);
+							int sea_indx_bot_next = sae_indx_bot_next_coord.y*map_width_unit_tile + sae_indx_bot_next_coord.x;
 							int se_indx_bot_next = sea_indx_bot_next >> 1;
 							unsigned short sae_tid_bot_next;
 							lower_or_higher = sea_indx_bot_next % 2;
@@ -1030,7 +1056,11 @@ void game_loop()
 						}
 
 						// check AdR and MR => CR
-						int sae_indx_r = sae_curr + 3;
+						COORD_2D sae_indx_r_coord;
+						sae_indx_r_coord.x = sae_curr_x +3;
+						sae_indx_r_coord.y = sae_curr_y;
+						wrapping_tile_coord(&sae_indx_r_coord);
+						int sae_indx_r = sae_indx_r_coord.y*map_width_unit_tile + sae_indx_r_coord.x;
 						int se_indx_r = sae_indx_r >> 1;
 						lower_or_higher = sae_indx_r % 2;
 						unsigned short sae_tid_r;
@@ -1050,7 +1080,11 @@ void game_loop()
 						
 							//	miidle r tiles of obj
 							//  middle l tiles of bg
-							int sea_indx_r_mid = sae_indx_r + 1*map_width_unit_tile;
+							COORD_2D sae_indx_r_mid_coord;
+							sae_indx_r_mid_coord.x = sae_indx_r_coord.x;
+							sae_indx_r_mid_coord.y = sae_indx_r_coord.y +1;
+							wrapping_tile_coord(&sae_indx_r_mid_coord);
+							int sea_indx_r_mid = sae_indx_r_mid_coord.y*map_width_unit_tile + sae_indx_r_mid_coord.x;
 							int se_indx_r_mid = sea_indx_r_mid >> 1;
 							unsigned short sae_tid_r_mid;
 							lower_or_higher = sea_indx_r_mid % 2;
@@ -1086,7 +1120,11 @@ void game_loop()
 						}
 
 						// check AdL and ML => CL
-						int sae_indx_l = sae_curr - 1;
+						COORD_2D sae_indx_l_coord;
+						sae_indx_l_coord.x = sae_curr_x-1;
+						sae_indx_l_coord.y = sae_curr_y;
+						wrapping_tile_coord(&sae_indx_l_coord);
+						int sae_indx_l = sae_indx_l_coord.y*map_width_unit_tile + sae_indx_l_coord.x;
 						int se_indx_l = sae_indx_l >> 1;
 						lower_or_higher = sae_indx_l % 2;
 						unsigned short sae_tid_l;
@@ -1105,7 +1143,11 @@ void game_loop()
 							cnd_flg = cnd_flg | 0x10000000;
 							//	middle l tiles of obj
 							//  middle r tiles of bg
-							int sea_indx_l_mid = sae_indx_l + 1*map_width_unit_tile;
+							COORD_2D sae_indx_l_mid_coord;
+							sae_indx_l_mid_coord.x = sae_indx_l_coord.x;
+							sae_indx_l_mid_coord.y = sae_indx_l_coord.y +1;
+							wrapping_tile_coord(&sae_indx_l_mid_coord);
+							int sea_indx_l_mid = sae_indx_l_mid_coord.y*map_width_unit_tile + sae_indx_l_mid_coord.x;
 							int se_indx_l_mid = sea_indx_l_mid >> 1;
 							unsigned short sae_tid_l_mid;
 							lower_or_higher = sea_indx_l_mid % 2;
@@ -1146,11 +1188,16 @@ void game_loop()
 						// adj and match conds are valid, then allow put down the tile
 						if (cnd_flg != 0 && cnd_chk == 0x00001111)
 						{
+							COORD_2D tile_wrap_coord;
 							for (cas_r = 0; cas_r < 3; cas_r++)
 							{
 								for (cas_col=0; cas_col<3; cas_col++)
 								{
-									sea_idx = sae_curr + cas_r*map_width_unit_tile + cas_col; 
+									tile_wrap_coord.x = sae_curr_x + cas_col;
+									tile_wrap_coord.y = sae_curr_y + cas_r;
+									wrapping_tile_coord(&tile_wrap_coord);
+									sea_idx = tile_wrap_coord.y*map_width_unit_tile + tile_wrap_coord.x; 
+									// sea_idx = sae_curr + cas_r*map_width_unit_tile + cas_col; 
 									se_idx = sea_idx >> 1;
 									if (sea_idx % 2 == 0)
 									{
@@ -1168,6 +1215,10 @@ void game_loop()
 							// game state is allowed to change only when the tile is put down
 							carcassonne_number_of_tiles = carcassonne_number_of_tiles +1;
 							car_cat_track[rand_cat_id] = car_cat_track[rand_cat_id] + 1;
+							// save the tile into conceptual carcassonne map
+							COORD_2D car_coord;
+							map_tile_to_ctile(sae_curr_x, sae_curr_y, &car_coord.x, &car_coord.y);
+							carcassonne_full_map[car_coord.y*CAR_MAP_WIDTH_x  + car_coord.x] = rand_cat;
 							// current_game_state = MEEPLE;
 							current_game_state = GET_TILE;
 
