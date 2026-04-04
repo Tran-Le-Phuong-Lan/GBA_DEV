@@ -337,7 +337,6 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 	*mv_tflg = mv_flg;
 	// -> find ctile coordinate for starting rendering
 	COORD_2D start_ctile_col, end_ctile_col; // [ctile]
-	COORD_2D start_ctile_row, end_ctile_row;
 	COORD_2D reference_ctile;
 	map_tile_to_ctile(tile_cur_x, tile_cur_y, &reference_ctile.x, &reference_ctile.y); // [ctile]
 	if ((mv_flg & 0x0011) == 0x0000) 
@@ -351,7 +350,7 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 		end_ctile_col.y = start_ctile_col.y + SAFE_ZONE_T + SAFE_ZONE_B;
 		if ((mv_flg & 0x0001) == 0x0001)
 		{
-			*update_tfg = mv_flg;
+			// *update_tfg = mv_flg;
 			// move left, 	
 			start_ctile_col.x = reference_ctile.x - (SAFE_ZONE_L+1);
 			end_ctile_col.x = start_ctile_col.x;
@@ -359,31 +358,31 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 		else
 		{
 			// move right
-			*update_tfg = mv_flg;
+			// *update_tfg = mv_flg;
 			start_ctile_col.x = reference_ctile.x + (SAFE_ZONE_R+1);
 			end_ctile_col.x = start_ctile_col.x;
 
 		}
 
-	// 	// start rendering
-		tst_start_ctile->x = start_ctile_col.x;
-		tst_start_ctile->y = start_ctile_col.y;
-		tst_end_ctile->x = end_ctile_col.x;
-		tst_end_ctile->y = end_ctile_col.y;
+		// start rendering
+		// tst_start_ctile->x = start_ctile_col.x;
+		// tst_start_ctile->y = start_ctile_col.y;
+		// tst_end_ctile->x = end_ctile_col.x;
+		// tst_end_ctile->y = end_ctile_col.y;
 	
-			COORD_2D tile_curr_coord;
-			// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
-			// tile_curr_coord.y = tile_cur_y;
-			map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, true);
-			// wrapping_tile_coord(&tile_curr_coord);
-			COORD_2D tile_render_coord;
-					tile_render_coord.x = tile_curr_coord.x + 0;
-					tile_render_coord.y = tile_curr_coord.y + 0;
-					wrapping_tile_coord(&tile_render_coord);
-					int se_idx = 0, sea_idx = 0;
-					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-		tst_render_tid->x = tile_render_coord.x;
-		tst_render_tid->y = tile_render_coord.y;
+		// 	COORD_2D tile_curr_coord;
+		// 	// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
+		// 	// tile_curr_coord.y = tile_cur_y;
+		// 	map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, true);
+		// 	// wrapping_tile_coord(&tile_curr_coord);
+		// 	COORD_2D tile_render_coord;
+		// 			tile_render_coord.x = tile_curr_coord.x + 0;
+		// 			tile_render_coord.y = tile_curr_coord.y + 0;
+		// 			wrapping_tile_coord(&tile_render_coord);
+		// 			int se_idx = 0, sea_idx = 0;
+		// 			sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
+		// tst_render_tid->x = tile_render_coord.x;
+		// tst_render_tid->y = tile_render_coord.y;
 
 		for (start_ctile_col.y; start_ctile_col.y < end_ctile_col.y + 1; start_ctile_col.y += 1)
 		{
@@ -396,7 +395,7 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 				if (start_ctile_col.x >=0 && start_ctile_col.y >=0)
 				{
 					// extract the CAR MAP TID
-					car_map_id = car_fmap[start_ctile_col.x*CAR_MAP_WIDTH_x + start_ctile_col.y];
+					car_map_id = car_fmap[start_ctile_col.y*CAR_MAP_WIDTH_x + start_ctile_col.x];
 					if (car_map_id == CAR_BG_ID)
 					{
 						car_map_ptr = bg_tile_map_id;
@@ -426,14 +425,9 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 				car_off_vram = 0;
 			}
 
-				// car_map_ptr = bg_tile_map_id;
-				// car_map_id = 0;
-				// car_off_vram = 0;
 			// render
 			int se_idx = 0, sea_idx = 0;
 			COORD_2D tile_curr_coord;
-			// tile_curr_coord.x = tile_cur_x;
-			// tile_curr_coord.y = tile_cur_y;
 			map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
 			COORD_2D tile_render_coord;
 		
@@ -465,22 +459,128 @@ void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y
 
 		} 
 	}
+
+	COORD_2D start_ctile_row, end_ctile_row;
+	if ((mv_flg & 0x1100) == 0x0000) 
+	{
+		// no row rendering
+	}
+	else
+	{
+		start_ctile_row.x = reference_ctile.x - (SAFE_ZONE_L+1);
+		end_ctile_row.x = start_ctile_row.x + (SAFE_ZONE_L + SAFE_ZONE_R +1);
+		if ((mv_flg & 0x0100) == 0x0100)
+		{
+			*update_tfg = mv_flg;
+			// move down, (increase y)
+			start_ctile_row.y = reference_ctile.y + (SAFE_ZONE_B);
+			end_ctile_row.y = start_ctile_row.y; 	
+		}
+		else
+		{
+			*update_tfg = mv_flg;
+			// move up
+			start_ctile_row.y = reference_ctile.y - (SAFE_ZONE_T);
+			end_ctile_row.y = start_ctile_row.y;
+		}
+
+		// render
+		// start rendering
+		tst_start_ctile->x = start_ctile_row.x;
+		tst_start_ctile->y = start_ctile_row.y;
+		tst_end_ctile->x = end_ctile_row.x;
+		tst_end_ctile->y = end_ctile_row.y;
 	
-	// if ((mv_flg & 0b1100) == 0b0000) 
-	// {
-	// 	// no row rendering
-	// }
-	// else
-	// {
-	// 	if ((mv_flg & 0b0100) == 0b0100)
-	// 	{
-	// 		// move down, 	
-	// 	}
-	// 	else
-	// 	{
-	// 		// move up
-	// 	}
-	// }	
+			COORD_2D tile_curr_coord;
+			// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
+			// tile_curr_coord.y = tile_cur_y;
+			map_ctile_to_tile(start_ctile_row.x, start_ctile_row.y, &tile_curr_coord.x, &tile_curr_coord.y, true);
+			// wrapping_tile_coord(&tile_curr_coord);
+			COORD_2D tile_render_coord;
+					tile_render_coord.x = tile_curr_coord.x + 0;
+					tile_render_coord.y = tile_curr_coord.y + 0;
+					wrapping_tile_coord(&tile_render_coord);
+					int se_idx = 0, sea_idx = 0;
+					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
+		tst_render_tid->x = tile_render_coord.x;
+		tst_render_tid->y = tile_render_coord.y;
+
+		for (start_ctile_row.x; start_ctile_row.x < end_ctile_row.x + 1; start_ctile_row.x += 1)
+		{
+			int car_map_id;
+			CAS_TILE_MAP* car_map_ptr = NULL;
+			int car_off_vram = 0;
+
+			if (start_ctile_row.x <41 && start_ctile_row.y <41)
+			{
+				if (start_ctile_row.x >=0 && start_ctile_row.y >=0)
+				{
+					// extract the CAR MAP TID
+					car_map_id = car_fmap[start_ctile_row.y*CAR_MAP_WIDTH_x + start_ctile_row.x];
+					if (car_map_id == CAR_BG_ID)
+					{
+						car_map_ptr = bg_tile_map_id;
+						car_map_id = 1;
+						car_off_vram = 0;
+					}
+					else
+					{
+						car_map_ptr = cas_tile_map_id;
+						car_off_vram = CAR_TILE_OFFSET_IN_VRAM;
+					}
+				}
+				else
+				{
+					// outside of the CAR MAP, it should be transparent background
+					car_map_ptr = bg_tile_map_id;
+					car_map_id = 0;
+					car_off_vram = 0;
+				}
+
+			}
+			else
+			{
+				// outside of the CAR MAP, it should be transparent background
+				car_map_ptr = bg_tile_map_id;
+				car_map_id = 0;
+				car_off_vram = 0;
+			}
+
+			// render
+			int se_idx = 0, sea_idx = 0;
+			COORD_2D tile_curr_coord;
+			map_ctile_to_tile(start_ctile_row.x, start_ctile_row.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
+			COORD_2D tile_render_coord;
+		
+			// put down the starter tile
+			int cas_r, cas_col;
+			for (cas_r = 0; cas_r < 3; cas_r++)
+			{
+				for (cas_col=0; cas_col<3; cas_col++)
+				{
+					tile_render_coord.x = tile_curr_coord.x + cas_col;
+					tile_render_coord.y = tile_curr_coord.y + cas_r;
+					wrapping_tile_coord(&tile_render_coord);
+					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
+
+					se_idx = sea_idx >> 1;
+					if (sea_idx % 2 == 0)
+					{
+						// write to lower 8-bit of pse, preseve the higher 8-bit of pse
+						//														0 = CARCASONNE CAT 0 = STARTER TILE
+						bg_gba[se_idx] = (bg_gba[se_idx] & 0xFF00) | ((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram) & 0x00FF);
+					}
+					else
+					{
+						// write higer 8-bit of pse, preserve the lower 8 bit of pse
+						bg_gba[se_idx] = (bg_gba[se_idx] & 0x00FF) | (((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram)<<8)  & 0xFF00);
+					}
+				}
+			}
+
+		} 
+
+	}	
 
 
 }
@@ -1216,15 +1316,23 @@ void game_loop()
 		// 	bgaff.dx >> 8, (bgaff.dx >> 8)/3, bgaff.dy >> 8,(bgaff.dy >> 8)/3,
 		// 	ctile_idx, ctile_idy,
 		// 	tile_idx, tile_idy);
-		int tst = (-13)%3;
-		s32 render_ctile_idx=0, render_ctile_idy=0;
-		map_tile_to_ctile(67, 69, &render_ctile_idx, &render_ctile_idy);
-		tte_printf("#{es;P}mv/up#:%d/%d-strctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld - car_ID: %d",
-			tst_mvflag, tst_updflg,tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
+		// int tst = (-13)%3;
+		// s32 render_ctile_idx=0, render_ctile_idy=0;
+		// map_tile_to_ctile(67, 69, &render_ctile_idx, &render_ctile_idy);
+		// tte_printf("#{es;P}mv/up#:%d/%d-strctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
+		// 	tst_mvflag, tst_updflg,tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
+		// 	sae_curr_x, sae_curr_y,
+		// 	ctile_idx, ctile_idy,
+		// 	tst_rd_tid.x, tst_rd_tid.y);
+		// tte_printf("#{es;P}mv/up#:%d/%d\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld",
+		// 	tst_mvflag, tst_updflg,
+		// 	sae_curr_x, sae_curr_y,
+		// 	ctile_idx, ctile_idy);
+		tte_printf("#{es;P}strctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
+			tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
 			sae_curr_x, sae_curr_y,
 			ctile_idx, ctile_idy,
-			tst_rd_tid.x, tst_rd_tid.y,
-			carcassonne_full_map[ctile_idx*41 + ctile_idy]);
+			tst_rd_tid.x, tst_rd_tid.y);
 	}
 }
 
