@@ -8,7 +8,7 @@
 #include <stdlib.h> 
 // abs()
 #include <tonc.h>
-#include "tiles-wall.h"
+#include "tiles-walllite.h"
 #include "carcas_data.h"
 #include <math.h> 
 // ceil(), floor()
@@ -34,7 +34,7 @@ enum GAME_STATE current_game_state = START;
 typedef unsigned short CAS_TILE_MAP[9];
 #define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap_v2)
 #define bg_tile_map_id	((CAS_TILE_MAP*)Bg_tile)
-#define elem_cas_tile_set	((TILE8*)tiles_wallTiles)
+#define elem_cas_tile_set	((TILE8*)tiles_wallliteTiles)
 
 #define CAR_CAT 32 // cacarcasonne category number (tile with different graphic features)
 
@@ -513,10 +513,10 @@ void init_reg_bg ()
 	// Place the bg tile 
 	// into VRAM: cbb == 0
 	// tid for Carcassonne graphic starts from 1, tid 0 is the bg tile.
-	memcpy32(&tile8_mem[CBB_0][0], tiles_wallTiles, tiles_wallTilesLen/sizeof(u32));
+	memcpy32(&tile8_mem[CBB_0][0], tiles_wallliteTiles, tiles_wallliteTilesLen/sizeof(u32));
 
 	// no palette, only 256 colors
-	memcpy32(pal_bg_mem, tiles_wallPal, tiles_wallPalLen/sizeof(u32));
+	memcpy32(pal_bg_mem, tiles_walllitePal, tiles_walllitePalLen/sizeof(u32));
 
 }
 
@@ -525,7 +525,7 @@ void init_reg_obj ()
 	// SPrite is 8x8p@8bpp, bcz it shares data with the background (8x8p@8bpp)
 
 	// load in 256 palette (shared data with the background), 
-	memcpy32(pal_obj_mem, tiles_wallPal, tiles_wallPalLen/sizeof(u32));
+	memcpy32(pal_obj_mem, tiles_walllitePal, tiles_walllitePalLen/sizeof(u32));
 	
 	
 	// Place the cursor/sprite
@@ -664,7 +664,7 @@ void game_loop()
 			}
 
 			
-			if (current_game_state == PUT_DOWN_TILE)
+			if (current_game_state == PUT_DOWN_TILE | current_game_state == END)
 			{
 				// === allow bg rolling, sprite static
 				x += 0; // 24*key_tri_horz(); // [pixel]
@@ -1269,11 +1269,11 @@ void game_loop()
 		s32 render_tile_idx=0, render_tile_idy=0;
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy, true);
-		// tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
-		// 	rand_cat_id, 
-		// 	car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
-		// 	carcassonne_number_of_tiles, CAR_TILES_MAX,
-		// 	ctile_idx, ctile_idy);
+		tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
+			rand_cat_id, 
+			car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
+			carcassonne_number_of_tiles, CAR_TILES_MAX,
+			ctile_idx, ctile_idy);
 		// int tst = (-13)%3;
 		// s32 render_ctile_idx=0, render_ctile_idy=0;
 		// map_tile_to_ctile(67, 69, &render_ctile_idx, &render_ctile_idy);
@@ -1282,10 +1282,10 @@ void game_loop()
 		// 	sae_curr_x, sae_curr_y,
 		// 	ctile_idx, ctile_idy,
 		// 	tst_rd_tid.x, tst_rd_tid.y);
-		tte_printf("#{es;P}mv/up#:%d/%d\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld",
-			tst_mvflag, tst_updflg,
-			sae_curr_x, sae_curr_y,
-			ctile_idx, ctile_idy);
+		// tte_printf("#{es;P}mv/up#:%d/%d\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld",
+		// 	tst_mvflag, tst_updflg,
+		// 	sae_curr_x, sae_curr_y,
+		// 	ctile_idx, ctile_idy);
 		// tte_printf("#{es;P}ctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
 		// 	tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
 		// 	sae_curr_x, sae_curr_y,
