@@ -113,10 +113,10 @@ typedef struct COORD_2D
 	s32 y;
 } ALIGN4 COORD_2D;
 
-#define CAR_MAP_WIDTH_x 61 // [ctile]
-#define CAR_MAP_HEIGHT_y 61
-#define REF_CAR_TILE 30 // [ctile]
-#define CAR_MAP_COORD_MAX 5041 
+#define CAR_MAP_WIDTH_x 91 // [ctile]
+#define CAR_MAP_HEIGHT_y 91
+#define REF_CAR_TILE 45 // [ctile]
+#define CAR_MAP_COORD_MAX 8281 
 
 typedef struct CAR_MAP_INFO
 {
@@ -219,6 +219,49 @@ void map_tile_to_ctile (int tile_x, int tile_y, s32* ctile_x, s32* ctile_y)
 	}
 }
 
+
+void wrapping_tile_coord (COORD_2D* tile_coord)
+{
+	s32 tile_x_max = map_width_unit_tile -1, tile_y_max = map_height_unit_tile -1;
+	s32 reminder_x = abs(tile_coord->x)%map_width_unit_tile,
+		reminder_y = abs(tile_coord->y)%map_height_unit_tile;
+	s32 quotient_x = abs(tile_coord->x)/map_width_unit_tile,
+		quotient_y = abs(tile_coord->y)/map_height_unit_tile;
+
+	if (tile_coord->x > tile_x_max) 
+	{
+		tile_coord->x = tile_coord->x - quotient_x*map_width_unit_tile;
+	}
+	if (tile_coord->x < 0)
+	{
+		if (reminder_x == 0)
+		{
+			tile_coord->x = quotient_x*map_width_unit_tile + tile_coord->x;
+		}
+		else
+		{
+			tile_coord->x = (quotient_x+1)*map_width_unit_tile + tile_coord->x;
+		}
+	}
+
+
+	if (tile_coord->y > tile_y_max) 
+	{
+		tile_coord->y = tile_coord->y - quotient_y*map_height_unit_tile;
+	}
+	if (tile_coord->y < 0)
+	{
+		if (reminder_y == 0)
+		{
+			tile_coord->y = quotient_y*map_height_unit_tile + tile_coord->y;
+		}
+		else
+		{
+			tile_coord->y = (quotient_y+1)*map_height_unit_tile + tile_coord->y;
+		}
+	}  
+}
+
 void map_ctile_to_tile (s32 ctile_x, s32 ctile_y, s32* tile_x, s32* tile_y, bool return_wrap_tile)
 {
 	// receive unit ctile, return unit tile. Return the tile within the bg size !
@@ -233,53 +276,18 @@ void map_ctile_to_tile (s32 ctile_x, s32 ctile_y, s32* tile_x, s32* tile_y, bool
 	*tile_y = (ctile_y - REFERENCE_CTILE)*3 + INIT_TILE_DY;
 	if (return_wrap_tile == true)
 	{
-		if (*tile_x > tile_x_max) 
-		{
-			*tile_x = *tile_x - map_width_unit_tile;
-		}
-		if (*tile_x < 0)
-		{
-			*tile_x = map_width_unit_tile + *tile_x;
-		}
-
-
-		if (*tile_y > tile_y_max) 
-		{
-			*tile_y = *tile_y - map_height_unit_tile;
-		}
-		if (*tile_y < 0)
-		{
-			*tile_y = map_height_unit_tile + *tile_y;
-		}  
+		COORD_2D wrap_tcoord;
+		wrap_tcoord.x = *tile_x;
+		wrap_tcoord.y = *tile_y;
+		wrapping_tile_coord(&wrap_tcoord);
+		*tile_x = wrap_tcoord.x;
+		*tile_y = wrap_tcoord.y;
 	}
 	else
 	{
 		// nothing
 	}
 
-}
-
-void wrapping_tile_coord (COORD_2D* tile_coord)
-{
-	s32 tile_x_max = map_width_unit_tile -1, tile_y_max = map_height_unit_tile -1;
-	if (tile_coord->x > tile_x_max) 
-	{
-		tile_coord->x = tile_coord->x - map_width_unit_tile;
-	}
-	if (tile_coord->x < 0)
-	{
-		tile_coord->x = map_width_unit_tile + tile_coord->x;
-	}
-
-
-	if (tile_coord->y > tile_y_max) 
-	{
-		tile_coord->y = tile_coord->y - map_height_unit_tile;
-	}
-	if (tile_coord->y < 0)
-	{
-		tile_coord->y = map_height_unit_tile + tile_coord->y;
-	}  
 }
 
 
