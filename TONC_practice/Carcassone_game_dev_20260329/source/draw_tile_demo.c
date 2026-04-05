@@ -8,7 +8,7 @@
 #include <stdlib.h> 
 // abs()
 #include <tonc.h>
-#include "tiles-carcas_v20260329.h"
+#include "tiles-citybuildings.h"
 #include "carcas_data.h"
 #include <math.h> 
 // ceil(), floor()
@@ -34,7 +34,7 @@ enum GAME_STATE current_game_state = START;
 typedef unsigned short CAS_TILE_MAP[9];
 #define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap_v2)
 #define bg_tile_map_id	((CAS_TILE_MAP*)Bg_tile)
-#define elem_cas_tile_set	((TILE8*)tiles_carcas_v20260329Tiles)
+#define elem_cas_tile_set	((TILE8*)tiles_citybuildingsTiles)
 
 #define CAR_CAT 32 // cacarcasonne category number (tile with different graphic features)
 
@@ -105,12 +105,6 @@ int car_cat_max[32] = {
 	2
 };
 
-// for the virtual backround (vbg)
-typedef struct VBG_BORDER
-{
-	s32 right, left, top, bottom;
-} ALIGN4 VBG_BORDER;
-
 #define CAR_BG_ID 150 // > the CAR ID available in `tiles-carcas_v20260329.s`
 
 typedef struct COORD_2D
@@ -121,7 +115,8 @@ typedef struct COORD_2D
 
 #define CAR_MAP_WIDTH_x 41 // [ctile]
 #define CAR_MAP_HEIGHT_y 41
-
+#define REF_CAR_TILE 20 // [ctile]
+#define CAR_TOTAL_MAP_SIZE 1681
 // ===========
 // OBJ/ SPRITE
 // ===========
@@ -176,7 +171,7 @@ void map_tile_to_ctile (int tile_x, int tile_y, s32* ctile_x, s32* ctile_y)
 {
 	// receive unit tile, return unit ctile
 
-	s32 REFERENCE_CTILE = 20; // [ctile], ctile_dx = 20, ctile_dy=20, bcz index starts from 0
+	s32 REFERENCE_CTILE = REF_CAR_TILE; // [ctile], ctile_dx = 20, ctile_dy=20, bcz index starts from 0
 	s32 INIT_TILE_DX = (INIT_OBJ_X + (INIT_BG_X_OFF)) >> 3; // [tile]
 	s32 INIT_TILE_DY = (INIT_OBJ_Y + (INIT_BG_Y_OFF)) >> 3; //
 
@@ -222,7 +217,7 @@ void map_ctile_to_tile (s32 ctile_x, s32 ctile_y, s32* tile_x, s32* tile_y, bool
 	// receive unit ctile, return unit tile. Return the tile within the bg size !
 
 	// must be within the bg size
-	s32 REFERENCE_CTILE = 20; // [ctile], ctile_dx = 20, ctile_dy=20, bcz index starts from 0
+	s32 REFERENCE_CTILE = REF_CAR_TILE; // [ctile], ctile_dx = 20, ctile_dy=20, bcz index starts from 0
 	s32 INIT_TILE_DX = (INIT_OBJ_X + (INIT_BG_X_OFF)) >> 3; // [tile]
 	s32 INIT_TILE_DY = (INIT_OBJ_Y + (INIT_BG_Y_OFF)) >> 3; // 
 	s32 tile_x_max = map_width_unit_tile -1, tile_y_max = map_height_unit_tile -1;
@@ -280,310 +275,6 @@ void wrapping_tile_coord (COORD_2D* tile_coord)
 	}  
 }
 
-void render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y, int* car_fmap, SCR_ENTRY *bg_gba, 
-	u16* mv_tflg, u16* update_tfg, COORD_2D* tst_start_ctile,COORD_2D* tst_end_ctile, COORD_2D* tst_render_tid)
-{
-	// move 1 ctile step in any direction x/y -> trigger render 1 col/ 1 row
-	s32 SAFE_ZONE_R = (SCR_WIDTH_uPx -INIT_OBJ_X) /24 + 1, // [ctile], 1 ctile = 3x3 tile
-		SAFE_ZONE_L = INIT_OBJ_X /24 +1, 
-		SAFE_ZONE_T = INIT_OBJ_Y /24 +1,
-		SAFE_ZONE_B = (SCR_HEIGHT_uPx - INIT_OBJ_Y) /24 +1;
-	
-	s32 tile_x_car_max, tile_y_car_max;// [tile], limit by the carcasonne conceptual map (41x41 ctile)
-	s32 tile_x_car_min, tile_y_car_min;
-	map_ctile_to_tile(40, 40, &tile_x_car_max, &tile_y_car_max, false);
-	map_ctile_to_tile(0, 0, &tile_x_car_min, &tile_y_car_min, false);
-
-	//			   TBRL; 1 = move there, 0 = not move there
-	u16 mv_flg = 0x0000;
-	
-	if (tile_cur_x != tile_prev_x)
-	{
-		if (tile_cur_x > tile_prev_x) 
-		{
-			// move right -> render 1 column on the right
-			mv_flg = mv_flg | 0x0010; 
-		}
-		else
-		{
-			// move left -> render 1 column on the left
-			mv_flg = mv_flg | 0x0001;
-		}
-	}
-	else
-	{
-		// nothing
-	}
-
-	if (tile_cur_y != tile_prev_y)
-	{
-		if (tile_cur_y > tile_prev_y) 
-		{
-			// move down -> render 1 column on the bot
-			mv_flg = mv_flg | 0x0100;
-
-		}
-		else
-		{
-			// move up -> render 1 column on the top
-			mv_flg = mv_flg | 0x1000;
-		}		
-	}
-	else
-	{
-		// nothing
-	}
-	
-	*mv_tflg = mv_flg;
-	// -> find ctile coordinate for starting rendering
-	COORD_2D start_ctile_col, end_ctile_col; // [ctile]
-	COORD_2D reference_ctile;
-	map_tile_to_ctile(tile_cur_x, tile_cur_y, &reference_ctile.x, &reference_ctile.y); // [ctile]
-	if ((mv_flg & 0x0011) == 0x0000) 
-	{
-		// no colum rendering
-		// *flag_res = mv_flg;
-	}
-	else
-	{
-		start_ctile_col.y = reference_ctile.y - (SAFE_ZONE_T+1);
-		end_ctile_col.y = start_ctile_col.y + (SAFE_ZONE_T + SAFE_ZONE_B+1);
-		if ((mv_flg & 0x0001) == 0x0001)
-		{
-			// *update_tfg = mv_flg;
-			// move left, 	
-			start_ctile_col.x = reference_ctile.x - (SAFE_ZONE_L+1);
-			end_ctile_col.x = start_ctile_col.x;
-		}
-		else
-		{
-			// move right
-			// *update_tfg = mv_flg;
-			start_ctile_col.x = reference_ctile.x + (SAFE_ZONE_R+1);
-			end_ctile_col.x = start_ctile_col.x;
-
-		}
-
-		// start rendering
-		// tst_start_ctile->x = start_ctile_col.x;
-		// tst_start_ctile->y = start_ctile_col.y;
-		// tst_end_ctile->x = end_ctile_col.x;
-		// tst_end_ctile->y = end_ctile_col.y;
-	
-		// 	COORD_2D tile_curr_coord;
-		// 	// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
-		// 	// tile_curr_coord.y = tile_cur_y;
-		// 	map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, true);
-		// 	// wrapping_tile_coord(&tile_curr_coord);
-		// 	COORD_2D tile_render_coord;
-		// 			tile_render_coord.x = tile_curr_coord.x + 0;
-		// 			tile_render_coord.y = tile_curr_coord.y + 0;
-		// 			wrapping_tile_coord(&tile_render_coord);
-		// 			int se_idx = 0, sea_idx = 0;
-		// 			sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-		// tst_render_tid->x = tile_render_coord.x;
-		// tst_render_tid->y = tile_render_coord.y;
-
-		for (start_ctile_col.y; start_ctile_col.y < end_ctile_col.y + 1; start_ctile_col.y += 1)
-		{
-			int car_map_id;
-			CAS_TILE_MAP* car_map_ptr = NULL;
-			int car_off_vram = 0;
-
-			if (start_ctile_col.x <41 && start_ctile_col.y <41)
-			{
-				if (start_ctile_col.x >=0 && start_ctile_col.y >=0)
-				{
-					// extract the CAR MAP TID
-					car_map_id = car_fmap[start_ctile_col.y*CAR_MAP_WIDTH_x + start_ctile_col.x];
-					if (car_map_id == CAR_BG_ID)
-					{
-						car_map_ptr = bg_tile_map_id;
-						car_map_id = 1;
-						car_off_vram = 0;
-					}
-					else
-					{
-						car_map_ptr = cas_tile_map_id;
-						car_off_vram = CAR_TILE_OFFSET_IN_VRAM;
-					}
-				}
-				else
-				{
-					// outside of the CAR MAP, it should be transparent background
-					car_map_ptr = bg_tile_map_id;
-					car_map_id = 0;
-					car_off_vram = 0;
-				}
-
-			}
-			else
-			{
-				// outside of the CAR MAP, it should be transparent background
-				car_map_ptr = bg_tile_map_id;
-				car_map_id = 0;
-				car_off_vram = 0;
-			}
-
-			// render
-			int se_idx = 0, sea_idx = 0;
-			COORD_2D tile_curr_coord;
-			map_ctile_to_tile(start_ctile_col.x, start_ctile_col.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
-			COORD_2D tile_render_coord;
-		
-			// put down the starter tile
-			int cas_r, cas_col;
-			for (cas_r = 0; cas_r < 3; cas_r++)
-			{
-				for (cas_col=0; cas_col<3; cas_col++)
-				{
-					tile_render_coord.x = tile_curr_coord.x + cas_col;
-					tile_render_coord.y = tile_curr_coord.y + cas_r;
-					wrapping_tile_coord(&tile_render_coord);
-					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-
-					se_idx = sea_idx >> 1;
-					if (sea_idx % 2 == 0)
-					{
-						// write to lower 8-bit of pse, preseve the higher 8-bit of pse
-						//														0 = CARCASONNE CAT 0 = STARTER TILE
-						bg_gba[se_idx] = (bg_gba[se_idx] & 0xFF00) | ((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram) & 0x00FF);
-					}
-					else
-					{
-						// write higer 8-bit of pse, preserve the lower 8 bit of pse
-						bg_gba[se_idx] = (bg_gba[se_idx] & 0x00FF) | (((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram)<<8)  & 0xFF00);
-					}
-				}
-			}
-
-		} 
-	}
-
-	COORD_2D start_ctile_row, end_ctile_row;
-	if ((mv_flg & 0x1100) == 0x0000) 
-	{
-		// no row rendering
-	}
-	else
-	{
-		start_ctile_row.x = reference_ctile.x - (SAFE_ZONE_L+1);
-		end_ctile_row.x = start_ctile_row.x + (SAFE_ZONE_L + SAFE_ZONE_R +1);
-		if ((mv_flg & 0x0100) == 0x0100)
-		{
-			*update_tfg = mv_flg;
-			// move down, (increase y)
-			start_ctile_row.y = reference_ctile.y + (SAFE_ZONE_B+1);
-			end_ctile_row.y = start_ctile_row.y; 	
-		}
-		else
-		{
-			*update_tfg = mv_flg;
-			// move up
-			start_ctile_row.y = reference_ctile.y - (SAFE_ZONE_T+1);
-			end_ctile_row.y = start_ctile_row.y;
-		}
-
-		// render
-		// start rendering
-		tst_start_ctile->x = start_ctile_row.x;
-		tst_start_ctile->y = start_ctile_row.y;
-		tst_end_ctile->x = end_ctile_row.x;
-		tst_end_ctile->y = end_ctile_row.y;
-	
-			COORD_2D tile_curr_coord;
-			// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
-			// tile_curr_coord.y = tile_cur_y;
-			map_ctile_to_tile(start_ctile_row.x, start_ctile_row.y, &tile_curr_coord.x, &tile_curr_coord.y, true);
-			// wrapping_tile_coord(&tile_curr_coord);
-			COORD_2D tile_render_coord;
-					tile_render_coord.x = tile_curr_coord.x + 0;
-					tile_render_coord.y = tile_curr_coord.y + 0;
-					wrapping_tile_coord(&tile_render_coord);
-					int se_idx = 0, sea_idx = 0;
-					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-		tst_render_tid->x = tile_render_coord.x;
-		tst_render_tid->y = tile_render_coord.y;
-
-		for (start_ctile_row.x; start_ctile_row.x < end_ctile_row.x + 1; start_ctile_row.x += 1)
-		{
-			int car_map_id;
-			CAS_TILE_MAP* car_map_ptr = NULL;
-			int car_off_vram = 0;
-
-			if (start_ctile_row.x <41 && start_ctile_row.y <41)
-			{
-				if (start_ctile_row.x >=0 && start_ctile_row.y >=0)
-				{
-					// extract the CAR MAP TID
-					car_map_id = car_fmap[start_ctile_row.y*CAR_MAP_WIDTH_x + start_ctile_row.x];
-					if (car_map_id == CAR_BG_ID)
-					{
-						car_map_ptr = bg_tile_map_id;
-						car_map_id = 1;
-						car_off_vram = 0;
-					}
-					else
-					{
-						car_map_ptr = cas_tile_map_id;
-						car_off_vram = CAR_TILE_OFFSET_IN_VRAM;
-					}
-				}
-				else
-				{
-					// outside of the CAR MAP, it should be transparent background
-					car_map_ptr = bg_tile_map_id;
-					car_map_id = 0;
-					car_off_vram = 0;
-				}
-
-			}
-			else
-			{
-				// outside of the CAR MAP, it should be transparent background
-				car_map_ptr = bg_tile_map_id;
-				car_map_id = 0;
-				car_off_vram = 0;
-			}
-
-			// render
-			int se_idx = 0, sea_idx = 0;
-			COORD_2D tile_curr_coord;
-			map_ctile_to_tile(start_ctile_row.x, start_ctile_row.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
-			COORD_2D tile_render_coord;
-		
-			// put down the starter tile
-			int cas_r, cas_col;
-			for (cas_r = 0; cas_r < 3; cas_r++)
-			{
-				for (cas_col=0; cas_col<3; cas_col++)
-				{
-					tile_render_coord.x = tile_curr_coord.x + cas_col;
-					tile_render_coord.y = tile_curr_coord.y + cas_r;
-					wrapping_tile_coord(&tile_render_coord);
-					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-
-					se_idx = sea_idx >> 1;
-					if (sea_idx % 2 == 0)
-					{
-						// write to lower 8-bit of pse, preseve the higher 8-bit of pse
-						//														0 = CARCASONNE CAT 0 = STARTER TILE
-						bg_gba[se_idx] = (bg_gba[se_idx] & 0xFF00) | ((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram) & 0x00FF);
-					}
-					else
-					{
-						// write higer 8-bit of pse, preserve the lower 8 bit of pse
-						bg_gba[se_idx] = (bg_gba[se_idx] & 0x00FF) | (((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram)<<8)  & 0xFF00);
-					}
-				}
-			}
-
-		} 
-
-	}	
-
-
-}
 
 void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y, int* car_fmap, SCR_ENTRY *bg_gba, 
 	bool* mv_tflg, bool* update_tfg, COORD_2D* tst_start_ctile,COORD_2D* tst_end_ctile, COORD_2D* tst_render_tid)
@@ -593,11 +284,6 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 		SAFE_ZONE_L = INIT_OBJ_X /24 +1, 
 		SAFE_ZONE_T = INIT_OBJ_Y /24 +1,
 		SAFE_ZONE_B = (SCR_HEIGHT_uPx - INIT_OBJ_Y) /24 +1;
-	
-	// s32 tile_x_car_max, tile_y_car_max;// [tile], limit by the carcasonne conceptual map (41x41 ctile)
-	// s32 tile_x_car_min, tile_y_car_min;
-	// map_ctile_to_tile(40, 40, &tile_x_car_max, &tile_y_car_max, false);
-	// map_ctile_to_tile(0, 0, &tile_x_car_min, &tile_y_car_min, false);
 
 	//			  false: not moved, true: moved
 	bool mv_flg = false;
@@ -614,47 +300,47 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 	
 	*mv_tflg = mv_flg;
 	// -> find ctile coordinate for starting rendering
-	s32 ctile_x_str, ctile_x_end, ctile_y_str, ctile_y_end; // [ctile]
-	COORD_2D reference_ctile;
+	// s32 ctile_x_str, ctile_x_end, ctile_y_str, ctile_y_end; // [ctile]
+	COORD_2D reference_ctile, ctile_str, ctile_end;
 	map_tile_to_ctile(tile_cur_x, tile_cur_y, &reference_ctile.x, &reference_ctile.y); // [ctile]
-	ctile_x_str = reference_ctile.x - (SAFE_ZONE_L+1);
-	ctile_x_end = ctile_x_str + (SAFE_ZONE_L + SAFE_ZONE_R +1);
-	ctile_y_str = reference_ctile.y - (SAFE_ZONE_T+1);
-	ctile_y_end = ctile_y_str + (SAFE_ZONE_T + SAFE_ZONE_B+1);
-
-		tst_start_ctile->x = ctile_x_str;
-		tst_start_ctile->y = ctile_y_str;
-		tst_end_ctile->x = ctile_x_end;
-		tst_end_ctile->y = ctile_y_end;
+	ctile_str.x = reference_ctile.x - (SAFE_ZONE_L+1);
+	ctile_str.y = reference_ctile.y - (SAFE_ZONE_T+1);
+	ctile_end.x = ctile_str.x + (SAFE_ZONE_L + SAFE_ZONE_R +1);
+	ctile_end.y = ctile_str.y + (SAFE_ZONE_T + SAFE_ZONE_B+1);
+	// == DEBUG
+		tst_start_ctile->x = ctile_str.x;
+		tst_start_ctile->y = ctile_str.y;
+		tst_end_ctile->x = ctile_end.x;
+		tst_end_ctile->y = ctile_end.y;
 	
-			COORD_2D tile_curr_coord;
-			// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
-			// tile_curr_coord.y = tile_cur_y;
-			map_ctile_to_tile(ctile_x_str, ctile_y_str, &tile_curr_coord.x, &tile_curr_coord.y, false);
-			// wrapping_tile_coord(&tile_curr_coord);
-			COORD_2D tile_render_coord;
-					tile_render_coord.x = tile_curr_coord.x + 0;
-					tile_render_coord.y = tile_curr_coord.y + 0;
-					wrapping_tile_coord(&tile_render_coord);
-					int se_idx = 0, sea_idx = 0;
-					sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-		tst_render_tid->x = tile_render_coord.x;
-		tst_render_tid->y = tile_render_coord.y;
-			
+		// 	COORD_2D tile_curr_coord;
+		// 	// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
+		// 	// tile_curr_coord.y = tile_cur_y;
+		// 	map_ctile_to_tile(ctile_str.x, ctile_str.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
+		// 	// wrapping_tile_coord(&tile_curr_coord);
+		// 	COORD_2D tile_render_coord;
+		// 			tile_render_coord.x = tile_curr_coord.x + 0;
+		// 			tile_render_coord.y = tile_curr_coord.y + 0;
+		// 			wrapping_tile_coord(&tile_render_coord);
+		// 			int se_idx = 0, sea_idx = 0;
+		// 			sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
+		// tst_render_tid->x = tile_render_coord.x;
+		// tst_render_tid->y = tile_render_coord.y;
+	// == DEBUG
 	if (mv_flg == true) 
 	{
 		*update_tfg = mv_flg;
 		// rendering the whole surrounding of 
 		// the (screen+buffer zone (to fix the misalign screen size and conceptual map grid))
 		s32 iter_x_ctile, iter_y_ctile;
-		for (iter_y_ctile = ctile_y_str; iter_y_ctile < ctile_y_end + 1; iter_y_ctile += 1)
+		for (iter_y_ctile = ctile_str.y; iter_y_ctile < ctile_end.y + 1; iter_y_ctile += 1)
 		{
-			for (iter_x_ctile= ctile_x_str; iter_x_ctile < ctile_x_end +1; iter_x_ctile +=1)
+			for (iter_x_ctile= ctile_str.x; iter_x_ctile < ctile_end.x +1; iter_x_ctile +=1)
 			{
 				int car_map_id;
 				CAS_TILE_MAP* car_map_ptr = NULL;
 				int car_off_vram = 0;
-				if (iter_y_ctile <41 && iter_x_ctile <41)
+				if (iter_y_ctile < CAR_MAP_HEIGHT_y && iter_x_ctile < CAR_MAP_WIDTH_x)
 				{
 					if (iter_y_ctile >=0 && iter_x_ctile >=0)
 					{
@@ -689,7 +375,7 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 					car_off_vram = 0;
 				}
 
-				if (iter_y_ctile == ctile_y_str | iter_y_ctile == ctile_y_end)
+				if (iter_y_ctile == ctile_str.y | iter_y_ctile == ctile_end.y)
 				{
 					// start render the whole row
 					int se_idx = 0, sea_idx = 0;
@@ -725,7 +411,7 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 				}
 
 			
-				if (iter_x_ctile == ctile_x_str | iter_x_ctile == ctile_x_end)
+				if (iter_x_ctile == ctile_str.x | iter_x_ctile == ctile_end.x)
 				{
 					// render the whole column
 					// start render
@@ -809,10 +495,10 @@ void init_reg_bg ()
 	// Place the bg tile 
 	// into VRAM: cbb == 0
 	// tid for Carcassonne graphic starts from 1, tid 0 is the bg tile.
-	memcpy32(&tile8_mem[CBB_0][0], tiles_carcas_v20260329Tiles, tiles_carcas_v20260329TilesLen/sizeof(u32));
+	memcpy32(&tile8_mem[CBB_0][0], tiles_citybuildingsTiles, tiles_citybuildingsTilesLen/sizeof(u32));
 
 	// no palette, only 256 colors
-	memcpy32(pal_bg_mem, tiles_carcas_v20260329Pal, tiles_carcas_v20260329PalLen/sizeof(u32));
+	memcpy32(pal_bg_mem, tiles_citybuildingsPal, tiles_citybuildingsPalLen/sizeof(u32));
 
 }
 
@@ -821,7 +507,7 @@ void init_reg_obj ()
 	// SPrite is 8x8p@8bpp, bcz it shares data with the background (8x8p@8bpp)
 
 	// load in 256 palette (shared data with the background), 
-	memcpy32(pal_obj_mem, tiles_carcas_v20260329Pal, tiles_carcas_v20260329PalLen/sizeof(u32));
+	memcpy32(pal_obj_mem, tiles_citybuildingsPal, tiles_citybuildingsPalLen/sizeof(u32));
 	
 	
 	// Place the cursor/sprite
@@ -837,7 +523,7 @@ void game_loop()
 	int car_cat_track[32] = {0};
 	// (virtual/conceptual) carcassonne map = 41 x 41 ctiles = 1681.
 	// graphical stored tiles in VRAM.
-	int carcassonne_full_map[1681] = {[0 ... 1680]= CAR_BG_ID};
+	int carcassonne_full_map[CAR_TOTAL_MAP_SIZE] = {[0 ... (CAR_TOTAL_MAP_SIZE-1)]= CAR_BG_ID};
 
 	// === aff bg
 	AFF_SRC_EX asx=
@@ -1551,13 +1237,11 @@ void game_loop()
 		s32 render_tile_idx=0, render_tile_idy=0;
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy, true);
-		// tte_printf("#{es;P}Tile ID#: %d\t\nLeft: %d/%d - %d/%d - bgdx/y: %ld/%ld %ld/%ld\nctile_dx/y: %ld/%ld - tile_idx/y: %ld/%ld",
+		// tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
 		// 	rand_cat_id, 
 		// 	car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
 		// 	carcassonne_number_of_tiles, CAR_TILES_MAX,
-		// 	bgaff.dx >> 8, (bgaff.dx >> 8)/3, bgaff.dy >> 8,(bgaff.dy >> 8)/3,
-		// 	ctile_idx, ctile_idy,
-		// 	tile_idx, tile_idy);
+		// 	ctile_idx, ctile_idy);
 		// int tst = (-13)%3;
 		// s32 render_ctile_idx=0, render_ctile_idy=0;
 		// map_tile_to_ctile(67, 69, &render_ctile_idx, &render_ctile_idy);
@@ -1570,7 +1254,7 @@ void game_loop()
 		// 	tst_mvflag, tst_updflg,
 		// 	sae_curr_x, sae_curr_y,
 		// 	ctile_idx, ctile_idy);
-		tte_printf("#{es;P}strctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
+		tte_printf("#{es;P}ctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
 			tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
 			sae_curr_x, sae_curr_y,
 			ctile_idx, ctile_idy,
