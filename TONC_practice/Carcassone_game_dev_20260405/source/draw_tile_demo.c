@@ -1126,7 +1126,8 @@ void game_loop()
 							// save the tile into conceptual carcassonne map
 							COORD_2D car_coord;
 							map_tile_to_ctile(sae_curr_x, sae_curr_y, &car_coord.x, &car_coord.y);
-							// carcassonne_full_map[car_coord.y*CAR_MAP_WIDTH_x  + car_coord.x] = rand_cat;
+							carcassonne_full_map[carcassonne_number_of_tiles-1].car_tid = rand_cat;
+							carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 							// current_game_state = MEEPLE;
 							current_game_state = GET_TILE;
 
