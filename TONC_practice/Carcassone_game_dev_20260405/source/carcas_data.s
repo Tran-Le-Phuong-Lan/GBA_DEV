@@ -181,4 +181,13 @@ Bg_tile:				@  Map = Carcassone Tile graphic, but for bg purpose
 	@ background tile
 	.hword 0,0,0,0,0,0,0,0,0
 
+	@ for Bg1_tile, their id in vram has no offset,
+	.section .rodata 			@ rodata = read-only data
+	.align	2
+	.global Bg1_tile		@  
+	.hidden Bg1_tile
+Bg1_tile:				@  maps of bg1 
+	@ bg1 cursor
+	.hword 1,2,3,4,5,6,7,8,9	
+
 @}}BLOCK(carcas_data)

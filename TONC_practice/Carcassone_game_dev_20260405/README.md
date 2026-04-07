@@ -253,3 +253,5 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
         4. based on 1. and 2., a function to map ctile to tile: for rendering when the bg rolls.
 
+- **IMPORTANT**: bg1 has not been rolled to the same position as bg2 yet, at the moment (by default) bg1 top left corner = screen top left corner (while bg2 due to the game development, it has been rolled to another position). **Regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp**.
+

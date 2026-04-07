@@ -10,6 +10,7 @@
 #include <tonc.h>
 #include "tiles-walllite.h"
 #include "carcas_data.h"
+#include "tiles-bg1.h"
 #include <math.h> 
 // ceil(), floor()
 
@@ -36,7 +37,10 @@ typedef unsigned short CAS_TILE_MAP[9];
 #define bg_tile_map_id	((CAS_TILE_MAP*)Bg_tile)
 #define elem_cas_tile_set	((TILE8*)tiles_wallliteTiles)
 
-#define CAR_CAT 32 // cacarcasonne category number (tile with different graphic features)
+#define bg1_tile_map_id	((CAS_TILE_MAP*)Bg1_tile)
+#define elem_bg1_tile_set	((TILE8*)tiles_bg1Tiles)
+
+#define CAR_CAT 32// cacarcasonne category number (tile with different graphic features)
 
 int car_cat_max[32] = {
 	// CAT 17
@@ -105,7 +109,7 @@ int car_cat_max[32] = {
 	2
 };
 
-#define CAR_BG_ID 150 // > the CAR ID available in `tiles-carcas_v20260329.s`
+#define CAR_BG_ID 150// > the CAR ID available in `tiles-carcas_v20260329.s`
 
 typedef struct COORD_2D
 {
@@ -113,9 +117,9 @@ typedef struct COORD_2D
 	s32 y;
 } ALIGN4 COORD_2D;
 
-#define CAR_MAP_WIDTH_x 91 // [ctile]
+#define CAR_MAP_WIDTH_x 91// [ctile]
 #define CAR_MAP_HEIGHT_y 91
-#define REF_CAR_TILE 45 // [ctile]
+#define REF_CAR_TILE 45// [ctile]
 #define CAR_MAP_COORD_MAX 8281 
 
 typedef struct CAR_MAP_INFO
@@ -130,37 +134,48 @@ typedef struct CAR_MAP_INFO
 OBJ_ATTR obj_buffer[128];
 OBJ_AFFINE *obj_aff_buffer= (OBJ_AFFINE*)obj_buffer;
 
-#define INIT_OBJ_X 104 // [pixel]
+#define INIT_OBJ_X 104// [pixel]
 #define INIT_OBJ_Y 56
 
 // ===========
-// BG
+// BG 2, afiine - main conceptual, dynamic carcassonne game map
 // ===========
 BG_AFFINE bgaff; // .8f = the last eight bit representing the fractional, 1 fraction = 1/256 [pixel]
 
-#define INIT_BG_X_OFF  0x0088 // = 136 [pixel]
-#define INIT_BG_Y_OFF  0x00B0 // = 176 [pixel]
+#define INIT_BG_X_OFF  0x0088// = 136 [pixel]
+#define INIT_BG_Y_OFF  0x00B0// = 176 [pixel]
 
 #define CBB_0  0
 // 1 CBB = 8 SBBs
 // 1 SBB either = 2048 byte long  = 64 TILEs (1 TILE 8x8p@ 4bpp = 32 bytes) = 32 TILE8s (1 TILE8 8x8p@ 8bpp = 64 bytes)
 // 		 or = 32 x 32 [tile] regular map (bcz 1 SE = 16 bits = 2 bytes) = 64 x 32 [tile] aff map (1 SAE = 8 bit = 1 byte)
 // In this context, we store 28 Tiles from 0th CBB ~ 0th SBB in 0th CBB 
-#define SBB_0  2
+#define SBB_0  2// 64x64 tile map = 2 SBBs -> this background consumes (se_mem[2], se_mem[3])
 // typedef u8  SCR_AFF_ENTRY, SAE;		//!< Type for affine screen entries (tonc_types)
 // typedef u16 SCR_ENTRY, SE;			//!< Type for screen entries
-SCR_ENTRY *bg0_map= se_mem[SBB_0];
+SCR_ENTRY *bg2_map= se_mem[SBB_0];
 // aff bg 64 x 64 tile = 2 SBBs 
-int map_width_unit_tile = 64; // [DTILE]
-int map_height_unit_tile = 64; // [DTILE]
+int map_width_unit_tile = 64; // [TILE]
+int map_height_unit_tile = 64; // [TILE]
 // because of 2 manual tile added manually (background tile, transparent tile)
 #define CAR_TILE_OFFSET_IN_VRAM 2
 
 // ===========
-// BG TEXT
+// BG 0 - TEXT 
 // ===========
 #define CBB_0_TEXT 2  // tiles for text	
 #define SBB_0_TEXT 31 // map for text
+
+// ===========
+// BG 1 - meeples, indications
+// ===========
+// use DTILE = 8x8p x 8bpp, share the same pallette with BG 2- affine
+#define CBB_0_BG1  1
+#define SBB_0_BG1  4 // 64x64 tile map = 4 sbbs = (se_mem[4], se_mem[5], se_mem[6], se_mem[7])
+
+SCR_ENTRY *bg1_map= se_mem[SBB_0_BG1];
+int bg1_width_unit_tile = 64; // [TILE]
+int bg1_height_unit_tile = 64; // [TILE]
 
 // ===========
 // GBA SCREEN
@@ -171,6 +186,15 @@ int map_height_unit_tile = 64; // [DTILE]
 // ==========
 // FUNCS
 // ==========
+// copy from tonc-example `sbb_reg` (TONC library for GBA),
+// mapping the tile-coordinate to multiple-sbb regular background screen entry index,
+// pitch = bg width (x_axis) in tile unit.
+u32 map_to_reg_se_index(u32 tx, u32 ty, u32 pitch)
+{
+	u32 sbb= ((tx>>5)+(ty>>5)*(pitch>>5));
+
+	return sbb*1024 + ((tx&31)+(ty&31)*32);
+}
 // [ctile] = 3x3 [tile]
 // [tile] = 8x8 [pixel]
 //					 = sae_curr_x		= sae_curr_y
@@ -495,9 +519,8 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
 void init_reg_bg ()
 {
-	// initialize a background
-	// REG_BG0CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_REG_32x32;
-											  // BG size: 32x32 DTILEs
+
+	// == initialize affine background 2
 	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_32x32; 
 	REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_64x64 | BG_WRAP;
 	// REG_BG2CNT= BG_CBB(CBB_0) | BG_SBB(SBB_0) | BG_AFF_64x64; 
@@ -518,6 +541,11 @@ void init_reg_bg ()
 	// no palette, only 256 colors
 	memcpy32(pal_bg_mem, tiles_walllitePal, tiles_walllitePalLen/sizeof(u32));
 
+	// == initialize regular background 1, 8bpp. Because it will share graphic data with affine background, affine bg is always 8bpp.
+	REG_BG1CNT= BG_CBB(CBB_0_BG1) | BG_SBB(SBB_0_BG1) | BG_REG_64x64 | BG_8BPP;
+											  // BG size: 32x32 DTILE
+	// The first tile is an empty tile. Because when inited, the bg uses its first tile to render the whole background as default
+	memcpy32(&tile8_mem[CBB_0_BG1][0], tiles_bg1Tiles, tiles_bg1TilesLen/sizeof(u32));
 }
 
 void init_reg_obj ()
@@ -610,7 +638,7 @@ void game_loop()
 			obj_y_min=INIT_OBJ_Y, obj_y_max=INIT_OBJ_Y + 2*8;
 
 		// === BG
-		SCR_ENTRY *pse= bg0_map;
+		SCR_ENTRY *pse= bg2_map;
 		s32 se_curr;
 		s32 sae_curr;
 		// int scr_x_offset = 0, scr_y_offset =0;
@@ -700,14 +728,8 @@ void game_loop()
 		}
 
 
-
-		// render the bg
-// render_bg (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y, int* car_fmap, SCR_ENTRY *bg_gba)
 		bool tst_mvflag, tst_updflg;
-		COORD_2D tst_start_ct, tst_end_ct, tst_rd_tid;
-		// render_bg(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, carcassonne_full_map, pse, 
-		// 	&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
-		
+		COORD_2D tst_start_ct, tst_end_ct, tst_rd_tid;		
 		render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, carcassonne_full_map, pse, 
 			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
 
@@ -1309,8 +1331,9 @@ int main()
 	// using 1D sprite map mode to load the tile data.
 
 	// BG 0 = for text
-	// BG 2 = Carcassonne game
-	REG_DISPCNT= DCNT_MODE1 | DCNT_BG0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
+	// BG 1 = meeples, indications..
+	// BG 2 = Carcassonne game map
+	REG_DISPCNT= DCNT_MODE1 | DCNT_BG0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 
 	// init text
 	// Init BG 0 for text on screen entries, using CBB 
@@ -1334,10 +1357,13 @@ int main()
 	// the function is in `./toolbox.c` 
 	oam_init(obj_buffer, 128);
 	
+	// == 
+	// BG2 aff testing
+	// ==
 	// test background tiles
 	// SAE (screen affine entry) only 8 bit, and we have to write 16/32 bit !!!! because SEs is in VRAM
 	// write 2 DTILEs at once
-	SCR_ENTRY *pse_tiles= bg0_map;
+	SCR_ENTRY *pse_tiles= bg2_map;
 	// 0th row
 					    // SAE 1, SAE 0 
 	pse_tiles[0*(map_width_unit_tile >> 1) + 0] = 0x0001;
@@ -1360,6 +1386,33 @@ int main()
 	// 1st row
 	pse_tiles[1*(map_width_unit_tile >> 1) + 0] = 0x1211;
 	pse_tiles[1*(map_width_unit_tile >> 1) + 1] = 0x1615; 
+
+	// == 
+	// BG1 regular, testing
+	// ==
+	// IMPORTANT: bg1 has not been rolled to the same position as bg2 yet,
+	// at the moment bg1 top left corner = screen top left corner. 
+	// regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp
+	SCR_ENTRY *pse_tiles_bg1= bg1_map;
+	// pse_tiles_bg1[0] = bg1_tile_map_id[0][0];
+	// pse_tiles_bg1[1] = bg1_tile_map_id[0][1];
+	// draw the cursor on bg 1
+		int iter_r, iter_col;
+	// int str_idx =1;
+	for (iter_r = 0; iter_r < 3; iter_r++)
+	{
+		for (iter_col=0; iter_col<3; iter_col++)
+		{
+			COORD_2D iter_coord;
+			u32 sea_idx,se_idx;
+			iter_coord.x = 50 + iter_col;
+			iter_coord.y = 0 + iter_r;
+			wrapping_tile_coord(&iter_coord);
+			sea_idx = map_to_reg_se_index(iter_coord.x, iter_coord.y, bg1_width_unit_tile); 
+			pse_tiles_bg1[sea_idx] = bg1_tile_map_id[0][iter_r*3 + iter_col];
+		}
+	}
+
 
 	game_loop();
 
