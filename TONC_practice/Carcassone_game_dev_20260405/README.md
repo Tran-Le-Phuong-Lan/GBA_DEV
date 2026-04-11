@@ -255,3 +255,10 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
 - **IMPORTANT**: bg1 has not been rolled to the same position as bg2 yet, at the moment (by default) bg1 top left corner = screen top left corner (while bg2 due to the game development, it has been rolled to another position). **Regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp**.
 
+- To implement the feature tracking (street, city, church, field) in carcassonne games:
+
+    - option 1: a tree-like data structure. Each node has ID = SE id, top link, bot link, right link, left link 
+
+- if a standard `.c` lib is included more than twice, there is no problem, because it is always guarded by `#ifndef .. #define .. #endif`?
+
+    - sources [1](https://www.quora.com/In-C-language-if-we-include-the-same-header-file-twice-what-will-happen), [2](https://stackoverflow.com/questions/38504840/is-there-a-reason-why-someone-would-include-stdlib-h-twice), [3](https://softwareengineering.stackexchange.com/questions/384775/is-it-a-bad-practice-to-include-stdlib-header-file-from-a-header-file-correspond).

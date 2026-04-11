@@ -4,15 +4,13 @@
 // 20250115 - , Tran Le Phuong Lan & David Guttandin
 // 
 
-#include <string.h>
-#include <stdlib.h> 
-// abs()
+// #include <string.h>
+#include <stdlib.h> // abs()
 #include <tonc.h>
 #include "tiles-walllite.h"
 #include "carcas_data.h"
 #include "tiles-bg1.h"
-#include <math.h> 
-// ceil(), floor()
+#include <math.h> // ceil(), floor()
 
 // ===========
 // CARCASSONNE GAME RULES
