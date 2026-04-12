@@ -1290,11 +1290,12 @@ void game_loop()
 		s32 render_tile_idx=0, render_tile_idy=0;
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy, true);
-		// tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
-		// 	rand_cat_id, 
-		// 	car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
-		// 	carcassonne_number_of_tiles, CAR_TILES_MAX,
-		// 	ctile_idx, ctile_idy);
+		tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
+			rand_cat_id, 
+			car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
+			carcassonne_number_of_tiles, CAR_TILES_MAX,
+			ctile_idx, ctile_idy);
+
 		// int tst = (-13)%3;
 		// s32 render_ctile_idx=0, render_ctile_idy=0;
 		// map_tile_to_ctile(67, 69, &render_ctile_idx, &render_ctile_idy);
@@ -1312,25 +1313,26 @@ void game_loop()
 		// 	sae_curr_x, sae_curr_y,
 		// 	ctile_idx, ctile_idy,
 		// 	tst_rd_tid.x, tst_rd_tid.y);
-		GAME_FEATURE_NODE_ptr tst_feature;
-		tst_feature = create_node(render_tile_idx, render_tile_idy, cas_tile_map_id[rand_cat][0]+CAR_TILE_OFFSET_IN_VRAM);
-		COORD_2D tst_f_t;
-		// tst_f_t.x= tst_feature->top_coord_x;
-		// tst_f_t.y= tst_feature->top_coord_y;
-		// tst_f_t.x= tst_feature->bot_coord_x;
-		// tst_f_t.y= tst_feature->bot_coord_y;
-		// tst_f_t.x= tst_feature->right_coord_x;
-		// tst_f_t.y= tst_feature->right_coord_y;
-		tst_f_t.x= tst_feature->left_coord_x;
-		tst_f_t.y= tst_feature->left_coord_y;
 
-		u32 tst_f_ctid = tst_feature->car_tid;
-		delete_node(tst_feature);
+		// GAME_FEATURE_NODE_ptr tst_feature;
+		// tst_feature = create_node(render_tile_idx, render_tile_idy, cas_tile_map_id[rand_cat][0]+CAR_TILE_OFFSET_IN_VRAM);
+		// COORD_2D tst_f_t;
+		// // tst_f_t.x= tst_feature->top_coord_x;
+		// // tst_f_t.y= tst_feature->top_coord_y;
+		// // tst_f_t.x= tst_feature->bot_coord_x;
+		// // tst_f_t.y= tst_feature->bot_coord_y;
+		// // tst_f_t.x= tst_feature->right_coord_x;
+		// // tst_f_t.y= tst_feature->right_coord_y;
+		// tst_f_t.x= tst_feature->left_coord_x;
+		// tst_f_t.y= tst_feature->left_coord_y;
 
-		tte_printf("#{es;P}fctid #:%d\nse_dx/y:%ld/%ld\nft_dx/y:%ld/%ld",
-			tst_f_ctid, 
-			render_tile_idx, render_tile_idy,
-			tst_f_t.x, tst_f_t.y);
+		// u32 tst_f_ctid = tst_feature->car_tid;
+		// delete_node(tst_feature);
+
+		// tte_printf("#{es;P}fctid #:%d\nse_dx/y:%ld/%ld\nft_dx/y:%ld/%ld",
+		// 	tst_f_ctid, 
+		// 	render_tile_idx, render_tile_idy,
+		// 	tst_f_t.x, tst_f_t.y);
 	}
 }
 

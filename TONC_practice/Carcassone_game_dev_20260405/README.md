@@ -257,7 +257,46 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
 - To implement the feature tracking (street, city, church, field) in carcassonne games:
 
-    - option 1: a tree-like data structure. Each node has ID = SE id, top link, bot link, right link, left link 
+    - Solution: 
+    
+    **Structure:** 
+    
+    a feature (city, street, field) tree-like data structure. Each node has ID = SE id; parent: top link, bot link, right link, left link; child: top/bot/right/left link. There are two special node: Start node (pointing to the root node of the whole feature), End node (indicating the end of the feature in a certain direction).
+
+    **Actions:** 
+        
+    1. create the new node: initialize all of the child links to NULL, **except:** if that direction is END (i.e feature can not expand in that direction) then the child link to the END direction is initiated to END node.
+
+    2. insert the new node: into the feature structure based on the adjacent position to the exisitng nodes, for example whether the new node is adjacent to top/ right/ bot/ left of any exisiting node, then the exsisitng node child link in that direction points to the new node.
+
+    3. Finish linking: check the NULL direction of the new node, if any exisiting node has the same position to that NULL direction, then the new node child link in that direction points to the exisitng node.
+
+    4. Checking whether exisitng feature structure can be merged together: for example, feature 3 checked against feature 2, if mergable  then merge, the merged feature is then checked against feature 1, etc.
+
+    5. Perform only on the merged feature: starting from the merging node, the parent and child link must be switched (so that the starting point of one of the merge feature is kept) -> then, all the nodes of the feature whose parent and child link is swapped must be relink to the other feature: perform step 3- finish linking- for every node of the feature with parent and child swapping against the other feature.
+
+    6. Checking the finishing state of the exisitng feature, especially the one whose has just been merged. the direction with END node or with exisiting parent link is finished. if all direction top/right/bot/left of the root node of the feature is finished, then the feature is complete.
+
+    **Counting points of finish cities within the owned field**
+    
+    Possible solution: any finish city -> save only the four corner coordinates -> check whether one of these coordinates falls within the area defined by the field. The field area must be converted to ctile (carcassonne tile) unit.
+
+- **game data feature**
+
+| TID in VRAM - type    | END DIR (x = no end in all direction)|
+| --------              | -------               |
+| 14 - city             | x                     |
+| 15 - city             | right/ bot **(a)**               |
+| 16 - city             | bot/ left  **(b)**              |
+| 17 - city             | top/ left **(c)**                |
+| 18 - city             | top/ right **(d)**              |
+| 19 - city             | right/ bot  **(a)**             |
+| 20 - city             | bot/ left   **(b)**           |
+| 21 - city             | right/ bot  **(a)**            |
+| 22 - city             | bot/ left   **(b)**           |
+| 23 - city             | x               |
+| 24 - city             | if linked through child  right/ bot -> right/ bot  **(a)**// if linked through child top/ left-> top/ left **(c)**             |
+| 25 - city             | if linked through child bot/ left-> bot/ left **(b)**// if linked through child top/ right-> top/ right **(d)**            |
 
 - if a standard `.c` lib is included more than twice, there is no problem, because it is always guarded by `#ifndef .. #define .. #endif`?
 
