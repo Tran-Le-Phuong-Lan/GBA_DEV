@@ -1290,11 +1290,11 @@ void game_loop()
 		s32 render_tile_idx=0, render_tile_idy=0;
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy, true);
-		tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
-			rand_cat_id, 
-			car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
-			carcassonne_number_of_tiles, CAR_TILES_MAX,
-			ctile_idx, ctile_idy);
+		// tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
+		// 	rand_cat_id, 
+		// 	car_cat_track[rand_cat_id]+ 1, car_cat_max[rand_cat_id],
+		// 	carcassonne_number_of_tiles, CAR_TILES_MAX,
+		// 	ctile_idx, ctile_idy);
 
 		// int tst = (-13)%3;
 		// s32 render_ctile_idx=0, render_ctile_idy=0;
@@ -1314,25 +1314,41 @@ void game_loop()
 		// 	ctile_idx, ctile_idy,
 		// 	tst_rd_tid.x, tst_rd_tid.y);
 
-		// GAME_FEATURE_NODE_ptr tst_feature;
-		// tst_feature = create_node(render_tile_idx, render_tile_idy, cas_tile_map_id[rand_cat][0]+CAR_TILE_OFFSET_IN_VRAM);
-		// COORD_2D tst_f_t;
-		// // tst_f_t.x= tst_feature->top_coord_x;
-		// // tst_f_t.y= tst_feature->top_coord_y;
-		// // tst_f_t.x= tst_feature->bot_coord_x;
-		// // tst_f_t.y= tst_feature->bot_coord_y;
-		// // tst_f_t.x= tst_feature->right_coord_x;
-		// // tst_f_t.y= tst_feature->right_coord_y;
-		// tst_f_t.x= tst_feature->left_coord_x;
-		// tst_f_t.y= tst_feature->left_coord_y;
+		bool node_tst_flg[6] = {[0 ... 5]=false};
+		GAME_FEATURE_NODE_ptr tst_tiles[6]= {[0 ... 5]= NULL};
+// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid (VRAM), GAME_FEATURES tile_feature, DIRECTION parent_direction);
+		tst_tiles[0] = create_node(0, 0, 17, CITY, NA_DIR);
+		tst_tiles[1] = create_node(1, 0, 14, CITY, NA_DIR);
+		GAME_FEATURE_NODE_START feature_structure;
+		feature_structure.root = tst_tiles[0];
 
-		// u32 tst_f_ctid = tst_feature->car_tid;
-		// delete_node(tst_feature);
+		if(feature_structure.root->child_top_lk->game_feature == END_FEATURE)
+		{
+			node_tst_flg[0] = true;
+		}
 
-		// tte_printf("#{es;P}fctid #:%d\nse_dx/y:%ld/%ld\nft_dx/y:%ld/%ld",
-		// 	tst_f_ctid, 
-		// 	render_tile_idx, render_tile_idy,
-		// 	tst_f_t.x, tst_f_t.y);
+		if(tst_tiles[1]->child_l_lk->game_feature == END_FEATURE)
+		{
+			node_tst_flg[1] = true;
+		}
+
+		COORD_2D tst_f_t;
+		// tst_f_t.x= tst_feature->top_coord_x;
+		// tst_f_t.y= tst_feature->top_coord_y;
+		// tst_f_t.x= tst_feature->bot_coord_x;
+		// tst_f_t.y= tst_feature->bot_coord_y;
+		// tst_f_t.x= tst_feature->right_coord_x;
+		// tst_f_t.y= tst_feature->right_coord_y;
+		tst_f_t.x= feature_structure.root->left_coord_x;
+		tst_f_t.y= feature_structure.root->left_coord_y;
+
+		u32 tst_f_ctid = feature_structure.root->car_tid;
+		delete_node(feature_structure.root);
+
+		tte_printf("#{es;P}flg #:%d\nse_dx/y:%ld/%ld\nft_dx/y:%ld/%ld",
+			node_tst_flg[0], 
+			render_tile_idx, render_tile_idy,
+			tst_f_t.x, tst_f_t.y);
 	}
 }
 

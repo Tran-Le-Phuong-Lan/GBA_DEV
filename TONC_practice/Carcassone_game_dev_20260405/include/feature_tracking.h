@@ -8,19 +8,21 @@
 #include <stdlib.h>
 #include <tonc.h>
 
-enum GAME_FEATURES {
+typedef enum GAME_FEATURES {
 	CITY,
 	STREET,
 	FIELD,
-    END
-};
+    END_FEATURE,
+    NA_FEATURE
+} GAME_FEATURES;
 
-enum DIRECTION {
+typedef enum DIRECTION {
 	TOP,
 	LEFT,
 	RIGHT,
-    BOT
-};
+    BOT,
+    NA_DIR
+} DIRECTION;
 
 typedef struct GAME_FEATURE_NODE
 {
@@ -45,17 +47,12 @@ typedef struct GAME_FEATURE_NODE_START
 } ALIGN4 GAME_FEATURE_NODE_START;
 
 GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
+GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction);
 GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
-GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root, DIRECTION* child_direction);
 void finish_linking (GAME_FEATURE_NODE_ptr new_node);
 void merging (GAME_FEATURE_NODE_ptr merged_node);
 bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
 void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
 void delete_node (GAME_FEATURE_NODE_ptr node);
-
-GAME_FEATURE_NODE end_node;
-end_node.game_feature = END; // rest not cared.
-
-
 
 #endif

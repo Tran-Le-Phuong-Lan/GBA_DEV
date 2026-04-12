@@ -13,7 +13,7 @@
 #ifndef TILES_BG1_H
 #define TILES_BG1_H
 
-#define tiles_bg1TilesLen 705
+#define tiles_bg1TilesLen 704
 extern const unsigned int tiles_bg1Tiles[176];
 
 #endif
