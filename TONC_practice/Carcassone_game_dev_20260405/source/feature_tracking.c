@@ -125,7 +125,7 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
     // otherwuse return the node pointer where the new node can be linked to.
 
     // check the current node, before moving on
-    if(feature_root == NULL || feature_root->game_feature != END_FEATURE)
+    if(feature_root == NULL || feature_root->game_feature == END_FEATURE)
     {
         return NULL;
     }
@@ -230,30 +230,31 @@ void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root)
         return;
     }
 
-    if (feature_root->parent_top_lk == NULL)
-    {
+    // if (feature_root->parent_top_lk == NULL)
+    // {
         // the corresponding child direction might not NULL
         // = search in that direction
         delete_whole_feature(feature_root->child_top_lk);
-    }
+    // }
     
-    if (feature_root->parent_r_lk == NULL)
-    {
+    // if (feature_root->parent_r_lk == NULL)
+    // {
         delete_whole_feature(feature_root->child_r_lk);
-    }
+    // }
 
-    if (feature_root->parent_bot_lk == NULL)
-    {
+    // if (feature_root->parent_bot_lk == NULL)
+    // {
         delete_whole_feature(feature_root->child_bot_lk);
-    }
+    // }
 
-    if (feature_root->parent_l_lk == NULL)
-    {
+    // if (feature_root->parent_l_lk == NULL)
+    // {
         delete_whole_feature(feature_root->child_l_lk);
-    }
+    // }
 
     delete_node(feature_root);
-
+    // For debug purpose
+    // feature_root->game_feature = DELETE_FEATURE;
 }
 void delete_node (GAME_FEATURE_NODE_ptr node)
 {

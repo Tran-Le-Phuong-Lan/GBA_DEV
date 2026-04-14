@@ -13,7 +13,8 @@ typedef enum GAME_FEATURES {
 	STREET,
 	FIELD,
     END_FEATURE,
-    NA_FEATURE
+    NA_FEATURE,
+    DELETE_FEATURE
 } GAME_FEATURES;
 
 typedef enum DIRECTION {
@@ -49,8 +50,8 @@ typedef struct GAME_FEATURE_NODE_START
 GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
 GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction);
 GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
-void finish_linking (GAME_FEATURE_NODE_ptr new_node);
-void merging (GAME_FEATURE_NODE_ptr merged_node);
+void finish_features_linking (GAME_FEATURE_NODE_ptr new_node);
+void merging_features (GAME_FEATURE_NODE_ptr merged_node);
 bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
 void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
 void delete_node (GAME_FEATURE_NODE_ptr node);

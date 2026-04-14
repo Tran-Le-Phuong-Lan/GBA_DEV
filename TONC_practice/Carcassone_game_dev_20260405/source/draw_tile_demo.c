@@ -176,6 +176,8 @@ SCR_ENTRY *bg1_map= se_mem[SBB_0_BG1];
 int bg1_width_unit_tile = 64; // [TILE]
 int bg1_height_unit_tile = 64; // [TILE]
 
+extern GAME_FEATURE_NODE end_node; // feature_tracking.h
+
 // ===========
 // GBA SCREEN
 // ===========
@@ -1314,14 +1316,23 @@ void game_loop()
 		// 	ctile_idx, ctile_idy,
 		// 	tst_rd_tid.x, tst_rd_tid.y);
 
-		bool node_tst_flg[6] = {[0 ... 5]=false};
+		bool node_tst_flg[6] = {[0 ... 5]=false}, found_flg= false, insert_flg=false, dlt_flg=false;
 		GAME_FEATURE_NODE_ptr tst_tiles[6]= {[0 ... 5]= NULL};
 // GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid (VRAM), GAME_FEATURES tile_feature, DIRECTION parent_direction);
 		tst_tiles[0] = create_node(0, 0, 17, CITY, NA_DIR);
 		tst_tiles[1] = create_node(1, 0, 14, CITY, NA_DIR);
-		GAME_FEATURE_NODE_START feature_structure;
+		tst_tiles[1]->child_top_lk = &end_node;
+		tst_tiles[2] = create_node(2, 0, 18, CITY, NA_DIR);
+		// create feature structure
+		GAME_FEATURE_NODE_START feature_structure;	
 		feature_structure.root = tst_tiles[0];
-
+		
+		GAME_FEATURE_NODE_ptr found_node, insert_tst;
+		DIRECTION found_direction=NA_DIR;
+// GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
+		insert_node(feature_structure.root, tst_tiles[1]);
+		found_node = find_node(feature_structure.root, tst_tiles[2], &found_direction);
+		
 		if(feature_structure.root->child_top_lk->game_feature == END_FEATURE)
 		{
 			node_tst_flg[0] = true;
@@ -1330,6 +1341,27 @@ void game_loop()
 		if(tst_tiles[1]->child_l_lk->game_feature == END_FEATURE)
 		{
 			node_tst_flg[1] = true;
+		}
+
+		if(found_node != NULL
+			&& found_direction == RIGHT)
+		{
+			found_flg = true;
+			// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
+			insert_tst = insert_node(feature_structure.root, tst_tiles[2]);
+			if(insert_tst != NULL)
+			{
+				if (feature_structure.root->child_r_lk->game_feature == CITY
+					&& feature_structure.root->child_r_lk->parent_l_lk == tst_tiles[0]
+					&& feature_structure.root->child_r_lk == tst_tiles[1]
+					&& feature_structure.root->child_r_lk->child_r_lk == tst_tiles[2]
+					&& feature_structure.root->child_r_lk->child_r_lk->parent_l_lk == tst_tiles[1])
+				{ 
+					insert_flg = true;
+				}
+				
+			}
+
 		}
 
 		COORD_2D tst_f_t;
@@ -1343,11 +1375,17 @@ void game_loop()
 		tst_f_t.y= feature_structure.root->left_coord_y;
 
 		u32 tst_f_ctid = feature_structure.root->car_tid;
-		delete_node(feature_structure.root);
+		delete_whole_feature(feature_structure.root);
+		if(feature_structure.root->game_feature == DELETE_FEATURE
+			&& feature_structure.root->child_r_lk->game_feature == DELETE_FEATURE
+			&& feature_structure.root->child_r_lk->child_r_lk->game_feature == DELETE_FEATURE)
+		{
+			dlt_flg =true;
+		}
 
-		tte_printf("#{es;P}flg #:%d\nse_dx/y:%ld/%ld\nft_dx/y:%ld/%ld",
-			node_tst_flg[0], 
-			render_tile_idx, render_tile_idy,
+		tte_printf("#{es;P}fdflg-insflg-dltflg#:%d/%d/%d\nct_x/y:%ld/%ld\nft_dx/y:%ld/%ld",
+			found_flg, insert_flg, dlt_flg, 
+			ctile_idx, ctile_idy,
 			tst_f_t.x, tst_f_t.y);
 	}
 }
