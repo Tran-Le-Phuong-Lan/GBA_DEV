@@ -1323,6 +1323,9 @@ void game_loop()
 		tst_tiles[1] = create_node(1, 0, 14, CITY, NA_DIR);
 		tst_tiles[1]->child_top_lk = &end_node;
 		tst_tiles[2] = create_node(2, 0, 18, CITY, NA_DIR);
+		tst_tiles[3] = create_node(0, 1, 16, CITY, NA_DIR);
+		tst_tiles[4] = create_node(1, 1, 14, CITY, NA_DIR);
+		tst_tiles[4]->child_bot_lk = &end_node;
 		// create feature structure
 		GAME_FEATURE_NODE_START feature_structure;	
 		feature_structure.root = tst_tiles[0];
@@ -1331,7 +1334,9 @@ void game_loop()
 		DIRECTION found_direction=NA_DIR;
 // GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
 		insert_node(feature_structure.root, tst_tiles[1]);
-		found_node = find_node(feature_structure.root, tst_tiles[2], &found_direction);
+		insert_node(feature_structure.root, tst_tiles[2]);
+		insert_node(feature_structure.root, tst_tiles[3]);
+		found_node = find_node(feature_structure.root, tst_tiles[4], &found_direction);
 		
 		if(feature_structure.root->child_top_lk->game_feature == END_FEATURE)
 		{
@@ -1344,18 +1349,16 @@ void game_loop()
 		}
 
 		if(found_node != NULL
-			&& found_direction == RIGHT)
+			&& found_direction == BOT)
 		{
 			found_flg = true;
 			// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
-			insert_tst = insert_node(feature_structure.root, tst_tiles[2]);
+			insert_tst = insert_node(feature_structure.root, tst_tiles[4]);
 			if(insert_tst != NULL)
 			{
-				if (feature_structure.root->child_r_lk->game_feature == CITY
-					&& feature_structure.root->child_r_lk->parent_l_lk == tst_tiles[0]
-					&& feature_structure.root->child_r_lk == tst_tiles[1]
-					&& feature_structure.root->child_r_lk->child_r_lk == tst_tiles[2]
-					&& feature_structure.root->child_r_lk->child_r_lk->parent_l_lk == tst_tiles[1])
+				if (feature_structure.root->child_r_lk->child_bot_lk == tst_tiles[4]
+					&& feature_structure.root->child_r_lk->child_bot_lk->car_tid == 14
+					&& feature_structure.root->child_r_lk->child_bot_lk->parent_top_lk == tst_tiles[1])
 				{ 
 					insert_flg = true;
 				}
@@ -1375,10 +1378,13 @@ void game_loop()
 		tst_f_t.y= feature_structure.root->left_coord_y;
 
 		u32 tst_f_ctid = feature_structure.root->car_tid;
-		delete_whole_feature(feature_structure.root);
-		if(feature_structure.root->game_feature == DELETE_FEATURE
-			&& feature_structure.root->child_r_lk->game_feature == DELETE_FEATURE
-			&& feature_structure.root->child_r_lk->child_r_lk->game_feature == DELETE_FEATURE)
+		unsigned char del_orders[6]={[0 ... 5]= 0}, order=0;
+		delete_whole_feature(feature_structure.root, del_orders, &order);
+		if(del_orders[0] == 18
+			&& del_orders[1] == 14
+			&& del_orders[2] == 14
+			&& del_orders[3] == 16
+			&& del_orders[4] == 17)
 		{
 			dlt_flg =true;
 		}

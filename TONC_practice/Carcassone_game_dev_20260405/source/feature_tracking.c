@@ -222,7 +222,7 @@ GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEAT
     }
 }
 
-void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root)
+void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order)
 {
     // must delete from leaf-node to root
     if(feature_root == NULL || feature_root->game_feature == END_FEATURE)
@@ -234,27 +234,28 @@ void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root)
     // {
         // the corresponding child direction might not NULL
         // = search in that direction
-        delete_whole_feature(feature_root->child_top_lk);
+        delete_whole_feature(feature_root->child_top_lk, debug_del, found_order);
     // }
     
     // if (feature_root->parent_r_lk == NULL)
     // {
-        delete_whole_feature(feature_root->child_r_lk);
+        delete_whole_feature(feature_root->child_r_lk, debug_del, found_order);
     // }
 
     // if (feature_root->parent_bot_lk == NULL)
     // {
-        delete_whole_feature(feature_root->child_bot_lk);
+        delete_whole_feature(feature_root->child_bot_lk, debug_del, found_order);
     // }
 
     // if (feature_root->parent_l_lk == NULL)
     // {
-        delete_whole_feature(feature_root->child_l_lk);
+        delete_whole_feature(feature_root->child_l_lk, debug_del, found_order);
     // }
 
-    delete_node(feature_root);
     // For debug purpose
-    // feature_root->game_feature = DELETE_FEATURE;
+    debug_del[*found_order] =  feature_root->car_tid;
+    *found_order = *found_order +1;
+    delete_node(feature_root);
 }
 void delete_node (GAME_FEATURE_NODE_ptr node)
 {

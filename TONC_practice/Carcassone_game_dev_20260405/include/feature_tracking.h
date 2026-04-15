@@ -53,7 +53,7 @@ GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEAT
 void finish_features_linking (GAME_FEATURE_NODE_ptr new_node);
 void merging_features (GAME_FEATURE_NODE_ptr merged_node);
 bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
-void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
+void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
 void delete_node (GAME_FEATURE_NODE_ptr node);
 
 #endif

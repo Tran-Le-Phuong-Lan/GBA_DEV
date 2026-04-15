@@ -277,6 +277,8 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
     6. Checking the finishing state of the exisitng feature, especially the one whose has just been merged. the direction with END node or with exisiting parent link is finished. if all direction top/right/bot/left of the root node of the feature is finished, then the feature is complete.
 
+    7. Checking the feature on a signal carcasonne tile (i.e carcassonne maps in this context) -> to check whether the feature open/end on which direction, for example, for the right most direction, searching for the node on the most right direction = node x-coord largest among all the nodes in the feature, then check their right child link, if the right child link = end/ open, then the feature is end/ open on the right most direction on that carcasonne tile. => we only need to store the carcasonne tile node: on this carcasonne tile coord, we have a city for example open/end on the right most direction.
+
     **Counting points of finish cities within the owned field**
     
     Possible solution: any finish city -> save only the four corner coordinates -> check whether one of these coordinates falls within the area defined by the field. The field area must be converted to ctile (carcassonne tile) unit.
