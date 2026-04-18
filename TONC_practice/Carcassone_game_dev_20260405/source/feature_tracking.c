@@ -222,42 +222,118 @@ GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEAT
     }
 }
 
-void delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order)
+GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order)
 {
     // must delete from leaf-node to root
     if(feature_root == NULL || feature_root->game_feature == END_FEATURE)
     {
-        return;
+        return NULL;
     }
 
     // if (feature_root->parent_top_lk == NULL)
     // {
         // the corresponding child direction might not NULL
         // = search in that direction
-        delete_whole_feature(feature_root->child_top_lk, debug_del, found_order);
+        feature_root->child_top_lk=delete_whole_feature(feature_root->child_top_lk, debug_del, found_order);
     // }
     
     // if (feature_root->parent_r_lk == NULL)
     // {
-        delete_whole_feature(feature_root->child_r_lk, debug_del, found_order);
+        feature_root->child_r_lk=delete_whole_feature(feature_root->child_r_lk, debug_del, found_order);
     // }
 
     // if (feature_root->parent_bot_lk == NULL)
     // {
-        delete_whole_feature(feature_root->child_bot_lk, debug_del, found_order);
+        feature_root->child_bot_lk=delete_whole_feature(feature_root->child_bot_lk, debug_del, found_order);
     // }
 
     // if (feature_root->parent_l_lk == NULL)
     // {
-        delete_whole_feature(feature_root->child_l_lk, debug_del, found_order);
+        feature_root->child_l_lk=delete_whole_feature(feature_root->child_l_lk, debug_del, found_order);
     // }
 
     // For debug purpose
     debug_del[*found_order] =  feature_root->car_tid;
     *found_order = *found_order +1;
-    delete_node(feature_root);
+    // before delete the node, must make sure that all of links to it from any exisitent parents are null, 
+    // otherwise free() might be applied twice on the alread-freed node
+    if(feature_root->parent_top_lk!=NULL)
+    {
+        feature_root->parent_top_lk->child_bot_lk = NULL;
+    }
+    if(feature_root->parent_r_lk!=NULL)
+    {
+        feature_root->parent_r_lk->child_l_lk = NULL;
+    }
+    if(feature_root->parent_bot_lk!=NULL)
+    {
+        feature_root->parent_bot_lk->child_top_lk = NULL;
+    }
+    if(feature_root->parent_l_lk!=NULL)
+    {
+        feature_root->parent_l_lk->child_r_lk = NULL;
+    }
+    free(feature_root);
+    return NULL;
 }
 void delete_node (GAME_FEATURE_NODE_ptr node)
 {
+    // free() returns void
+    // IMPORTANT: if free() applied twice on the same address -> UB (undefined behavior ~ program might continue/ freeze/ crashes = bad practice).
+    // referece: https://www.reddit.com/r/cprogramming/comments/1cebu9x/c_calling_free_twice/
+    // but if free(NULL) -> ok!
     free(node);
+}
+
+void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
+{
+    if(feature_root == NULL || feature_root->game_feature == END_FEATURE)
+    {
+        return;
+    }
+
+    finish_features_linking(new_node, feature_root->child_top_lk);
+    finish_features_linking(new_node, feature_root->child_r_lk);
+    finish_features_linking(new_node, feature_root->child_bot_lk);
+    finish_features_linking(new_node, feature_root->child_l_lk);
+    
+    if(new_node->top_coord_x == feature_root->tx 
+        && new_node->top_coord_y == feature_root->ty
+        && new_node->parent_top_lk == NULL)
+        {
+            new_node->child_top_lk = feature_root;
+            feature_root->parent_bot_lk = new_node;
+            return;
+        }
+
+    if(new_node->right_coord_x == feature_root->tx 
+        && new_node->right_coord_y == feature_root->ty
+        && new_node->parent_r_lk == NULL)
+        {
+            new_node->child_r_lk = feature_root;
+            feature_root->parent_l_lk = new_node;
+            return;
+        }
+
+    if(new_node->bot_coord_x == feature_root->tx 
+        && new_node->bot_coord_y == feature_root->ty
+        && new_node->parent_bot_lk == NULL)
+        {
+            new_node->child_bot_lk = feature_root;
+            feature_root->parent_top_lk = new_node;
+            return;
+        }
+
+    if(new_node->left_coord_x == feature_root->tx 
+        && new_node->left_coord_y == feature_root->ty
+        && new_node->parent_l_lk == NULL)
+        {
+            new_node->child_l_lk = feature_root;
+            feature_root->parent_r_lk = new_node;
+            return;
+        }
+    
+    
+    
+
 }

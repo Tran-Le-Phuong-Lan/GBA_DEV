@@ -1326,6 +1326,7 @@ void game_loop()
 		tst_tiles[3] = create_node(0, 1, 16, CITY, NA_DIR);
 		tst_tiles[4] = create_node(1, 1, 14, CITY, NA_DIR);
 		tst_tiles[4]->child_bot_lk = &end_node;
+		tst_tiles[5] = create_node(2, 1, 15, CITY, NA_DIR);
 		// create feature structure
 		GAME_FEATURE_NODE_START feature_structure;	
 		feature_structure.root = tst_tiles[0];
@@ -1334,9 +1335,14 @@ void game_loop()
 		DIRECTION found_direction=NA_DIR;
 // GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
 		insert_node(feature_structure.root, tst_tiles[1]);
+		finish_features_linking(tst_tiles[1], feature_structure.root);
 		insert_node(feature_structure.root, tst_tiles[2]);
+		finish_features_linking(tst_tiles[2], feature_structure.root);
 		insert_node(feature_structure.root, tst_tiles[3]);
-		found_node = find_node(feature_structure.root, tst_tiles[4], &found_direction);
+		finish_features_linking(tst_tiles[3], feature_structure.root);
+		insert_tst = insert_node(feature_structure.root, tst_tiles[4]);
+		finish_features_linking(tst_tiles[4], feature_structure.root);
+		found_node = find_node(feature_structure.root, tst_tiles[5], &found_direction);
 		
 		if(feature_structure.root->child_top_lk->game_feature == END_FEATURE)
 		{
@@ -1353,12 +1359,73 @@ void game_loop()
 		{
 			found_flg = true;
 			// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
-			insert_tst = insert_node(feature_structure.root, tst_tiles[4]);
+			insert_tst = insert_node(feature_structure.root, tst_tiles[5]);
+			finish_features_linking(tst_tiles[5], feature_structure.root);
+
 			if(insert_tst != NULL)
 			{
-				if (feature_structure.root->child_r_lk->child_bot_lk == tst_tiles[4]
-					&& feature_structure.root->child_r_lk->child_bot_lk->car_tid == 14
-					&& feature_structure.root->child_r_lk->child_bot_lk->parent_top_lk == tst_tiles[1])
+				if (// checking node postion
+					feature_structure.root->child_r_lk->child_bot_lk == tst_tiles[4]
+					&& feature_structure.root->child_r_lk->child_bot_lk->child_l_lk == feature_structure.root->child_bot_lk
+					&& feature_structure.root->child_r_lk->child_r_lk == tst_tiles[2]
+					&& feature_structure.root->child_bot_lk == tst_tiles[3]
+					&& feature_structure.root->child_r_lk == tst_tiles[1]
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk == tst_tiles[5]
+					// tst_tiles[4]
+					&& feature_structure.root->child_r_lk->child_bot_lk->child_l_lk == tst_tiles[3]
+					&& feature_structure.root->child_r_lk->child_bot_lk->child_r_lk == NULL
+					&& feature_structure.root->child_r_lk->child_bot_lk->child_bot_lk->game_feature == END_FEATURE
+					&& feature_structure.root->child_r_lk->child_bot_lk->child_top_lk==NULL
+					&& feature_structure.root->child_r_lk->child_bot_lk->parent_top_lk == tst_tiles[1]
+					&& feature_structure.root->child_r_lk->child_bot_lk->parent_r_lk==tst_tiles[5]
+					&& feature_structure.root->child_r_lk->child_bot_lk->parent_bot_lk==NULL
+					&& feature_structure.root->child_r_lk->child_bot_lk->parent_l_lk==NULL
+					// tst_tiles [1]
+					&& feature_structure.root->child_r_lk->parent_top_lk == NULL
+					&& feature_structure.root->child_r_lk->parent_r_lk == NULL
+					&& feature_structure.root->child_r_lk->parent_bot_lk == NULL
+					&& feature_structure.root->child_r_lk->parent_l_lk == tst_tiles[0]
+					&& feature_structure.root->child_r_lk->child_top_lk->game_feature == END_FEATURE
+					&& feature_structure.root->child_r_lk->child_r_lk == tst_tiles[2]
+					&& feature_structure.root->child_r_lk->child_bot_lk == tst_tiles[4]
+					&& feature_structure.root->child_r_lk->child_l_lk ==NULL
+					// tst_tiles[2]
+					&& feature_structure.root->child_r_lk->child_r_lk->parent_top_lk == NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->parent_r_lk == NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->parent_bot_lk ==NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->parent_l_lk == tst_tiles[1]
+					&& feature_structure.root->child_r_lk->child_r_lk->child_top_lk->game_feature ==END_FEATURE
+					&& feature_structure.root->child_r_lk->child_r_lk->child_r_lk->game_feature==END_FEATURE
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk==tst_tiles[5]
+					&& feature_structure.root->child_r_lk->child_r_lk->child_l_lk==NULL
+					// tst_tiles[3]
+					&& feature_structure.root->child_bot_lk->parent_top_lk==tst_tiles[0]
+					&& feature_structure.root->child_bot_lk->parent_r_lk==tst_tiles[4]
+					&& feature_structure.root->child_bot_lk->parent_bot_lk==NULL
+					&& feature_structure.root->child_bot_lk->parent_l_lk==NULL
+					&& feature_structure.root->child_bot_lk->child_top_lk==NULL
+					&& feature_structure.root->child_bot_lk->child_r_lk==NULL
+					&& feature_structure.root->child_bot_lk->child_bot_lk->game_feature==END_FEATURE
+					&& feature_structure.root->child_bot_lk->child_l_lk->game_feature==END_FEATURE
+					//tst_tiles[0]
+					&& feature_structure.root->child_top_lk->game_feature==END_FEATURE
+					&& feature_structure.root->child_r_lk == tst_tiles[1]
+					&& feature_structure.root->child_bot_lk==tst_tiles[3]
+					&& feature_structure.root->child_l_lk->game_feature==END_FEATURE
+					&& feature_structure.root->parent_top_lk==NULL
+					&& feature_structure.root->parent_r_lk==NULL
+					&& feature_structure.root->parent_bot_lk==NULL
+					&& feature_structure.root->parent_l_lk==NULL
+					//tst_tiles[5]
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->parent_top_lk==tst_tiles[2]
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->parent_r_lk==NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->parent_bot_lk==NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->parent_l_lk==NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->child_top_lk==NULL
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->child_r_lk->game_feature==END_FEATURE
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->child_bot_lk->game_feature==END_FEATURE
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk->child_l_lk==tst_tiles[4]
+					)
 				{ 
 					insert_flg = true;
 				}
@@ -1379,12 +1446,20 @@ void game_loop()
 
 		u32 tst_f_ctid = feature_structure.root->car_tid;
 		unsigned char del_orders[6]={[0 ... 5]= 0}, order=0;
+		//manual delete
 		delete_whole_feature(feature_structure.root, del_orders, &order);
-		if(del_orders[0] == 18
+		// delete_whole_feature(feature_structure.root->child_bot_lk, del_orders, &order);
+		if(
+			del_orders[0] == 16
 			&& del_orders[1] == 14
-			&& del_orders[2] == 14
-			&& del_orders[3] == 16
-			&& del_orders[4] == 17)
+			&& del_orders[2] == 15
+			&& del_orders[3] == 18
+			&& del_orders[4] == 14
+			&& del_orders[5] == 17
+			// feature_structure.root->child_bot_lk==NULL
+			// // && feature_structure.root->child_r_lk->child_bot_lk->child_l_lk == feature_structure.root->child_bot_lk
+			// && feature_structure.root->child_r_lk->child_bot_lk->child_l_lk ==NULL
+			)
 		{
 			dlt_flg =true;
 		}
