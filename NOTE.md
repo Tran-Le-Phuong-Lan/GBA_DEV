@@ -41,9 +41,9 @@ sudo pacman -S gba-dev
 
 ## Install GBA emulator
 
-- Method 1 (prefered): install `mGBA` suggested by Fedora system when searching for the application in the start menu.
+- Method 1 : install `mGBA` suggested by Fedora system when searching for the application in the start menu.
 
-- Method 2: See the trouble shooting 1 below
+- **Method 2 (prefered)**: See the trouble shooting 1 below
 
 ## install WineHQ (Fedora) to run other GBA tools (e.g Mappy Map editor, No$GBA, etc)
 
@@ -93,4 +93,12 @@ sudo pacman -S gba-dev
 
   - step 1: `chmod a+x file.AppImg`
 
-  - step 2: `./file.AppImage` 
+  - step 2: `./file.AppImage`
+
+  - step 3: to make the command `./file.AppImage` executable everywhere in termnial
+
+    - create folder `$HOME/.local/bin`
+
+    - in `$HOME/.local/bin`, right-click -> choose create a link to `./file.AppImage` (i.e `mGBA-0.10.5-appimage-x64.appimage`), and name the link as `mgba` for example.
+
+
