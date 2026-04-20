@@ -4,15 +4,40 @@
 
   - follow https://devkitpro.org/wiki/devkitPro_pacman 
 
-    - section **Customising Existing Pacman Install** (because Fedora Linux is considered as Arch, glibc)
+    - section **Customising Existing Pacman Install** (because Fedora Linux is considered as Arch, glibc) + section **Fedora**
+  
+```
+@ in terminal 
+export DEVKITPRO=/opt/devkitpro
+export DEVKITARM=/opt/devkitpro/devkitARM
+export DEVKITPPC=/opt/devkitpro/devkitPPC
 
-    - section **Fedora**
+sudo dnf install pacman
 
-    - Note: while executing recommended `sudo (dkp-)pacman -Sy`, only run `sudo pacman -Sy`
+sudo pacman-key --recv BC26F752D25B92CE272E0F44F7FD5492264BB9D0 --keyserver keyserver.ubuntu.com
+sudo pacman-key --lsign BC26F752D25B92CE272E0F44F7FD5492264BB9D0
 
-    - After installing devitpro pacman successfully, at the last section **Predefined Groups**, install the tool for GBA (game boy advance) specific development
+sudo pacman-key --populate devkitpro
 
-      - run `sudo pacman -S gba-dev`
+@ edit /etc/pacman.conf & add these lines 
+[dkp-libs]
+Server = https://pkg.devkitpro.org/packages
+
+[dkp-linux]
+Server = https://pkg.devkitpro.org/packages/linux/$arch/
+
+@ return to terminal
+  @ resync database and update installed packages
+sudo pacman -Syu 
+  @ install dev tool kit for Game boy advance development
+sudo pacman -S gba-dev
+```
+
+  - Note: while executing recommended `sudo (dkp-)pacman -Sy`, only run `sudo pacman -Sy`
+
+  - After installing devitpro pacman successfully, at the last section **Predefined Groups**, install the tool for GBA (game boy advance) specific development
+
+    - run `sudo pacman -S gba-dev`
 
 ## Install GBA emulator
 
