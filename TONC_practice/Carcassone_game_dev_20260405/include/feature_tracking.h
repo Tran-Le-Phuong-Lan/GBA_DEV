@@ -52,7 +52,7 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
 GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
 // relink for the newly added node, if any exisiting node in the feature structure is its child
 void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root);
-void merging_features (GAME_FEATURE_NODE_ptr merged_node);
+GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GAME_FEATURE_NODE_ptr feature_root_2);
 bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
 GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
 void delete_node (GAME_FEATURE_NODE_ptr node);
