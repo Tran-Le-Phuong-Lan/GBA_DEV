@@ -336,7 +336,7 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
 }
 
 
-GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GAME_FEATURE_NODE_ptr feature_root_2)
+GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
 {
     // IN PROGRESS !!!
     // return NULL, if no merge is done.
@@ -347,16 +347,16 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GA
         return NULL;
     }
 
-    // start checking at the leaf-node of feature_root_2 against feature_root_1
-    merging_features(feature_root_1, feature_root_2->child_top_lk);
-    merging_features(feature_root_1, feature_root_2->child_r_lk);
-    merging_features(feature_root_1, feature_root_2->child_l_lk);
-    merging_features(feature_root_1, feature_root_2->child_bot_lk);
-        // at the current leaf-node, find its location in feature_root_1
+    // start checking at the leaf-node of feature_root_2 against feature_root_ref
+    merging_features(feature_root_ref, feature_root_2->child_top_lk);
+    merging_features(feature_root_ref, feature_root_2->child_r_lk);
+    merging_features(feature_root_ref, feature_root_2->child_l_lk);
+    merging_features(feature_root_ref, feature_root_2->child_bot_lk);
+        // at the current leaf-node, find its location in feature_root_ref
     DIRECTION child_direction_new_node = NA_DIR;
     GAME_FEATURE_NODE_ptr location_new_node = NULL;
 // GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
-    location_new_node = find_node(feature_root_1, feature_root_2, &child_direction_new_node);
+    location_new_node = find_node(feature_root_ref, feature_root_2, &child_direction_new_node);
 
     if(location_new_node != NULL)
     {
@@ -375,16 +375,20 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GA
                     location_new_node->child_top_lk = feature_root_2;
                     // register the parent address and its direction inside the new_node
                     feature_root_2->parent_bot_lk = location_new_node;
-                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
-                    feature_root_2->parent_top_lk = NULL;
-                    feature_root_2->parent_r_lk = NULL;
-                    feature_root_2->parent_l_lk = NULL;
                     // null the child in the opposite of found direction to null, 
                     // because it already has a parent in that direction
                     feature_root_2->child_bot_lk = NULL;
+                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
+                        // 1 lk between two node defined by 1 parent lk (from child) and 1 child lk (from parent)
+                    feature_root_2->parent_top_lk->child_bot_lk = NULL;
+                    feature_root_2->parent_top_lk = NULL;
+                    feature_root_2->parent_r_lk->child_l_lk = NULL;
+                    feature_root_2->parent_r_lk = NULL;
+                    feature_root_2->parent_l_lk->child_r_lk = NULL;
+                    feature_root_2->parent_l_lk = NULL;
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_1);
-                    return feature_root_1;
+                    finish_features_linking(feature_root_2, feature_root_ref);
+                    return feature_root_ref;
                 }     
                 break;
             case RIGHT:
@@ -392,15 +396,18 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GA
                 {
                     location_new_node->child_r_lk = new_node;
                     feature_root_2->parent_l_lk = location_new_node;
-                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
-                    feature_root_2->parent_top_lk = NULL;
-                    feature_root_2->parent_r_lk = NULL;
-                    feature_root_2->parent_bot_lk = NULL;
                     // null the child in the opposite of found direction to null
                     feature_root_2->child_l_lk = NULL;
+                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
+                    feature_root_2->parent_top_lk->child_bot_lk = NULL;
+                    feature_root_2->parent_top_lk = NULL;
+                    feature_root_2->parent_r_lk->child_l_lk = NULL;
+                    feature_root_2->parent_r_lk = NULL;
+                    feature_root_2->parent_bot_lk->child_top_lk = NULL;
+                    feature_root_2->parent_bot_lk = NULL;
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_1);
-                    return feature_root_1;
+                    finish_features_linking(feature_root_2, feature_root_ref);
+                    return feature_root_ref;
                 }
                 break;
             case BOT:
@@ -408,15 +415,18 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GA
                 {
                     location_new_node->child_bot_lk = new_node;
                     feature_root_2->parent_top_lk = location_new_node;
-                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
-                    feature_root_2->parent_r_lk = NULL;
-                    feature_root_2->parent_bot_lk = NULL;
-                    feature_root_2->parent_l_lk = NULL;
                     // null the child in the opposite of found direction to null
                     feature_root_2->child_top_lk = NULL;
+                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
+                    feature_root_2->parent_r_lk->child_l_lk = NULL;
+                    feature_root_2->parent_r_lk = NULL;
+                    feature_root_2->parent_bot_lk->child_top_lk = NULL;
+                    feature_root_2->parent_bot_lk = NULL;
+                    feature_root_2->parent_l_lk->child_r_lk = NULL;
+                    feature_root_2->parent_l_lk = NULL;
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_1);
-                    return feature_root_1;
+                    finish_features_linking(feature_root_2, feature_root_ref);
+                    return feature_root_ref;
                 }
                 
                 break;
@@ -425,15 +435,18 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_1, GA
                 {
                     location_new_node->child_l_lk = new_node;
                     feature_root_2->parent_r_lk = location_new_node;
-                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
-                    feature_root_2->parent_top_lk = NULL;
-                    feature_root_2->parent_bot_lk = NULL;
-                    feature_root_2->parent_l_lk = NULL;
                     // null the child in the opposite of found direction to null
                     feature_root_2->child_r_lk = NULL;
+                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
+                    feature_root_2->parent_top_lk->child_bot_lk = NULL;
+                    feature_root_2->parent_top_lk = NULL;
+                    feature_root_2->parent_bot_lk->child_top_lk = NULL;
+                    feature_root_2->parent_bot_lk = NULL;
+                    feature_root_2->parent_l_lk->child_r_lk = NULL;
+                    feature_root_2->parent_l_lk = NULL;
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_1);
-                    return feature_root_1;
+                    finish_features_linking(feature_root_2, feature_root_ref);
+                    return feature_root_ref;
                 }
                 break;
             default: // indicate ERROR
