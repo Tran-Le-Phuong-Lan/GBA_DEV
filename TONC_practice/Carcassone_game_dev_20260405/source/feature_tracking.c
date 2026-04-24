@@ -365,7 +365,10 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
         {
 
             case TOP:
-                if(feature_root_2->child_bot_lk->game_feature!=END_FEATURE)
+                if(
+                    feature_root_2->child_bot_lk==NULL 
+                    || feature_root_2->child_bot_lk->game_feature!=END_FEATURE
+                    )
                 {
                     // we do not care that the parent lk exists,
                     // because we check the position based on the carcasonne rule adjacent and match, 
@@ -392,9 +395,12 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                 }     
                 break;
             case RIGHT:
-                if(feature_root_2->child_l_lk->game_feature!=END_FEATURE)
+                if(
+                    feature_root_2->child_l_lk==NULL
+                    || feature_root_2->child_l_lk->game_feature!=END_FEATURE
+                    )
                 {
-                    location_new_node->child_r_lk = new_node;
+                    location_new_node->child_r_lk = feature_root_2;
                     feature_root_2->parent_l_lk = location_new_node;
                     // null the child in the opposite of found direction to null
                     feature_root_2->child_l_lk = NULL;
@@ -411,9 +417,12 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                 }
                 break;
             case BOT:
-                if(feature_root_2->child_top_lk->game_feature!=END_FEATURE)
+                if(
+                    feature_root_2->child_top_lk==NULL
+                    || feature_root_2->child_top_lk->game_feature!=END_FEATURE
+                    )
                 {
-                    location_new_node->child_bot_lk = new_node;
+                    location_new_node->child_bot_lk = feature_root_2;
                     feature_root_2->parent_top_lk = location_new_node;
                     // null the child in the opposite of found direction to null
                     feature_root_2->child_top_lk = NULL;
@@ -431,9 +440,12 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                 
                 break;
             case LEFT:
-                if(feature_root_2->child_r_lk->game_feature!=END_FEATURE)
+                if(
+                    feature_root_2->child_r_lk==NULL
+                    || feature_root_2->child_r_lk->game_feature!=END_FEATURE
+                    )
                 {
-                    location_new_node->child_l_lk = new_node;
+                    location_new_node->child_l_lk = feature_root_2;
                     feature_root_2->parent_r_lk = location_new_node;
                     // null the child in the opposite of found direction to null
                     feature_root_2->child_r_lk = NULL;
