@@ -449,7 +449,7 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                         feature_root_2->parent_l_lk = NULL;
                     }
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    // finish_features_linking(feature_root_2, feature_root_ref);
+                    finish_features_linking(feature_root_2, feature_root_ref);
                         // DEBUG
                     debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
                     debug_merg_dir[*mrg_order] = child_direction_new_node;
@@ -465,7 +465,7 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                     )
                 {
                     // NO NEED FOR THIS CHECK,
-                    // IN REALITY IT CAN NOT HAPPEN
+                    // IN REALITY IT CAN NOT HAPPEN, it is taken care by the `find_node`
                     // if (location_new_node->child_r_lk==NULL &&
                     // location_new_node->parent_r_lk==NULL)
                     // {
@@ -490,7 +490,7 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                             feature_root_2->parent_bot_lk = NULL;
                         }
                         // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                        // finish_features_linking(feature_root_2, feature_root_ref);
+                        finish_features_linking(feature_root_2, feature_root_ref);
                             // DEBUG
                         debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
                         debug_merg_dir[*mrg_order] = child_direction_new_node;
@@ -527,7 +527,7 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                         feature_root_2->parent_l_lk = NULL;
                     }
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    // finish_features_linking(feature_root_2, feature_root_ref);
+                    finish_features_linking(feature_root_2, feature_root_ref);
                         // DEBUG
                     debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
                     debug_merg_dir[*mrg_order] = child_direction_new_node;
@@ -563,7 +563,7 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                         feature_root_2->parent_l_lk = NULL;
                     }
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    // finish_features_linking(feature_root_2, feature_root_ref);
+                    finish_features_linking(feature_root_2, feature_root_ref);
                         // DEBUG
                     debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
                     debug_merg_dir[*mrg_order] = child_direction_new_node;
