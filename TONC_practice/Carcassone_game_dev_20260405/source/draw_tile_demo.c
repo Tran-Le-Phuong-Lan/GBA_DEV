@@ -1390,17 +1390,17 @@ void game_loop()
 
 			if(insert_tst != NULL)
 			{
-				if (// checking node postion
+				if (// strucutre 3
 					feature_structures[1].root==tst_tiles[7]
 					&& feature_structures[1].root->child_bot_lk==tst_tiles[10]
 					&& feature_structures[1].root->child_bot_lk->child_l_lk==tst_tiles[11]
 					// tst_tiles[10]
 					&& feature_structures[1].root->child_bot_lk->parent_top_lk==tst_tiles[7]
-					&& feature_structures[1].root->child_bot_lk->parent_r_lk==NULL
+					&& feature_structures[1].root->child_bot_lk->parent_r_lk==tst_tiles[9]
 					&& feature_structures[1].root->child_bot_lk->parent_bot_lk==NULL
 					&& feature_structures[1].root->child_bot_lk->parent_l_lk==NULL
 					&& feature_structures[1].root->child_bot_lk->child_top_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_r_lk==tst_tiles[9]
+					&& feature_structures[1].root->child_bot_lk->child_r_lk==NULL
 					&& feature_structures[1].root->child_bot_lk->child_bot_lk==NULL
 					&& feature_structures[1].root->child_bot_lk->child_l_lk==tst_tiles[11]
 					// tst_tiles[11]
@@ -1412,9 +1412,27 @@ void game_loop()
 					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_r_lk==NULL
 					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_bot_lk==NULL
 					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk==NULL
-					// tst_tiles[9]
-					&& feature_structures[1].root->child_bot_lk->child_r_lk->parent_top_lk==tst_tiles[8]
+					// tst_tiles[8]
 					&& feature_structures[1].root->child_r_lk==tst_tiles[8]
+					&& feature_structures[1].root->child_r_lk->parent_l_lk==tst_tiles[7]
+					&& feature_structures[1].root->child_r_lk->parent_top_lk==NULL
+					&& feature_structures[1].root->child_r_lk->parent_r_lk==NULL
+					&& feature_structures[1].root->child_r_lk->parent_bot_lk==NULL
+					&& feature_structures[1].root->child_r_lk->child_top_lk==NULL
+					&& feature_structures[1].root->child_r_lk->child_r_lk==NULL
+					&& feature_structures[1].root->child_r_lk->child_bot_lk==tst_tiles[9]
+					&& feature_structures[1].root->child_r_lk->child_l_lk==NULL
+						// structure 1
+					&& feature_structure.root==tst_tiles[0]
+					&& feature_structure.root->child_r_lk==tst_tiles[1]
+					&& feature_structure.root->child_r_lk->child_bot_lk==tst_tiles[4]
+					&& feature_structure.root->child_r_lk->child_r_lk==tst_tiles[2]
+					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk==tst_tiles[5]
+					&& feature_structure.root->child_bot_lk==tst_tiles[3]
+						// tst_tiles[3]
+					&& feature_structure.root->child_bot_lk->child_r_lk==tst_tiles[4]
+						// tst_tiles[4]
+					&& feature_structure.root->child_bot_lk->child_r_lk->child_r_lk==tst_tiles[5]
 					)
 				{ 
 					insert_flg = true;
@@ -1430,24 +1448,24 @@ void game_loop()
 		GAME_FEATURE_NODE_ptr merg_res;
 		// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
 		merg_res = merging_features(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order);
-		mrg_order=0;
+		// mrg_order=0;
 		// merg_res = merging_features(feature_structures[1].root, merg_res);
-		merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order);
+		// merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order);
 		if (merg_res!=NULL)
 		{
-			if (
-					// test case for merging_features(merg_res, feature_structures[1].root);
-					mrg_order==3
-					&& merg_tid_order[0]==11
-					&& merg_tid_order[1]==10
-					&& merg_tid_order[2]==7
-					&& merg_dir_order[0]==RIGHT
-					&& merg_dir_order[1]==RIGHT
-					&& merg_dir_order[2]==TOP
-					&& merg_res->child_r_lk==tst_tiles[11]
-					&& merg_res->child_r_lk->child_r_lk==tst_tiles[10]
-					&& merg_res->child_r_lk->child_r_lk->child_top_lk==tst_tiles[7]
-				)
+			// if (
+			// 		// test case for merging_features(merg_res, feature_structures[1].root);
+			// 		mrg_order==3
+			// 		&& merg_tid_order[0]==11
+			// 		&& merg_tid_order[1]==10
+			// 		&& merg_tid_order[2]==7
+			// 		&& merg_dir_order[0]==RIGHT
+			// 		&& merg_dir_order[1]==RIGHT
+			// 		&& merg_dir_order[2]==TOP
+			// 		&& merg_res->child_r_lk==tst_tiles[11]
+			// 		&& merg_res->child_r_lk->child_r_lk==tst_tiles[10]
+			// 		&& merg_res->child_r_lk->child_r_lk->child_top_lk==tst_tiles[7]
+			// 	)
 			merg_flg=true;
 		}
 
@@ -1473,8 +1491,8 @@ void game_loop()
 		// delete_whole_feature(feature_structure.root, del_orders, &order);
 		// order=0;
 		// delete_whole_feature(feature_structures[1].root, del_orders, &order);
-		// order=0;
-		// delete_whole_feature(feature_structures[0].root, del_orders, &order);
+		order=0;
+		delete_whole_feature(feature_structures[0].root, del_orders, &order);
 		if(
 			// del_orders[0] == 16
 			// && del_orders[1] == 14

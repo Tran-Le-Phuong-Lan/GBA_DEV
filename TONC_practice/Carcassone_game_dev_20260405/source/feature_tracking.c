@@ -121,6 +121,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
         && feature_root->top_coord_y == new_node->ty
         && feature_root->child_top_lk==NULL
         && feature_root->parent_top_lk==NULL
+        && new_node->parent_bot_lk==NULL
+        && new_node->child_bot_lk==NULL
         )
     {
         *child_direction = TOP;
@@ -132,6 +134,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
         && feature_root->right_coord_y == new_node->ty
         && feature_root->child_r_lk==NULL
         && feature_root->parent_r_lk==NULL
+        && new_node->parent_l_lk==NULL
+        && new_node->child_l_lk==NULL
         )
     {
         *child_direction = RIGHT;
@@ -143,6 +147,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
         && feature_root->bot_coord_y == new_node->ty
         && feature_root->child_bot_lk==NULL
         && feature_root->parent_bot_lk==NULL
+        && new_node->parent_top_lk==NULL
+        && new_node->child_top_lk==NULL
         )
     {
         *child_direction = BOT;
@@ -154,6 +160,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
         && feature_root->left_coord_y == new_node->ty
         && feature_root->child_l_lk==NULL
         && feature_root->parent_l_lk==NULL
+        && new_node->parent_r_lk==NULL
+        && new_node->child_r_lk==NULL
         )
     {
         *child_direction = LEFT;
@@ -327,40 +335,52 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
     if(new_node->top_coord_x == feature_root->tx 
         && new_node->top_coord_y == feature_root->ty
         && new_node->parent_top_lk == NULL
-        && feature_root->child_bot_lk == NULL)
+        && new_node->child_top_lk == NULL
+        && feature_root->child_bot_lk == NULL
+        && feature_root->parent_bot_lk == NULL
+            )
         {
-            new_node->child_top_lk = feature_root;
-            feature_root->parent_bot_lk = new_node;
+            new_node->parent_top_lk = feature_root;
+            feature_root->child_bot_lk = new_node;
             return;
         }
 
     if(new_node->right_coord_x == feature_root->tx 
         && new_node->right_coord_y == feature_root->ty
         && new_node->parent_r_lk == NULL
-        && feature_root->child_l_lk==NULL)
+        && new_node->child_r_lk == NULL
+        && feature_root->child_l_lk==NULL
+        && feature_root->parent_l_lk==NULL
+            )
         {
-            new_node->child_r_lk = feature_root;
-            feature_root->parent_l_lk = new_node;
+            new_node->parent_r_lk = feature_root;
+            feature_root->child_l_lk = new_node;
             return;
         }
 
     if(new_node->bot_coord_x == feature_root->tx 
         && new_node->bot_coord_y == feature_root->ty
         && new_node->parent_bot_lk == NULL
-        && feature_root->child_top_lk==NULL)
+        && new_node->child_bot_lk == NULL
+        && feature_root->child_top_lk==NULL
+        && feature_root->parent_top_lk==NULL
+            )
         {
-            new_node->child_bot_lk = feature_root;
-            feature_root->parent_top_lk = new_node;
+            new_node->parent_bot_lk = feature_root;
+            feature_root->child_top_lk = new_node;
             return;
         }
 
     if(new_node->left_coord_x == feature_root->tx 
         && new_node->left_coord_y == feature_root->ty
         && new_node->parent_l_lk == NULL
-        && feature_root->child_r_lk==NULL)
+        && new_node->child_l_lk == NULL
+        && feature_root->child_r_lk==NULL
+        && feature_root->parent_r_lk==NULL
+            )
         {
-            new_node->child_l_lk = feature_root;
-            feature_root->parent_r_lk = new_node;
+            new_node->parent_l_lk = feature_root;
+            feature_root->child_r_lk = new_node;
             return;
         }
 
