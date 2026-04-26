@@ -1331,11 +1331,11 @@ void game_loop()
 			// feature 2
 		tst_tiles[6]= create_node(1,2,14, CITY, NA_DIR);
 			// feature 3
-		tst_tiles[7]= create_node(3,1,14,CITY,NA_DIR);
-		tst_tiles[8]= create_node(4,1,14,CITY,NA_DIR);
-		tst_tiles[9]= create_node(4,2,14,CITY,NA_DIR);
-		tst_tiles[10]= create_node(3,2,14,CITY,NA_DIR);
-		tst_tiles[11]= create_node(2,2,14,CITY,NA_DIR);
+		tst_tiles[7]= create_node(3,1,7,CITY,NA_DIR);
+		tst_tiles[8]= create_node(4,1,8,CITY,NA_DIR);
+		tst_tiles[9]= create_node(4,2,9,CITY,NA_DIR);
+		tst_tiles[10]= create_node(3,2,10,CITY,NA_DIR);
+		tst_tiles[11]= create_node(2,2,11,CITY,NA_DIR);
 
 		// create feature structure
 		GAME_FEATURE_NODE_START feature_structure;
@@ -1424,45 +1424,29 @@ void game_loop()
 
 		}
 
+		unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order=0;
+		DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
 		// merging test
 		GAME_FEATURE_NODE_ptr merg_res;
 		// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
-		merg_res = merging_features(feature_structures[0].root, feature_structure.root);
+		merg_res = merging_features(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order);
+		mrg_order=0;
 		// merg_res = merging_features(feature_structures[1].root, merg_res);
-		merg_res = merging_features(merg_res, feature_structures[1].root);
+		merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order);
 		if (merg_res!=NULL)
 		{
 			if (
 					// test case for merging_features(merg_res, feature_structures[1].root);
-				merg_res==feature_structures[0].root
-				&& merg_res==tst_tiles[6]
-				&& merg_res->child_top_lk==tst_tiles[4]
-				&& merg_res->child_l_lk==NULL
-				&& merg_res->child_r_lk==tst_tiles[11]
-				&& merg_res->child_r_lk->child_r_lk==tst_tiles[10]
-				&& merg_res->child_r_lk->child_r_lk->child_top_lk==NULL //?
-				&& merg_res->child_r_lk->child_r_lk->parent_top_lk==tst_tiles[7]
-				&& tst_tiles[7]->child_bot_lk==tst_tiles[10] // ?
-				&& merg_res->child_r_lk->child_r_lk->child_r_lk==tst_tiles[9]
-				&& merg_res->child_r_lk->child_r_lk->child_r_lk->parent_top_lk==tst_tiles[8]
-					// test case for merging_features(feature_structures[1].root, merg_res);
-				// tst_tiles[10] 
-				// feature_structures[1].root->child_bot_lk->parent_top_lk==tst_tiles[7]
-				// && feature_structures[1].root->child_bot_lk->parent_r_lk==NULL
-				// && feature_structures[1].root->child_bot_lk->parent_bot_lk==NULL
-				// // && feature_structures[1].root->child_bot_lk->parent_l_lk==tst_tiles[11]
-				// // && feature_structures[1].root->child_bot_lk->child_top_lk==NULL
-				// // && feature_structures[1].root->child_bot_lk->child_r_lk==tst_tiles[9]
-				// // && feature_structures[1].root->child_bot_lk->child_bot_lk==NULL
-				// && feature_structures[1].root->child_bot_lk->child_l_lk==tst_tiles[11]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk==tst_tiles[6]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk==tst_tiles[4]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk->child_top_lk==tst_tiles[1]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk->child_r_lk==tst_tiles[5]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk->child_bot_lk==NULL
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk->child_l_lk==tst_tiles[3]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk->child_top_lk->child_l_lk==tst_tiles[0]
-				// && feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk->child_top_lk->child_r_lk->child_top_lk==tst_tiles[2]
+					mrg_order==3
+					&& merg_tid_order[0]==11
+					&& merg_tid_order[1]==10
+					&& merg_tid_order[2]==7
+					&& merg_dir_order[0]==RIGHT
+					&& merg_dir_order[1]==RIGHT
+					&& merg_dir_order[2]==TOP
+					&& merg_res->child_r_lk==tst_tiles[11]
+					&& merg_res->child_r_lk->child_r_lk==tst_tiles[10]
+					&& merg_res->child_r_lk->child_r_lk->child_top_lk==tst_tiles[7]
 				)
 			merg_flg=true;
 		}

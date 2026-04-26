@@ -116,25 +116,45 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
         return NULL;
     }
 
-    if(feature_root->top_coord_x == new_node->tx && feature_root->top_coord_y == new_node->ty)
+    if(
+        feature_root->top_coord_x == new_node->tx 
+        && feature_root->top_coord_y == new_node->ty
+        && feature_root->child_top_lk==NULL
+        && feature_root->parent_top_lk==NULL
+        )
     {
         *child_direction = TOP;
         return feature_root;
     }
 
-    if(feature_root->right_coord_x == new_node->tx && feature_root->right_coord_y == new_node->ty)
+    if(
+        feature_root->right_coord_x == new_node->tx 
+        && feature_root->right_coord_y == new_node->ty
+        && feature_root->child_r_lk==NULL
+        && feature_root->parent_r_lk==NULL
+        )
     {
         *child_direction = RIGHT;
         return feature_root;
     }
 
-    if(feature_root->bot_coord_x == new_node->tx && feature_root->bot_coord_y == new_node->ty)
+    if(
+        feature_root->bot_coord_x == new_node->tx 
+        && feature_root->bot_coord_y == new_node->ty
+        && feature_root->child_bot_lk==NULL
+        && feature_root->parent_bot_lk==NULL
+        )
     {
         *child_direction = BOT;
         return feature_root;
     }
 
-    if(feature_root->left_coord_x == new_node->tx && feature_root->left_coord_y == new_node->ty)
+    if(
+        feature_root->left_coord_x == new_node->tx 
+        && feature_root->left_coord_y == new_node->ty
+        && feature_root->child_l_lk==NULL
+        && feature_root->parent_l_lk==NULL
+        )
     {
         *child_direction = LEFT;
         return feature_root;
@@ -347,7 +367,7 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
 }
 
 
-GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
+GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order)
 {
     // return NULL, if no merge is done.
     // return pointer to the merged feature root, if merge is done
@@ -358,10 +378,10 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
     }
 
     // start checking at the leaf-node of feature_root_2 against feature_root_ref
-    merging_features(feature_root_ref, feature_root_2->child_top_lk);
-    merging_features(feature_root_ref, feature_root_2->child_r_lk);
-    merging_features(feature_root_ref, feature_root_2->child_l_lk);
-    merging_features(feature_root_ref, feature_root_2->child_bot_lk);
+    merging_features(feature_root_ref, feature_root_2->child_top_lk, debug_merg_tid, debug_merg_dir, mrg_order);
+    merging_features(feature_root_ref, feature_root_2->child_r_lk, debug_merg_tid, debug_merg_dir, mrg_order);
+    merging_features(feature_root_ref, feature_root_2->child_l_lk, debug_merg_tid, debug_merg_dir, mrg_order);
+    merging_features(feature_root_ref, feature_root_2->child_bot_lk, debug_merg_tid, debug_merg_dir, mrg_order);
         // at the current leaf-node, find its location in feature_root_ref
     DIRECTION child_direction_new_node = NA_DIR;
     GAME_FEATURE_NODE_ptr location_new_node = NULL;
@@ -409,38 +429,54 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                         feature_root_2->parent_l_lk = NULL;
                     }
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_ref);
+                    // finish_features_linking(feature_root_2, feature_root_ref);
+                        // DEBUG
+                    debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
+                    debug_merg_dir[*mrg_order] = child_direction_new_node;
+                    *mrg_order = *mrg_order + 1;
                     return feature_root_ref;
                 }     
                 break;
             case RIGHT:
                 if(
-                    feature_root_2->child_l_lk==NULL
-                    || feature_root_2->child_l_lk->game_feature!=END_FEATURE
+                    (feature_root_2->child_l_lk==NULL
+                    || feature_root_2->child_l_lk->game_feature!=END_FEATURE)
+                     
                     )
                 {
-                    location_new_node->child_r_lk = feature_root_2;
-                    feature_root_2->parent_l_lk = location_new_node;
-                    // null the child in the opposite of found direction to null
-                    feature_root_2->child_l_lk = NULL;
-                    // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
-                    if(feature_root_2->parent_top_lk != NULL)
-                    {
-                        feature_root_2->parent_top_lk->child_bot_lk = NULL;
-                        feature_root_2->parent_top_lk = NULL;
-                    }
-                    if (feature_root_2->parent_r_lk != NULL)
-                    {
-                        feature_root_2->parent_r_lk->child_l_lk = NULL;
-                        feature_root_2->parent_r_lk = NULL;
-                    }
-                    if (feature_root_2->parent_bot_lk != NULL)
-                    {
-                        feature_root_2->parent_bot_lk->child_top_lk = NULL;
-                        feature_root_2->parent_bot_lk = NULL;
-                    }
-                    // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_ref);
+                    // NO NEED FOR THIS CHECK,
+                    // IN REALITY IT CAN NOT HAPPEN
+                    // if (location_new_node->child_r_lk==NULL &&
+                    // location_new_node->parent_r_lk==NULL)
+                    // {
+                        location_new_node->child_r_lk = feature_root_2;
+                        feature_root_2->parent_l_lk = location_new_node;
+                        // null the child in the opposite of found direction to null
+                        feature_root_2->child_l_lk = NULL;
+                        // null the existent parent lks of current node except the newly added parent direction, to avoid loop inside the structure
+                        if(feature_root_2->parent_top_lk != NULL)
+                        {
+                            feature_root_2->parent_top_lk->child_bot_lk = NULL;
+                            feature_root_2->parent_top_lk = NULL;
+                        }
+                        if (feature_root_2->parent_r_lk != NULL)
+                        {
+                            feature_root_2->parent_r_lk->child_l_lk = NULL;
+                            feature_root_2->parent_r_lk = NULL;
+                        }
+                        if (feature_root_2->parent_bot_lk != NULL)
+                        {
+                            feature_root_2->parent_bot_lk->child_top_lk = NULL;
+                            feature_root_2->parent_bot_lk = NULL;
+                        }
+                        // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
+                        // finish_features_linking(feature_root_2, feature_root_ref);
+                            // DEBUG
+                        debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
+                        debug_merg_dir[*mrg_order] = child_direction_new_node;
+                        *mrg_order = *mrg_order + 1;
+                    // }
+                    
                     return feature_root_ref;
                 }
                 break;
@@ -471,7 +507,11 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                         feature_root_2->parent_l_lk = NULL;
                     }
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_ref);
+                    // finish_features_linking(feature_root_2, feature_root_ref);
+                        // DEBUG
+                    debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
+                    debug_merg_dir[*mrg_order] = child_direction_new_node;
+                    *mrg_order = *mrg_order + 1;
                     return feature_root_ref;
                 }
                 
@@ -503,7 +543,11 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
                         feature_root_2->parent_l_lk = NULL;
                     }
                     // finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root)
-                    finish_features_linking(feature_root_2, feature_root_ref);
+                    // finish_features_linking(feature_root_2, feature_root_ref);
+                        // DEBUG
+                    debug_merg_tid[*mrg_order] = feature_root_2->car_tid;
+                    debug_merg_dir[*mrg_order] = child_direction_new_node;
+                    *mrg_order = *mrg_order + 1;
                     return feature_root_ref;
                 }
                 break;
