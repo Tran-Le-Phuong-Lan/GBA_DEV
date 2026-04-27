@@ -579,6 +579,49 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
 
     }
     
+}
+
+bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result)
+{
+    if (feature_root==NULL || feature_root->game_feature==END_FEATURE)
+    {
+        return false;
+    }
+    
+    feature_min_max_coord(feature_root->child_top_lk, comp_info, result);
+    feature_min_max_coord(feature_root->child_r_lk, comp_info, result);
+    feature_min_max_coord(feature_root->child_bot_lk, comp_info, result);
+    feature_min_max_coord(feature_root->child_l_lk, comp_info, result);
 
 
+    if(comp_info==MIN)
+    {
+        if(feature_root->tx < result->x)
+        {
+            result->x= feature_root->tx;
+        }
+        if(feature_root->ty < result->y)
+        {
+            result->y= feature_root->ty;
+        }
+    }
+
+    if(comp_info==MAX)
+    {
+        if(feature_root->tx > result->x)
+        {
+            result->x= feature_root->tx;
+        }
+        if(feature_root->ty > result->y)
+        {
+            result->y= feature_root->ty;
+        }
+    }
+
+    return true;
+}
+
+void feature_report_per_cartile (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag)
+{
+    // nothing
 }

@@ -1,12 +1,22 @@
 // Feature tracking for Carcassonne game
 // recognise <feature>, track <feature> throughout the game
 // <feature>: church, city, street, field.
-
 #ifndef CARCAS_FEATURE_TRACKING_H
 #define CARCAS_FEATURE_TRACKING_H
 
 #include <stdlib.h>
 #include <tonc.h>
+#include "carcas_infos.h"
+
+typedef enum {
+    MIN,
+    MAX
+} MIN_OR_MAX;
+
+typedef enum {
+    X,
+    Y
+} X_OR_Y;
 
 typedef enum GAME_FEATURES {
 	CITY,
@@ -53,8 +63,12 @@ GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEAT
 // relink for the newly added node, if any exisiting node in the feature structure is its child
 void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root);
 GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result);
+void feature_report_per_cartile (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag);
 bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
 GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
 void delete_node (GAME_FEATURE_NODE_ptr node);
+
+extern GAME_FEATURE_NODE end_node;
 
 #endif

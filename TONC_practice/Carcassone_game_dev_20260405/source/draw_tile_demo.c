@@ -11,121 +11,7 @@
 #include "tiles-walllite.h"
 #include "carcas_data.h"
 #include "tiles-bg1.h"
-#include "feature_tracking.h"
-
-// ===========
-// CARCASSONNE GAME RULES
-// ===========
-#define CAR_TILES_MAX 72
-int carcassonne_number_of_tiles = 0; // assume 72 carcasonne tiles
-
-// FSM for game state
-enum GAME_STATE {
-	START,
-	GET_TILE,
-	PUT_DOWN_TILE,
-	MEEPLE,
-	END
-};
-
-enum GAME_STATE current_game_state = START;
-
-// define the access to cacasone-tile map
-typedef unsigned short CAS_TILE_MAP[9];
-#define cas_tile_map_id	((CAS_TILE_MAP*)tiles_gbcMap_v2)
-#define bg_tile_map_id	((CAS_TILE_MAP*)Bg_tile)
-#define elem_cas_tile_set	((TILE8*)tiles_wallliteTiles)
-
-#define bg1_tile_map_id	((CAS_TILE_MAP*)Bg1_tile)
-#define elem_bg1_tile_set	((TILE8*)tiles_bg1Tiles)
-
-#define CAR_CAT 32// cacarcasonne category number (tile with different graphic features)
-
-int car_cat_max[32] = {
-	// CAT 17
-	4,
-	// CAT 1
-	8,
-	// CAT 2
-	1,
-	// CAT 3
-	7,
-	// CAT 4
-	1,
-	// CAT 5
-	4,
-	// CAT 6
-	1,
-	// CAT 7
-	4,
-	// CAT 8
-	2,
-	// CAT 9
-	4,
-	// CAT 10
-	1,
-	// CAT 11
-	3,
-	// CAT 12
-	3,
-	// CAT 13
-	1,
-	// CAT 14
-	1,
-	// CAT 15
-	2,
-	// CAT 16
-	1,
-	// CAT 18
-	3,
-	// CAT 19
-	2,
-	// CAT 20
-	1,
-	// CAT 21
-	1,
-	// CAT 22
-	1,
-	// CAT 23
-	3,
-	// CAT 24
-	2,
-	// CAT 25
-	1,
-	// CAT 26
-	2,
-	// CAT 27
-	1,
-	// CAT 28
-	2,
-	// CAT 29
-	1,
-	// CAT 30
-	1,
-	// CAT 31
-	1,
-	// CAT 32
-	2
-};
-
-#define CAR_BG_ID 150// > the CAR ID available in `tiles-carcas_v20260329.s`
-
-typedef struct COORD_2D
-{
-	s32 x;
-	s32 y;
-} ALIGN4 COORD_2D;
-
-#define CAR_MAP_WIDTH_x 91// [ctile]
-#define CAR_MAP_HEIGHT_y 91
-#define REF_CAR_TILE 45// [ctile]
-#define CAR_MAP_COORD_MAX 8281 
-
-typedef struct CAR_MAP_INFO
-{
-	u32 car_tid;
-	s32 car_map_coord;
-} ALIGN4 CAR_MAP_INFO;
+#include "carcas_libs.h"
 
 // ===========
 // OBJ/ SPRITE
@@ -175,8 +61,6 @@ int map_height_unit_tile = 64; // [TILE]
 SCR_ENTRY *bg1_map= se_mem[SBB_0_BG1];
 int bg1_width_unit_tile = 64; // [TILE]
 int bg1_height_unit_tile = 64; // [TILE]
-
-extern GAME_FEATURE_NODE end_node; // feature_tracking.h
 
 // ===========
 // GBA SCREEN
@@ -575,10 +459,31 @@ void init_map_info(CAR_MAP_INFO* full_map)
 	}
 }
 
+void init_feature_flgs (u16* flag_array, u16 flag_array_size)
+{
+	int iter;
+	for (iter=0; iter<flag_array_size; iter=iter+1)
+	{
+		flag_array[iter]=0xffff;
+	}
+	return;
+}
 void game_loop()
 {
+	// === 
+	// FEATURE REPORT 
+	// 3. variables/flags to report found features 
+	// ===
+	u16 feature_end_open_flgs[10];
+		// 0xffff = no info
+		// 0xTRBL; 1=end, 0=open
+		// for example, 0x0000 = all sides are open; 0x1010= only T and B are open
+	u16 feature_flgs_size = 10;
+	init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
+
 	// === Carcassonne data
 	int car_cat_track[32] = {0};
+	int carcassonne_number_of_tiles = 0; // assume 72 carcasonne tiles
 	// (virtual/conceptual) carcassonne map
 	// graphical stored tiles in VRAM.
 	CAR_MAP_INFO carcassonne_full_map[CAR_TILES_MAX];
@@ -801,15 +706,31 @@ void game_loop()
 			{
 				for (cas_col=0; cas_col<3; cas_col++)
 				{
+					//=== 
+					// cursor boject 
+					// ====
 					//				  CBB TILE_index	
 					memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
 						&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col] + CAR_TILE_OFFSET_IN_VRAM], 
 						16 // 1 DTILE = 16 x u32
 					);
+
+					
+					// === 
+					// FEATURE REPORT 
+					// 2. checking the available feature 
+					// ===
 				}
 			}
 			
-			// change to a new game state
+			// ==== 
+			// FEATURE REPORT
+			// 1. at the moment, no need to store just report -> must delete the feature.
+			// ====
+
+			// ==== 
+			// change to a new game state 
+			// ====
 			current_game_state = PUT_DOWN_TILE;
 		};
 		
