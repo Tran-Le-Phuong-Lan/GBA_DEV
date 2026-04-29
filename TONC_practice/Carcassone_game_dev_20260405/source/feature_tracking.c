@@ -621,7 +621,158 @@ bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_
     return true;
 }
 
-void feature_report_per_cartile (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag)
+void feature_report_per_cartilemap (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag, 
+                                 COORD_2D feature_min_coord, COORD_2D feature_max_coord)
 {
-    // nothing
+    // result is return in the `report_flag`.
+    // `report_flag` defined as:
+		// 0xffff = no info
+		// 0xTRBL; 1=end, 0=open
+		// for example, 0x0000 = all sides are open; 0x1010= only T and B are open
+    if (feature_root==NULL || feature_root->game_feature==END_FEATURE)
+    {
+        return;
+    }
+    feature_report_per_cartilemap(feature_root->child_top_lk, report_flag, feature_min_coord, feature_max_coord);
+    feature_report_per_cartilemap(feature_root->child_r_lk, report_flag, feature_min_coord, feature_max_coord);
+    feature_report_per_cartilemap(feature_root->child_bot_lk, report_flag, feature_min_coord, feature_max_coord);
+    feature_report_per_cartilemap(feature_root->child_l_lk, report_flag, feature_min_coord, feature_max_coord);
+
+    // tiles on top = min y
+    if (feature_root->ty==feature_min_coord.y)
+    {
+        if (feature_root->child_top_lk!=NULL)
+        {
+            if(feature_root->child_top_lk->game_feature==END_FEATURE)
+            {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0xf000)== 0xf000)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0x0fff) | 0x1000;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0x1fff;
+                }
+            }
+        }
+        else
+        {
+                // 0xTRBL; 1=end, 0=open
+                if (((*report_flag) & 0xf000)== 0xf000)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0x0fff) | 0x0000;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0x0fff;
+                }
+        }        
+    }
+
+    // tiles on right = max x
+    if (feature_root->tx==feature_max_coord.x)
+    {
+        if (feature_root->child_r_lk!=NULL)
+        {
+            if(feature_root->child_r_lk->game_feature==END_FEATURE)
+            {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0x0f00)== 0x0f00)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0xf0ff) | 0x0100;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0xf1ff;
+                }
+            }
+        }
+        else
+        {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0x0f00)== 0x0f00)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0xf0ff) | 0x0000;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0xf0ff;
+                }
+        }        
+    }
+
+    // tiles on bot = max y
+    if (feature_root->ty==feature_max_coord.y)
+    {
+        if (feature_root->child_bot_lk!=NULL)
+        {
+            if(feature_root->child_bot_lk->game_feature==END_FEATURE)
+            {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0x00f0)== 0x00f0)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0xff0f) | 0x0010;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0xff1f;
+                }
+            }
+        }
+        else
+        {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0x00f0)== 0x00f0)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0xff0f) | 0x0000;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0xff0f;
+                }
+        }        
+    }
+
+    // tiles on left = min x
+    if (feature_root->tx==feature_min_coord.x)
+    {
+        if (feature_root->child_l_lk!=NULL)
+        {
+            if(feature_root->child_l_lk->game_feature==END_FEATURE)
+            {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0x000f)== 0x000f)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0xfff0) | 0x0001;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0xfff1;
+                }
+            }
+        }
+        else
+        {
+                // 0xTRBL; 1=end, 0=open 
+                if (((*report_flag) & 0x000f)== 0x000f)
+                {
+                    // the first time, the flag is set
+                    (*report_flag) = ((*report_flag) & 0xfff0) | 0x0000;
+                }
+                else
+                {
+                    (*report_flag) = (*report_flag) & 0xfff0;
+                }
+        }        
+    }
+
+    return;
 }
