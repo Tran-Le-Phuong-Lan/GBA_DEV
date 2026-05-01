@@ -459,6 +459,9 @@ void init_map_info(CAR_MAP_INFO* full_map)
 	}
 }
 
+// === 
+// 2. FEATURE TRACKING 
+// ===
 void init_feature_flgs (u16* flag_array, u16 flag_array_size)
 {
 	int iter;
@@ -468,6 +471,173 @@ void init_feature_flgs (u16* flag_array, u16 flag_array_size)
 	}
 	return;
 }
+
+
+void init_features_per_tilemap (GAME_FEATURE_NODE_START* feature_array, u16 feature_array_size)
+{
+	int iter;
+	for (iter=0; iter<feature_array_size; iter=iter+1)
+	{
+		feature_array[iter].root=NULL;
+	}
+	return;
+}
+
+void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
+													unsigned short *cur_car_tile_map_vram_id
+													)
+{
+	// === 
+	// FEATURE REPORT 
+	// 2. checking the available feature 
+	// ===
+	//			the tile position is relative within the current carcassonne tile
+	//			therefore, the car_r and car_col is the coord of the tile as well
+	GAME_FEATURE_NODE_START features_per_tilemap[9];
+	init_features_per_tilemap(features_per_tilemap, 9);
+
+	GAME_FEATURES tile_type;
+	GAME_FEATURE_NODE_ptr new_nodes[2];
+	new_nodes[0] = NULL;
+	new_nodes[1] = NULL;
+
+	int iter_col, iter_r;
+	for (iter_r = 0; iter_r < 3; iter_r++)
+	{
+		for (iter_col=0; iter_col<3; iter_col++)
+		{
+			unsigned short  tile_vram_id = cur_car_tile_map_vram_id[iter_r*3 + iter_col];
+			tile_type = tile_vram_description[tile_vram_id];
+
+			// ===
+			// create nodes
+
+			switch (tile_vram_id)
+			{
+				case 24: // special city tile
+			// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
+					new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					// add the end nodes
+					new_nodes[0]->child_r_lk = &end_node;
+					new_nodes[0]->child_bot_lk = &end_node;
+					new_nodes[1]->child_top_lk = &end_node;
+					new_nodes[1]->child_l_lk = &end_node;
+					break;
+				
+				case 25: // speicial city tile
+					new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					// add the end nodes
+					new_nodes[0]->child_bot_lk = &end_node;
+					new_nodes[0]->child_l_lk = &end_node;
+					new_nodes[1]->child_top_lk = &end_node;
+					new_nodes[1]->child_r_lk = &end_node;
+					break;
+				
+				case 23: // all open, check adjacent tile to determine end point 
+						 // it falls through to case 14, and execute the same thing as in case 14.
+				case 14: // all open, check adjacent tile to determine end point
+					// reference: 
+					// [1](https://alexanderobregon.substack.com/p/c-control-flow-with-if-switch-and)
+
+					new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					// checking on the top side
+					if ((iter_r == 2 && iter_col==0) 
+						|| (iter_r == 2 && iter_col==1)
+						|| (iter_r == 2 && iter_col==2)
+						|| (iter_r == 1 && iter_col==0)
+						|| (iter_r == 1 && iter_col==1)
+						|| (iter_r == 1 && iter_col==2)
+						)
+					{
+						unsigned short top_tile = cur_car_tile_map_vram_id[(iter_r-1)*3 + iter_col];
+						if (tile_vram_description[top_tile] != CITY)
+						{
+							new_nodes[0]->child_top_lk= &end_node;
+						}
+					}
+
+					// checking on the right side
+					if ((iter_r == 0 && iter_col==0) 
+						|| (iter_r == 1 && iter_col==0)
+						|| (iter_r == 2 && iter_col==0)
+						|| (iter_r == 0 && iter_col==1)
+						|| (iter_r == 2 && iter_col==1)
+						|| (iter_r == 1 && iter_col==1)
+						)
+					{
+						unsigned short r_tile = cur_car_tile_map_vram_id[iter_r*3 + (iter_col+1)];
+						if (tile_vram_description[r_tile] != CITY)
+						{
+							new_nodes[0]->child_r_lk= &end_node;
+						}
+					}
+
+					// checking on the bot side
+					if ((iter_r == 0 && iter_col==0) 
+						|| (iter_r == 0 && iter_col==1)
+						|| (iter_r == 0 && iter_col==2)
+						|| (iter_r == 1 && iter_col==0)
+						|| (iter_r == 1 && iter_col==1)
+						|| (iter_r == 1 && iter_col==2)
+						)
+					{
+						unsigned short bot_tile = cur_car_tile_map_vram_id[(iter_r+1)*3 + iter_col];
+						if (tile_vram_description[bot_tile] != CITY)
+						{
+							new_nodes[0]->child_bot_lk= &end_node;
+						}
+					}
+
+					// checking on the left side
+					if ((iter_r == 0 && iter_col==2) 
+						|| (iter_r == 1 && iter_col==2)
+						|| (iter_r == 2 && iter_col==2)
+						|| (iter_r == 0 && iter_col==1)
+						|| (iter_r == 1 && iter_col==1)
+						|| (iter_r == 2 && iter_col==1)
+						)
+					{
+						unsigned short l_tile = cur_car_tile_map_vram_id[iter_r*3 + iter_col-1];
+						if (tile_vram_description[l_tile] != CITY)
+						{
+							new_nodes[0]->child_l_lk= &end_node;
+						}
+					}
+
+					break;
+				default:
+					
+					if (tile_type == CITY)
+					{
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					}
+			// ===
+			// merge nodes, delete the merged nodes except the ref node where everything is merged into.
+					// CODE
+			
+			// reset the storage, for new iteration
+			new_nodes[0] = NULL;
+			new_nodes[1] = NULL;
+			}
+		}
+	}
+	
+	// ==== 
+	// FEATURE REPORT
+	// 1. at the moment, no need to store just report -> must delete the feature.
+	// ====
+		// report end-open flags on the exisitng feature
+			// CODE
+		// delete/ free any feature existing in `features_per_tilemap`
+			// CODE
+}
+
+// === 
+// 0. MAIN GAME LOOP
+// ===
+
 void game_loop()
 {
 	// === 
@@ -480,6 +650,7 @@ void game_loop()
 		// for example, 0x0000 = all sides are open; 0x1010= only T and B are open
 	u16 feature_flgs_size = 10;
 	init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
+	
 
 	// === Carcassonne data
 	int car_cat_track[32] = {0};
@@ -706,20 +877,16 @@ void game_loop()
 			{
 				for (cas_col=0; cas_col<3; cas_col++)
 				{
+					unsigned short tile_vram_id = cas_tile_map_id[rand_cat][cas_r*3 + cas_col] + CAR_TILE_OFFSET_IN_VRAM;
 					//=== 
 					// cursor boject 
 					// ====
 					//				  CBB TILE_index	
 					memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-						&elem_cas_tile_set[cas_tile_map_id[rand_cat][cas_r*3 + cas_col] + CAR_TILE_OFFSET_IN_VRAM], 
+						&elem_cas_tile_set[tile_vram_id], 
 						16 // 1 DTILE = 16 x u32
-					);
-
+						);
 					
-					// === 
-					// FEATURE REPORT 
-					// 2. checking the available feature 
-					// ===
 				}
 			}
 			

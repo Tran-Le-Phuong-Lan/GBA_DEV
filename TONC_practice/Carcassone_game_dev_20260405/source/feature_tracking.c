@@ -13,6 +13,70 @@ GAME_FEATURE_NODE end_node =
     NULL, NULL, NULL, NULL
 };
 
+u32 number_tile_in_vram = 29; // manual update in file `tiles-walllite.s` or mGba -> load rom -> View tiles
+
+GAME_FEATURES tile_vram_description[29] = // manual update 
+{
+    // 0
+    NA_FEATURE,
+    // 1 
+    NA_FEATURE, 
+    // 2
+    FIELD,
+    // 3
+    STREET,
+    // 4
+    STREET,
+    // 5
+    STREET,
+    // 6
+    STREET,
+    // 7
+    STREET,
+    // 8
+    STREET,
+    // 9
+    STREET,
+    // 10
+    STREET,
+    // 11
+    STREET,
+    // 12
+    STREET,
+    // 13
+    STREET,
+    // 14 (all open, open/end based on the adjacent tiles on the game map)
+    CITY,
+    // 15
+    CITY,
+    // 16
+    CITY,
+    // 17
+    CITY,
+    // 18
+    CITY,
+    // 19
+    CITY,
+    // 20
+    CITY,
+    // 21
+    CITY,
+    // 22
+    CITY,
+    // 23 (all open, open/end based on the adjacent tiles on the game map)
+    CITY,
+    // 24 (special, 2 different nodes on the same tile)
+    CITY,
+    // 25 (special, 2 different nodes on the same tile)
+    CITY,
+    // 26
+    GARDEN,
+    // 27
+    CHURCH,
+    // 28
+    MEEPLE_TILE
+};
+
 GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction)
 {
     GAME_FEATURE_NODE_ptr new_node;
@@ -629,6 +693,12 @@ void feature_report_per_cartilemap (GAME_FEATURE_NODE_ptr feature_root, u16* rep
 		// 0xffff = no info
 		// 0xTRBL; 1=end, 0=open
 		// for example, 0x0000 = all sides are open; 0x1010= only T and B are open
+    
+    // the check for all tiles at each edge, 
+    // if any of the tile on the same edge is open, 
+    // then the feature per that cartilemap is open on that edge.
+    // IMPORTNAT: this type of checking only works for feature per cartilemap !
+    // not for checking the whole feature during the game. 
     if (feature_root==NULL || feature_root->game_feature==END_FEATURE)
     {
         return;

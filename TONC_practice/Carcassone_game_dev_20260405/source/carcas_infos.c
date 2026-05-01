@@ -1,6 +1,6 @@
 #include "carcas_infos.h"
 enum GAME_STATE current_game_state = START;
-int car_cat_max[32] = {
+int car_cat_max[32] = { // manual update
 	// maximum number of tiles for each carcassonne map (a carcassonne tile game = 1 carcassonne map)
 	// CAT 17
 	4,

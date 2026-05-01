@@ -22,6 +22,9 @@ typedef enum GAME_FEATURES {
 	CITY,
 	STREET,
 	FIELD,
+    CHURCH,
+    GARDEN,
+    MEEPLE_TILE,
     END_FEATURE,
     NA_FEATURE,
     DELETE_FEATURE
@@ -71,5 +74,7 @@ GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, 
 void delete_node (GAME_FEATURE_NODE_ptr node);
 
 extern GAME_FEATURE_NODE end_node;
+extern u32 number_tile_in_vram;
+extern GAME_FEATURES tile_vram_description[29];
 
 #endif
