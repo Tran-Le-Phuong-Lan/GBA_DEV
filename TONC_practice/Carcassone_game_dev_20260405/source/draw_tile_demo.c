@@ -484,7 +484,7 @@ void init_features_per_tilemap (GAME_FEATURE_NODE_START* feature_array, u16 feat
 }
 
 void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
-													unsigned short *cur_car_tile_map_vram_id
+													unsigned short *cur_car_tile_map_asm_id
 													)
 {
 	// === 
@@ -493,11 +493,13 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 	// ===
 	//			the tile position is relative within the current carcassonne tile
 	//			therefore, the car_r and car_col is the coord of the tile as well
-	GAME_FEATURE_NODE_START features_per_tilemap[9];
-	init_features_per_tilemap(features_per_tilemap, 9);
+	u32 fts_array_size =9;
+	GAME_FEATURE_NODE_START features_per_tilemap[fts_array_size];
+	init_features_per_tilemap(features_per_tilemap, fts_array_size);
 
 	GAME_FEATURES tile_type;
-	GAME_FEATURE_NODE_ptr new_nodes[2];
+	u32 number_new_nodes =2;
+	GAME_FEATURE_NODE_ptr new_nodes[number_new_nodes];
 	new_nodes[0] = NULL;
 	new_nodes[1] = NULL;
 
@@ -506,7 +508,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 	{
 		for (iter_col=0; iter_col<3; iter_col++)
 		{
-			unsigned short  tile_vram_id = cur_car_tile_map_vram_id[iter_r*3 + iter_col];
+			unsigned short  tile_vram_id = cur_car_tile_map_asm_id[iter_r*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
 			tile_type = tile_vram_description[tile_vram_id];
 
 			// ===
@@ -515,9 +517,14 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 			switch (tile_vram_id)
 			{
 				case 24: // special city tile
-			// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
-					new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-					new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+				// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
+					if (new_nodes[0]==NULL
+						&& new_nodes[1]==NULL
+						)
+					{
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					}
 					// add the end nodes
 					new_nodes[0]->child_r_lk = &end_node;
 					new_nodes[0]->child_bot_lk = &end_node;
@@ -526,8 +533,13 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 					break;
 				
 				case 25: // speicial city tile
-					new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-					new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					if (new_nodes[0]==NULL
+						&& new_nodes[1]==NULL
+						)
+					{
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					}
 					// add the end nodes
 					new_nodes[0]->child_bot_lk = &end_node;
 					new_nodes[0]->child_l_lk = &end_node;
@@ -540,8 +552,12 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 				case 14: // all open, check adjacent tile to determine end point
 					// reference: 
 					// [1](https://alexanderobregon.substack.com/p/c-control-flow-with-if-switch-and)
-
-					new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					if (new_nodes[0]==NULL
+						&& new_nodes[1]==NULL
+						)
+					{
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+					}
 					// checking on the top side
 					if ((iter_r == 2 && iter_col==0) 
 						|| (iter_r == 2 && iter_col==1)
@@ -551,7 +567,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 						|| (iter_r == 1 && iter_col==2)
 						)
 					{
-						unsigned short top_tile = cur_car_tile_map_vram_id[(iter_r-1)*3 + iter_col];
+						unsigned short top_tile = cur_car_tile_map_asm_id[(iter_r-1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[top_tile] != CITY)
 						{
 							new_nodes[0]->child_top_lk= &end_node;
@@ -567,7 +583,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 						|| (iter_r == 1 && iter_col==1)
 						)
 					{
-						unsigned short r_tile = cur_car_tile_map_vram_id[iter_r*3 + (iter_col+1)];
+						unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[r_tile] != CITY)
 						{
 							new_nodes[0]->child_r_lk= &end_node;
@@ -583,7 +599,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 						|| (iter_r == 1 && iter_col==2)
 						)
 					{
-						unsigned short bot_tile = cur_car_tile_map_vram_id[(iter_r+1)*3 + iter_col];
+						unsigned short bot_tile = cur_car_tile_map_vram_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[bot_tile] != CITY)
 						{
 							new_nodes[0]->child_bot_lk= &end_node;
@@ -599,7 +615,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 						|| (iter_r == 2 && iter_col==1)
 						)
 					{
-						unsigned short l_tile = cur_car_tile_map_vram_id[iter_r*3 + iter_col-1];
+						unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[l_tile] != CITY)
 						{
 							new_nodes[0]->child_l_lk= &end_node;
@@ -611,15 +627,103 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 					
 					if (tile_type == CITY)
 					{
-						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						if (new_nodes[0]==NULL
+							&& new_nodes[1]==NULL
+							)
+						{
+							new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						}
 					}
-			// ===
-			// merge nodes, delete the merged nodes except the ref node where everything is merged into.
-					// CODE
+			}
 			
-			// reset the storage, for new iteration
-			new_nodes[0] = NULL;
-			new_nodes[1] = NULL;
+			// ===
+			// insert node, merge feature, delete the merged feature except the ref feature where everything is merged into.
+				// insert,
+			int fts_iter, new_node_iter=0;
+			for (fts_iter=0; fts_iter < fts_array_size; fts_iter++)
+			{
+				// reference: [multiple expression in for-loop condition](https://stackoverflow.com/questions/16859029/multiple-conditions-in-a-c-for-loop)
+				for (new_node_iter=0; new_node_iter<number_new_nodes; new_node_iter++)
+				{
+					if (new_nodes[new_node_iter]!=NULL)
+					{
+						if (features_per_tilemap[fts_iter].root == NULL)
+						{
+							
+								features_per_tilemap[fts_iter].root = new_nodes[new_node_iter];
+								new_nodes[new_node_iter]=NULL;
+							
+						}
+						else
+						{
+							// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
+							GAME_FEATURE_NODE_ptr = insert_res;
+							insert_res=insert_node(features_per_tilemap[fts_iter].root, new_nodes[new_node_iter]);
+							if (insert_res!=NULL)
+							{
+								// void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root);
+								finish_features_linking(new_nodes[new_node_iter], features_per_tilemap[fts_iter].root);
+								new_nodes[new_node_iter]=NULL;
+							}
+							
+						}
+					}
+					
+				}
+					
+			}
+				// merge, delete merged features
+				// !!! ERROR: CHecking whether all the mergeable possibility check below DOES NOT WORK,
+				// 	it does not cover all the possibility	
+				// -> Probably SOL 1: 
+				// a track variable whose value is increased 1 whenever 1 succesfful merge occur,
+				// because if 1 successful merge = + 1 mergeable possibility for other exisiting features.
+				// the process stop ONLY when track variable is 0, it is begin with 1 = at the begining, there is always 1 possibility that there is 1 merge exists.
+			int merg_possibility = 1;
+			int fts_iter_ref=0;
+			while (merg_possibility>0)
+			{
+				for (fts_iter_ref=0; fts_iter_ref< fts_array_size; fts_iter_ref++)
+				{
+					for (fts_iter=0; fts_iter<fts_array_size; fts_iter++)
+					{
+						if (fts_iter_ref!=fts_iter)
+						{
+							if (features_per_tilemap[fts_iter_ref].root!=NULL)
+							{
+								if (features_per_tilemap[fts_iter].root!=NULL)
+								{
+									unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
+									DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
+									// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+									GAME_FEATURE_NODE_ptr merge_res;
+									merge_res=merging_features(features_per_tilemap[fts_iter_ref].root, features_per_tilemap[fts_iter].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
+									if (merg_res!=NULL)
+									{
+										features_per_tilemap[fts_iter].root=NULL;
+										merg_possibility= merg_possibility+1;
+									}
+									else
+									{
+										// nothing
+									}
+								}
+								else
+								{
+									// nothing
+								}
+							
+							}
+							else
+							{
+								break;
+							}
+						}
+						
+					}
+				}
+				merg_possibility= merg_possibility-1;
+			
 			}
 		}
 	}
