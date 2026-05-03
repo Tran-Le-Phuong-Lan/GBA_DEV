@@ -599,7 +599,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 						|| (iter_r == 1 && iter_col==2)
 						)
 					{
-						unsigned short bot_tile = cur_car_tile_map_vram_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+						unsigned short bot_tile = cur_car_tile_map_asm_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[bot_tile] != CITY)
 						{
 							new_nodes[0]->child_bot_lk= &end_node;
@@ -657,7 +657,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 						else
 						{
 							// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
-							GAME_FEATURE_NODE_ptr = insert_res;
+							GAME_FEATURE_NODE_ptr insert_res;
 							insert_res=insert_node(features_per_tilemap[fts_iter].root, new_nodes[new_node_iter]);
 							if (insert_res!=NULL)
 							{
@@ -673,7 +673,6 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 					
 			}
 				// merge, delete merged features
-				// !!! ERROR: CHecking whether all the mergeable possibility check below DOES NOT WORK,
 				// 	it does not cover all the possibility	
 				// -> Probably SOL 1: 
 				// a track variable whose value is increased 1 whenever 1 succesfful merge occur,
@@ -697,8 +696,9 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 									DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
 									// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
 									GAME_FEATURE_NODE_ptr merge_res;
+									// !!! this is ERROR !!!, it does not perform the expected merging !!!
 									merge_res=merging_features(features_per_tilemap[fts_iter_ref].root, features_per_tilemap[fts_iter].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
-									if (merg_res!=NULL)
+									if (merge_res!=NULL)
 									{
 										features_per_tilemap[fts_iter].root=NULL;
 										merg_possibility= merg_possibility+1;
@@ -723,7 +723,6 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 					}
 				}
 				merg_possibility= merg_possibility-1;
-			
 			}
 		}
 	}
@@ -732,10 +731,53 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 	// FEATURE REPORT
 	// 1. at the moment, no need to store just report -> must delete the feature.
 	// ====
-		// report end-open flags on the exisitng feature
+	// report end-open flags on the exisitng feature
 			// CODE
-		// delete/ free any feature existing in `features_per_tilemap`
-			// CODE
+	int fts_iter_a = 0, eoflg_iter=0;
+	for (fts_iter_a=0; fts_iter_a < fts_array_size; fts_iter_a++)
+	{
+		MIN_OR_MAX option_max = MAX, option_min= MIN;
+		COORD_2D min_res, max_res;
+		if (features_per_tilemap[fts_iter_a].root!=NULL)
+		{
+			// bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result);
+			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_max, &max_res);
+			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_min, &min_res);
+			// void feature_report_per_cartilemap (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag, 
+			//                  COORD_2D feature_min_coord, COORD_2D feature_max_coord)
+			feature_report_per_cartilemap (features_per_tilemap[fts_iter_a].root, &feature_flag_array[eoflg_iter], 
+								min_res, max_res);
+			eoflg_iter= eoflg_iter+1;
+			
+		}
+		
+	}
+	// delete/ free any feature existing in `features_per_tilemap`
+	for (fts_iter_a=0; fts_iter_a < fts_array_size; fts_iter_a++)
+	{
+		if (features_per_tilemap[fts_iter_a].root!=NULL)
+		{
+			unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
+			delete_whole_feature(features_per_tilemap[fts_iter_a].root, del_orders, &order[0]);
+		}
+		
+	}
+	return;	
+}
+
+void report_amount_features_per_cartilemap (u16* flag_array, u16 flag_array_size, u32* result)
+{
+	int iter;
+	*result=0;
+	for (iter=0; iter<flag_array_size; iter=iter+1)
+	{
+		if (flag_array[iter]!=0xffff)
+		{
+			*result=*result+1;
+		}
+		
+	}
+	return;
 }
 
 // === 
@@ -748,6 +790,7 @@ void game_loop()
 	// FEATURE REPORT 
 	// 3. variables/flags to report found features 
 	// ===
+	u32 amount_features =0;
 	u16 feature_end_open_flgs[10];
 		// 0xffff = no info
 		// 0xTRBL; 1=end, 0=open
@@ -993,16 +1036,23 @@ void game_loop()
 					
 				}
 			}
-			
-			// ==== 
-			// FEATURE REPORT
-			// 1. at the moment, no need to store just report -> must delete the feature.
-			// ====
 
 			// ==== 
 			// change to a new game state 
 			// ====
 			current_game_state = PUT_DOWN_TILE;
+
+			// ==== 
+			// FEATURE REPORT
+			// 1. at the moment, no need to store just report -> must delete the feature.
+			// ====
+				// void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
+				// 										unsigned short *cur_car_tile_map_asm_id
+				// 										)
+			init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
+			feature_report_per_cartilemap_implementation(feature_end_open_flgs, cas_tile_map_id[rand_cat]);
+				// void report_amount_features_per_cartilemap (u16* flag_array, u16 flag_array_size, u32* result)
+			report_amount_features_per_cartilemap(feature_end_open_flgs, feature_flgs_size, &amount_features);
 		};
 		
 
@@ -1387,8 +1437,20 @@ void game_loop()
 							);
 						}
 					}
-	
-				};
+
+					// ==== 
+					// FEATURE REPORT
+					// 1. at the moment, no need to store just report -> must delete the feature.
+					// ====
+						// void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
+						// 										unsigned short *cur_car_tile_map_asm_id
+						// 										)
+					init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
+					feature_report_per_cartilemap_implementation(feature_end_open_flgs, cas_tile_map_id[rand_cat]);
+						// void report_amount_features_per_cartilemap (u16* flag_array, u16 flag_array_size, u32* result)
+					report_amount_features_per_cartilemap(feature_end_open_flgs, feature_flgs_size, &amount_features);
+			
+						};
 
 			};
 		
@@ -1737,8 +1799,12 @@ void game_loop()
 			dlt_flg =true;
 		}
 
-		tte_printf("#{es;P}fdflg-insflg-mgflg-dltflg#:%d/%d/%d/%d\nct_x/y:%ld/%ld",
-			found_flg, insert_flg, merg_flg, dlt_flg,  
+		// tte_printf("#{es;P}fdflg-insflg-mgflg-dltflg#:%d/%d/%d/%d\nct_x/y:%ld/%ld",
+		// 	found_flg, insert_flg, merg_flg, dlt_flg,  
+		// 	ctile_idx, ctile_idy);
+		tte_printf("#{es;P}flgs#:%d/%d/%d/%d\ncity_fts:%d/\nct_x/y:%ld/%ld",
+			feature_end_open_flgs[0], feature_end_open_flgs[1], feature_end_open_flgs[2], feature_end_open_flgs[3],
+			amount_features,  
 			ctile_idx, ctile_idy);
 	}
 }
