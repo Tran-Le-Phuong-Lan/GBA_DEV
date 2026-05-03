@@ -1748,9 +1748,65 @@ void game_loop()
 		// tte_printf("#{es;P}fdflg-insflg-mgflg-dltflg#:%d/%d/%d/%d\nct_x/y:%ld/%ld",
 		// 	found_flg, insert_flg, merg_flg, dlt_flg,  
 		// 	ctile_idx, ctile_idy);
-		tte_printf("#{es;P}flgs#:%d/%d/%d/%d\ncity_fts:%d/\nct_x/y:%ld/%ld",
-			feature_end_open_flgs[0], feature_end_open_flgs[1], feature_end_open_flgs[2], feature_end_open_flgs[3],
-			amount_features,  
+		char *s="hello";
+		u32 eo_flgs_iter=0;
+		char* eoflgs[4];
+		for (eo_flgs_iter=0; eo_flgs_iter<4; eo_flgs_iter++)
+		{
+			switch(feature_end_open_flgs[eo_flgs_iter])
+			{
+				case 0x0111: // 273
+					eoflgs[eo_flgs_iter]= "oTcRcBcL";
+					break;
+				case 0x1101: // 4353
+					eoflgs[eo_flgs_iter]= "cTcRoBcL";
+					break;
+				case 0x1110: // 4368
+					eoflgs[eo_flgs_iter]= "cTcRcBoL";
+					break;	
+				case 0x1011: // 4113
+					eoflgs[eo_flgs_iter]= "cToRcBcL";
+					break;
+				case 0x0101: // 257
+					eoflgs[eo_flgs_iter]= "oTcRoBcL";
+					break;
+				case 0x1010: // 4112
+					eoflgs[eo_flgs_iter]= "cToRcBoL";
+					break;
+				case 0x0010: // 16
+					eoflgs[eo_flgs_iter]= "oToRcBoL";
+					break;
+				case 0x0001: // 1
+					eoflgs[eo_flgs_iter]= "oToRoBcL";
+					break;
+				case 0x1000: // 4096
+					eoflgs[eo_flgs_iter]= "cToRoBoL";
+					break;
+				case 0x0100: // 256
+					eoflgs[eo_flgs_iter]= "oTcRoBoL";
+					break;
+				case 0x0011: // 17
+					eoflgs[eo_flgs_iter]= "oToRcBcL";
+					break;
+				case 0x1001: // 4097
+					eoflgs[eo_flgs_iter]= "cToRoBcL";
+					break;
+				case 0x1100: // 4352
+					eoflgs[eo_flgs_iter]= "cTcRoBoL";
+					break;
+				case 0x0110: // 272
+					eoflgs[eo_flgs_iter]= "oTcRcBoL";
+					break;
+				case 0x0000: // 0
+					eoflgs[eo_flgs_iter]= "oToRoBoL";
+					break;		
+				default:
+					eoflgs[eo_flgs_iter]="NA";
+			}
+		}
+		tte_printf("#{es;P}tid:%d\n#city/eoflgs:%d-%s/%s/%s/%s\nct_x/y:%ld/%ld",
+			rand_cat_id,
+			amount_features,eoflgs[0], eoflgs[1], eoflgs[2], eoflgs[3],
 			ctile_idx, ctile_idy);
 	}
 }
