@@ -696,7 +696,6 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 									DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
 									// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
 									GAME_FEATURE_NODE_ptr merge_res;
-									// !!! this is ERROR !!!, it does not perform the expected merging !!!
 									merge_res=merging_features(features_per_tilemap[fts_iter_ref].root, features_per_tilemap[fts_iter].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
 									if (merge_res!=NULL)
 									{
@@ -740,9 +739,11 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 		COORD_2D min_res, max_res;
 		if (features_per_tilemap[fts_iter_a].root!=NULL)
 		{
-			// bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result);
-			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_max, &max_res);
-			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_min, &min_res);
+			s32 encounter =0;
+			// bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result, s32* cnt);
+			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_max, &max_res, &encounter);
+			encounter =0;
+			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_min, &min_res, &encounter);
 			// void feature_report_per_cartilemap (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag, 
 			//                  COORD_2D feature_min_coord, COORD_2D feature_max_coord)
 			feature_report_per_cartilemap (features_per_tilemap[fts_iter_a].root, &feature_flag_array[eoflg_iter], 
@@ -1574,122 +1575,74 @@ void game_loop()
 		GAME_FEATURE_NODE_ptr tst_tiles[20]= {[0 ... 19]= NULL};
 // GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid (VRAM), GAME_FEATURES tile_feature, DIRECTION parent_direction);
 			// feature 1
-		tst_tiles[0] = create_node(0, 0, 17, CITY, NA_DIR);
+		tst_tiles[0] = create_node(0, 0, 20, CITY, NA_DIR);
 		tst_tiles[1] = create_node(1, 0, 14, CITY, NA_DIR);
-		tst_tiles[1]->child_top_lk = &end_node;
-		tst_tiles[2] = create_node(2, 0, 18, CITY, NA_DIR);
-		tst_tiles[3] = create_node(0, 1, 16, CITY, NA_DIR);
-		tst_tiles[4] = create_node(1, 1, 14, CITY, NA_DIR);
-		// tst_tiles[4]->child_bot_lk = &end_node;
-		tst_tiles[5] = create_node(2, 1, 15, CITY, NA_DIR);
+		tst_tiles[2] = create_node(2, 0, 14, CITY, NA_DIR);
+		tst_tiles[3] = create_node(1, 1, 14, CITY, NA_DIR);
+		tst_tiles[3]->child_l_lk=&end_node;
+		tst_tiles[4] = create_node(2, 1, 14, CITY, NA_DIR);
 			// feature 2
+		tst_tiles[5]= create_node(0, 2, 21, CITY, NA_DIR);
 		tst_tiles[6]= create_node(1,2,14, CITY, NA_DIR);
-			// feature 3
-		tst_tiles[7]= create_node(3,1,7,CITY,NA_DIR);
-		tst_tiles[8]= create_node(4,1,8,CITY,NA_DIR);
-		tst_tiles[9]= create_node(4,2,9,CITY,NA_DIR);
-		tst_tiles[10]= create_node(3,2,10,CITY,NA_DIR);
-		tst_tiles[11]= create_node(2,2,11,CITY,NA_DIR);
+		tst_tiles[7]= create_node(2,2,14,CITY,NA_DIR);
+		
+		// tst_tiles[8]= create_node(4,1,8,CITY,NA_DIR);
+		// tst_tiles[9]= create_node(4,2,9,CITY,NA_DIR);
+		// tst_tiles[10]= create_node(3,2,10,CITY,NA_DIR);
+		// tst_tiles[11]= create_node(2,2,11,CITY,NA_DIR);
 
 		// create feature structure
 		GAME_FEATURE_NODE_START feature_structure;
 		GAME_FEATURE_NODE_START feature_structures[10]= {[0 ... 9]= NULL};	
-		feature_structure.root = tst_tiles[0];
-			// create feature strucutre 2
-		feature_structures[0].root = tst_tiles[6];
-			// create feature structure 3 
-		feature_structures[1].root = tst_tiles[7];
-		insert_node(feature_structures[1].root, tst_tiles[8]);
-		finish_features_linking(tst_tiles[8], feature_structures[1].root);
-		insert_node(feature_structures[1].root, tst_tiles[9]);
-		finish_features_linking(tst_tiles[9], feature_structures[1].root);
-		insert_node(feature_structures[1].root, tst_tiles[10]);
-		finish_features_linking(tst_tiles[10], feature_structures[1].root);
-		// insert_node(feature_structures[1].root, tst_tiles[11]);
-		// finish_features_linking(tst_tiles[11], feature_structures[1].root);
+		// feature_structure.root = tst_tiles[0];
+			// create feature strucutre 1
+		feature_structures[0].root = tst_tiles[0];
+			// create feature structure 2 
+		feature_structures[1].root = tst_tiles[5];
 
-		GAME_FEATURE_NODE_ptr found_node, insert_tst;
+			// feature 1
+		insert_node(feature_structures[0].root, tst_tiles[1]);
+		finish_features_linking(tst_tiles[1], feature_structures[0].root);
+		insert_node(feature_structures[0].root, tst_tiles[2]);
+		finish_features_linking(tst_tiles[2], feature_structures[0].root);
+		insert_node(feature_structures[0].root, tst_tiles[3]);
+		finish_features_linking(tst_tiles[3], feature_structures[0].root);
+		insert_node(feature_structures[0].root, tst_tiles[4]);
+		finish_features_linking(tst_tiles[4], feature_structures[0].root);
+
+			// feature 2
+		insert_node(feature_structures[1].root, tst_tiles[6]);
+		finish_features_linking(tst_tiles[6], feature_structures[1].root);
+		insert_node(feature_structures[1].root, tst_tiles[7]);
+		finish_features_linking(tst_tiles[7], feature_structures[1].root);
+
+		GAME_FEATURE_NODE_ptr found_node, insert_tst=NULL;
 		DIRECTION found_direction=NA_DIR;
 // GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
-		insert_node(feature_structure.root, tst_tiles[1]);
-		finish_features_linking(tst_tiles[1], feature_structure.root);
-		insert_node(feature_structure.root, tst_tiles[2]);
-		finish_features_linking(tst_tiles[2], feature_structure.root);
-		insert_node(feature_structure.root, tst_tiles[3]);
-		finish_features_linking(tst_tiles[3], feature_structure.root);
-		insert_node(feature_structure.root, tst_tiles[4]);
-		finish_features_linking(tst_tiles[4], feature_structure.root);
-		insert_node(feature_structure.root, tst_tiles[5]);
-		finish_features_linking(tst_tiles[5], feature_structure.root);
 		found_node = find_node(feature_structures[1].root, tst_tiles[11], &found_direction);
 		
-		if(feature_structure.root->child_top_lk->game_feature == END_FEATURE)
-		{
-			node_tst_flg[0] = true;
-		}
+		// if(found_node != NULL
+		// 	// && found_direction == BOT
+		// 	)
+		// {
+		// 	found_flg = true;
+		// 	// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
+		// 	insert_tst = insert_node(feature_structures[1].root, tst_tiles[11]);
+		// 	finish_features_linking(tst_tiles[11], feature_structures[1].root);
 
-		if(tst_tiles[1]->child_l_lk->game_feature == END_FEATURE)
-		{
-			node_tst_flg[1] = true;
-		}
-
-		if(found_node != NULL
-			// && found_direction == BOT
-			)
-		{
-			found_flg = true;
-			// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
-			insert_tst = insert_node(feature_structures[1].root, tst_tiles[11]);
-			finish_features_linking(tst_tiles[11], feature_structures[1].root);
-
-			if(insert_tst != NULL)
+			if(insert_tst == NULL)
 			{
 				if (
 					// ========
-					// strucutre 3
-					feature_structures[1].root==tst_tiles[7]
-					&& feature_structures[1].root->child_bot_lk==tst_tiles[10]
-					&& feature_structures[1].root->child_bot_lk->child_l_lk==tst_tiles[11]
-					// tst_tiles[10]
-					&& feature_structures[1].root->child_bot_lk->parent_top_lk==tst_tiles[7]
-					&& feature_structures[1].root->child_bot_lk->parent_r_lk==tst_tiles[9]
-					&& feature_structures[1].root->child_bot_lk->parent_bot_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->parent_l_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_top_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_r_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_bot_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk==tst_tiles[11]
-					// tst_tiles[11]
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->parent_top_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->parent_r_lk==tst_tiles[10]
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->parent_bot_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->parent_l_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_top_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_r_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_bot_lk==NULL
-					&& feature_structures[1].root->child_bot_lk->child_l_lk->child_l_lk==NULL
-					// tst_tiles[8]
-					&& feature_structures[1].root->child_r_lk==tst_tiles[8]
-					&& feature_structures[1].root->child_r_lk->parent_l_lk==tst_tiles[7]
-					&& feature_structures[1].root->child_r_lk->parent_top_lk==NULL
-					&& feature_structures[1].root->child_r_lk->parent_r_lk==NULL
-					&& feature_structures[1].root->child_r_lk->parent_bot_lk==NULL
-					&& feature_structures[1].root->child_r_lk->child_top_lk==NULL
-					&& feature_structures[1].root->child_r_lk->child_r_lk==NULL
-					&& feature_structures[1].root->child_r_lk->child_bot_lk==tst_tiles[9]
-					&& feature_structures[1].root->child_r_lk->child_l_lk==NULL
-					// ========
-					// structure 1
-					&& feature_structure.root==tst_tiles[0]
-					&& feature_structure.root->child_r_lk==tst_tiles[1]
-					&& feature_structure.root->child_r_lk->child_bot_lk==tst_tiles[4]
-					&& feature_structure.root->child_r_lk->child_r_lk==tst_tiles[2]
-					&& feature_structure.root->child_r_lk->child_r_lk->child_bot_lk==tst_tiles[5]
-					&& feature_structure.root->child_bot_lk==tst_tiles[3]
-						// tst_tiles[3]
-					&& feature_structure.root->child_bot_lk->child_r_lk==tst_tiles[4]
-						// tst_tiles[4]
-					&& feature_structure.root->child_bot_lk->child_r_lk->child_r_lk==tst_tiles[5]
+					// strucutre 1
+					feature_structures[0].root==tst_tiles[0]
+					&& feature_structures[0].root->child_r_lk==tst_tiles[1]
+					&& feature_structures[0].root->child_r_lk->child_r_lk==tst_tiles[2]
+					&& feature_structures[0].root->child_r_lk->child_bot_lk==tst_tiles[3]
+					&& feature_structures[0].root->child_r_lk->child_r_lk->child_bot_lk==tst_tiles[4]
+					&& feature_structures[0].root->child_r_lk->child_bot_lk->child_r_lk==tst_tiles[4]
+					// structure 2
+					&& feature_structures[1].root==tst_tiles[5]
 					)
 				{ 
 					insert_flg = true;
@@ -1697,107 +1650,100 @@ void game_loop()
 				
 			}
 
-		}
+		// }
 
 		unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
 		DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
 		// merging test
 		GAME_FEATURE_NODE_ptr merg_res;
 		// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
-		merg_res = merging_features(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order[0]);
+		merg_res = merging_features(feature_structures[0].root, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
 		// merg_res = merging_features(feature_structures[1].root, merg_res);
-		merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[1]);
-		if (merg_res!=NULL)
-		{
-			if (
-					//=============
-					// test case for merging_features(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order);
-					merg_res==tst_tiles[6]
-					&& mrg_order[0]==4
-					&& merg_res->child_top_lk==tst_tiles[4]
-					&& merg_res->child_top_lk->child_l_lk==tst_tiles[3]
-					&& merg_res->child_top_lk->child_top_lk==tst_tiles[1]
-					&& merg_res->child_top_lk->child_top_lk->child_l_lk==tst_tiles[0]
-						// tst_tiles[3]
-					&& merg_res->child_top_lk->child_l_lk->child_top_lk==tst_tiles[0]
-					&& merg_res->child_top_lk->child_l_lk->child_r_lk==NULL
-					&& merg_res->child_top_lk->child_l_lk->child_l_lk->game_feature==END_FEATURE
-					&& merg_res->child_top_lk->child_l_lk->child_bot_lk->game_feature==END_FEATURE
-					&& merg_res->child_top_lk->child_l_lk->parent_top_lk==NULL
-					&& merg_res->child_top_lk->child_l_lk->parent_r_lk==tst_tiles[4]
-						// tst_tiles[4]
-					&& merg_res->child_top_lk->child_top_lk==tst_tiles[1]
-					&& merg_res->child_top_lk->child_r_lk==tst_tiles[5]
-					&& merg_res->child_top_lk->child_bot_lk==NULL
-					&& merg_res->child_top_lk->child_l_lk==tst_tiles[3]
-					&& merg_res->child_top_lk->parent_top_lk==NULL
-					&& merg_res->child_top_lk->parent_r_lk==NULL
-					&& merg_res->child_top_lk->parent_bot_lk==tst_tiles[6]
-					&& merg_res->child_top_lk->parent_l_lk==NULL
-						// tst_tiles[5]
-					&& merg_res->child_top_lk->child_r_lk->parent_top_lk==tst_tiles[2]
-					&& merg_res->child_top_lk->child_r_lk->parent_r_lk==NULL
-					&& merg_res->child_top_lk->child_r_lk->parent_bot_lk==NULL
-					&& merg_res->child_top_lk->child_r_lk->parent_l_lk==tst_tiles[4]
-						//tst_tiles[1]
-					&& merg_res->child_top_lk->child_top_lk->child_top_lk->game_feature==END_FEATURE
-					&& merg_res->child_top_lk->child_top_lk->child_r_lk==tst_tiles[2]
-					&& merg_res->child_top_lk->child_top_lk->child_bot_lk==NULL
-					&& merg_res->child_top_lk->child_top_lk->child_l_lk==tst_tiles[0]
-					&& merg_res->child_top_lk->child_top_lk->parent_bot_lk==tst_tiles[4]
-					//=============
-					// test case for merging_features(merg_res, feature_structures[1].root);
-					&& mrg_order[1]==5
-					// && merg_tid_order[0]==11
-					// && merg_tid_order[1]==10
-					// && merg_tid_order[2]==7
-					// && merg_dir_order[0]==RIGHT
-					// && merg_dir_order[1]==RIGHT
-					// && merg_dir_order[2]==TOP
-					&& merg_res->child_r_lk==tst_tiles[11]
-					&& merg_res->child_r_lk->child_r_lk==tst_tiles[10]
-					&& merg_res->child_r_lk->child_r_lk->child_top_lk==tst_tiles[7]
-					&& merg_res->child_r_lk->child_r_lk->child_r_lk==tst_tiles[9]
-					&& merg_res->child_r_lk->child_r_lk->child_r_lk->child_top_lk==tst_tiles[8]
+		// merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[1]);
+		// if (merg_res!=NULL)
+		// {
+		// 	if (
+		// 			//=============
+		// 			// test case for merging_features(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order);
+		// 			merg_res==tst_tiles[6]
+		// 			&& mrg_order[0]==4
+		// 			&& merg_res->child_top_lk==tst_tiles[4]
+		// 			&& merg_res->child_top_lk->child_l_lk==tst_tiles[3]
+		// 			&& merg_res->child_top_lk->child_top_lk==tst_tiles[1]
+		// 			&& merg_res->child_top_lk->child_top_lk->child_l_lk==tst_tiles[0]
+		// 				// tst_tiles[3]
+		// 			&& merg_res->child_top_lk->child_l_lk->child_top_lk==tst_tiles[0]
+		// 			&& merg_res->child_top_lk->child_l_lk->child_r_lk==NULL
+		// 			&& merg_res->child_top_lk->child_l_lk->child_l_lk->game_feature==END_FEATURE
+		// 			&& merg_res->child_top_lk->child_l_lk->child_bot_lk->game_feature==END_FEATURE
+		// 			&& merg_res->child_top_lk->child_l_lk->parent_top_lk==NULL
+		// 			&& merg_res->child_top_lk->child_l_lk->parent_r_lk==tst_tiles[4]
+		// 				// tst_tiles[4]
+		// 			&& merg_res->child_top_lk->child_top_lk==tst_tiles[1]
+		// 			&& merg_res->child_top_lk->child_r_lk==tst_tiles[5]
+		// 			&& merg_res->child_top_lk->child_bot_lk==NULL
+		// 			&& merg_res->child_top_lk->child_l_lk==tst_tiles[3]
+		// 			&& merg_res->child_top_lk->parent_top_lk==NULL
+		// 			&& merg_res->child_top_lk->parent_r_lk==NULL
+		// 			&& merg_res->child_top_lk->parent_bot_lk==tst_tiles[6]
+		// 			&& merg_res->child_top_lk->parent_l_lk==NULL
+		// 				// tst_tiles[5]
+		// 			&& merg_res->child_top_lk->child_r_lk->parent_top_lk==tst_tiles[2]
+		// 			&& merg_res->child_top_lk->child_r_lk->parent_r_lk==NULL
+		// 			&& merg_res->child_top_lk->child_r_lk->parent_bot_lk==NULL
+		// 			&& merg_res->child_top_lk->child_r_lk->parent_l_lk==tst_tiles[4]
+		// 				//tst_tiles[1]
+		// 			&& merg_res->child_top_lk->child_top_lk->child_top_lk->game_feature==END_FEATURE
+		// 			&& merg_res->child_top_lk->child_top_lk->child_r_lk==tst_tiles[2]
+		// 			&& merg_res->child_top_lk->child_top_lk->child_bot_lk==NULL
+		// 			&& merg_res->child_top_lk->child_top_lk->child_l_lk==tst_tiles[0]
+		// 			&& merg_res->child_top_lk->child_top_lk->parent_bot_lk==tst_tiles[4]
+		// 			//=============
+		// 			// test case for merging_features(merg_res, feature_structures[1].root);
+		// 			&& mrg_order[1]==5
+		// 			// && merg_tid_order[0]==11
+		// 			// && merg_tid_order[1]==10
+		// 			// && merg_tid_order[2]==7
+		// 			// && merg_dir_order[0]==RIGHT
+		// 			// && merg_dir_order[1]==RIGHT
+		// 			// && merg_dir_order[2]==TOP
+		// 			&& merg_res->child_r_lk==tst_tiles[11]
+		// 			&& merg_res->child_r_lk->child_r_lk==tst_tiles[10]
+		// 			&& merg_res->child_r_lk->child_r_lk->child_top_lk==tst_tiles[7]
+		// 			&& merg_res->child_r_lk->child_r_lk->child_r_lk==tst_tiles[9]
+		// 			&& merg_res->child_r_lk->child_r_lk->child_r_lk->child_top_lk==tst_tiles[8]
 
-				)
+		// 		)
+		// 		{
+		// 			merg_flg=true;
+		// 		}
+			
+		// }
+
+		if(merg_res!=NULL)
+		{
 			merg_flg=true;
 		}
 
-		// if(merg_res==NULL)
-		// {
-		// 	merg_flg=true;
-		// }
-
-		COORD_2D tst_f_t;
-		// tst_f_t.x= tst_feature->top_coord_x;
-		// tst_f_t.y= tst_feature->top_coord_y;
-		// tst_f_t.x= tst_feature->bot_coord_x;
-		// tst_f_t.y= tst_feature->bot_coord_y;
-		// tst_f_t.x= tst_feature->right_coord_x;
-		// tst_f_t.y= tst_feature->right_coord_y;
-		tst_f_t.x= feature_structure.root->left_coord_x;
-		tst_f_t.y= feature_structure.root->left_coord_y;
-
-		u32 tst_f_ctid = feature_structure.root->car_tid;
 		unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
 		//manual delete
 		delete_whole_feature(merg_res, del_orders, &order[0]);
+		// delete_whole_feature(feature_structures[1].root, del_orders, &order[0]);
 		// delete_whole_feature(feature_structure.root, del_orders, &order);
 		// delete_whole_feature(feature_structures[0].root, del_orders, &order);
 		// delete_whole_feature(feature_structures[1].root, del_orders, &order[1]);
-		if(
-			// del_orders[0] == 16
-			// && del_orders[1] == 14
-			// && del_orders[2] == 15
-			// && del_orders[3] == 18
-			// && del_orders[4] == 14
-			// && del_orders[5] == 17
-			order[0] == 12
-			)
-		{
-			dlt_flg =true;
-		}
+		// if(
+		// 	// del_orders[0] == 16
+		// 	// && del_orders[1] == 14
+		// 	// && del_orders[2] == 15
+		// 	// && del_orders[3] == 18
+		// 	// && del_orders[4] == 14
+		// 	// && del_orders[5] == 17
+		// 	order[0] == 12
+		// 	)
+		// {
+		// 	dlt_flg =true;
+		// }
 
 		// tte_printf("#{es;P}fdflg-insflg-mgflg-dltflg#:%d/%d/%d/%d\nct_x/y:%ld/%ld",
 		// 	found_flg, insert_flg, merg_flg, dlt_flg,  

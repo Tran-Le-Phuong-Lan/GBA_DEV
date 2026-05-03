@@ -97,7 +97,7 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
                 new_node->child_bot_lk = NULL;
                 new_node->child_l_lk = NULL;
                 
-                if (tid == 15 || tid == 19 || tid == 21)
+                if (tid == 15 || tid == 19 )
                 {
                     // end in right/ bot
                     new_node->child_top_lk = NULL;
@@ -106,14 +106,14 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
                     new_node->child_l_lk = NULL;
                     
                 } 
-                if (tid == 17) // tid= 24 handle dynamically
+                if (tid == 17 || tid == 21) // tid= 24 handle dynamically
                 {
                     new_node->child_top_lk = &end_node;
                     new_node->child_r_lk = NULL;
                     new_node->child_bot_lk = NULL;
                     new_node->child_l_lk = &end_node;
                 }
-                if (tid == 16 || tid == 20 || tid == 22)
+                if (tid == 16 || tid == 20)
                 {
                     // end in right/ bot
                     new_node->child_top_lk = NULL;
@@ -122,7 +122,7 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
                     new_node->child_l_lk = &end_node;
                     
                 }
-                if (tid ==18) // tid = 25 handled hynamically
+                if (tid ==18 || tid == 22) // tid = 25 handled hynamically
                 {
                     new_node->child_top_lk = &end_node;
                     new_node->child_r_lk = &end_node;
@@ -645,18 +645,27 @@ GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, 
     
 }
 
-bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result)
+bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result, s32* cnt)
 {
     if (feature_root==NULL || feature_root->game_feature==END_FEATURE)
     {
         return false;
     }
     
-    feature_min_max_coord(feature_root->child_top_lk, comp_info, result);
-    feature_min_max_coord(feature_root->child_r_lk, comp_info, result);
-    feature_min_max_coord(feature_root->child_bot_lk, comp_info, result);
-    feature_min_max_coord(feature_root->child_l_lk, comp_info, result);
+    feature_min_max_coord(feature_root->child_top_lk, comp_info, result, cnt);
+    feature_min_max_coord(feature_root->child_r_lk, comp_info, result, cnt);
+    feature_min_max_coord(feature_root->child_bot_lk, comp_info, result, cnt);
+    feature_min_max_coord(feature_root->child_l_lk, comp_info, result, cnt);
 
+    if (*cnt==0)
+    {   
+        // first time encounter the feature node.
+        // initialize the result with values relative to this feature
+        result->x= feature_root->tx;
+        result->y= feature_root->ty;
+        *cnt = *cnt +1;
+        return false;
+    }
 
     if(comp_info==MIN)
     {
