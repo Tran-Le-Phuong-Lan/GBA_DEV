@@ -49,6 +49,10 @@ typedef struct GAME_FEATURE_NODE
         bot_coord_x, bot_coord_y,           // y+1
         left_coord_x, left_coord_y;         // x-1
 
+    // RULE: child and parent lk to the same direction must not be (NOT NULL) at the same time,
+    // for example, if child_top_lk != NULL, parent_top_lk must == NULL or vice versa
+    // or both are NULL; but the RULE is violated, if at the same time,
+    // child_top_lk !=NULL and parent_top_lk !=NULL.
     struct GAME_FEATURE_NODE *child_top_lk, *child_r_lk, *child_bot_lk, *child_l_lk;
     struct GAME_FEATURE_NODE *parent_top_lk, *parent_r_lk, *parent_bot_lk, *parent_l_lk; 
 

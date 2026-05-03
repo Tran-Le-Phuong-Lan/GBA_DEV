@@ -816,6 +816,7 @@ void game_loop()
 	u16 feature_flgs_size = 10;
 	init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
 	
+	
 
 	// === Carcassonne data
 	int car_cat_track[32] = {0};

@@ -855,3 +855,67 @@ void feature_report_per_cartilemap (GAME_FEATURE_NODE_ptr feature_root, u16* rep
 
     return;
 }
+
+bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root)
+{
+    if(feature_root==NULL)
+    {
+        return false;
+    }
+
+    if(feature_root->game_feature==END_FEATURE)
+    {
+        return true;
+    }
+    
+    if (feature_root->parent_top_lk==NULL)
+    {
+        if (feature_complete_check(feature_root->child_top_lk))
+        {
+            // nothing
+        }
+        else
+        {
+            return false;
+        }    
+    }
+    
+    if(feature_root->parent_r_lk==NULL)
+    {
+        if(feature_complete_check(feature_root->child_r_lk))
+        {
+            // nothing
+        }
+        else
+        {
+            return false;
+        }
+        
+    }
+        
+    if(feature_root->parent_bot_lk==NULL)
+    {
+        if(feature_complete_check(feature_root->child_bot_lk))
+        {
+            // nothing
+        }
+        else
+        {
+            return false;
+        }
+    }
+            
+    if(feature_root->parent_l_lk==NULL)
+    {
+        if(feature_complete_check(feature_root->child_l_lk))
+        {
+            // nothing
+        }
+        else
+        {
+            return false;
+        }
+    }
+                
+    return true;
+}
