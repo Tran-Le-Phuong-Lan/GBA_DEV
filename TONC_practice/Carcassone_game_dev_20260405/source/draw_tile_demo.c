@@ -483,6 +483,102 @@ void init_features_per_tilemap (GAME_FEATURE_NODE_START* feature_array, u16 feat
 	return;
 }
 
+
+
+void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
+{
+	// merge, delete merged features
+	// 	it does not cover all the possibility	
+	// -> Probably SOL 1: 
+	// a track variable whose value is increased 1 whenever 1 succesfful merge occur,
+	// because if 1 successful merge = + 1 mergeable possibility for other exisiting features.
+	// the process stop ONLY when track variable is 0, it is begin with 1 = at the begining, there is always 1 possibility that there is 1 merge exists.
+	int merg_possibility = 1;
+	int fts_iter_ref=0, fts_iter=0;
+	while (merg_possibility>0)
+	{
+		for (fts_iter_ref=0; fts_iter_ref<ftr_game_array_size; fts_iter_ref++)
+		{
+			for (fts_iter=0; fts_iter<ftr_game_array_size; fts_iter++)
+			{
+				if (fts_iter_ref!=fts_iter)
+				{
+					if (ftr_game_array[fts_iter_ref].root!=NULL)
+					{
+						if (ftr_game_array[fts_iter].root!=NULL)
+						{
+							unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
+							DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
+							// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+							GAME_FEATURE_NODE_ptr merge_res;
+							merge_res=merging_features(ftr_game_array[fts_iter_ref].root, ftr_game_array[fts_iter].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
+							if (merge_res!=NULL)
+							{
+								ftr_game_array[fts_iter].root=NULL;
+								merg_possibility= merg_possibility+1;
+							}
+							else
+							{
+								// nothing
+							}
+						}
+						else
+						{
+							// nothing
+						}
+					
+					}
+					else
+					{
+						break;
+					}
+				}
+				
+			}
+		}
+		merg_possibility= merg_possibility-1;
+	}
+
+	return;
+}
+
+void insert_nodes_into_existent_ftrs (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_sz, 
+										GAME_FEATURE_NODE_ptr* new_nodes_array, u16 new_node_array_sz)
+{
+
+	int fts_iter, new_node_iter=0;
+	for (fts_iter=0; fts_iter < ftr_game_array_sz; fts_iter++)
+	{
+		// reference: [multiple expression in for-loop condition](https://stackoverflow.com/questions/16859029/multiple-conditions-in-a-c-for-loop)
+		for (new_node_iter=0; new_node_iter<new_node_array_sz; new_node_iter++)
+		{
+			if (new_nodes_array[new_node_iter]!=NULL)
+			{
+				if (ftr_game_array[fts_iter].root == NULL)
+				{
+					
+						ftr_game_array[fts_iter].root = new_nodes_array[new_node_iter];
+						new_nodes_array[new_node_iter]=NULL;
+					
+				}
+				else
+				{
+					// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
+					GAME_FEATURE_NODE_ptr insert_res;
+					insert_res=insert_node(ftr_game_array[fts_iter].root, new_nodes_array[new_node_iter]);
+					if (insert_res!=NULL)
+					{
+						// void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root);
+						finish_features_linking(new_nodes_array[new_node_iter], ftr_game_array[fts_iter].root);
+						new_nodes_array[new_node_iter]=NULL;
+					}
+					
+				}
+			}		
+		}
+	}
+}
+
 void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 													unsigned short *cur_car_tile_map_asm_id
 													)
@@ -639,90 +735,11 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 			// ===
 			// insert node, merge feature, delete the merged feature except the ref feature where everything is merged into.
 				// insert,
-			int fts_iter, new_node_iter=0;
-			for (fts_iter=0; fts_iter < fts_array_size; fts_iter++)
-			{
-				// reference: [multiple expression in for-loop condition](https://stackoverflow.com/questions/16859029/multiple-conditions-in-a-c-for-loop)
-				for (new_node_iter=0; new_node_iter<number_new_nodes; new_node_iter++)
-				{
-					if (new_nodes[new_node_iter]!=NULL)
-					{
-						if (features_per_tilemap[fts_iter].root == NULL)
-						{
-							
-								features_per_tilemap[fts_iter].root = new_nodes[new_node_iter];
-								new_nodes[new_node_iter]=NULL;
-							
-						}
-						else
-						{
-							// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
-							GAME_FEATURE_NODE_ptr insert_res;
-							insert_res=insert_node(features_per_tilemap[fts_iter].root, new_nodes[new_node_iter]);
-							if (insert_res!=NULL)
-							{
-								// void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root);
-								finish_features_linking(new_nodes[new_node_iter], features_per_tilemap[fts_iter].root);
-								new_nodes[new_node_iter]=NULL;
-							}
-							
-						}
-					}
-					
-				}
-					
-			}
+			insert_nodes_into_existent_ftrs(features_per_tilemap, fts_array_size,
+											new_nodes, number_new_nodes);
+
 				// merge, delete merged features
-				// 	it does not cover all the possibility	
-				// -> Probably SOL 1: 
-				// a track variable whose value is increased 1 whenever 1 succesfful merge occur,
-				// because if 1 successful merge = + 1 mergeable possibility for other exisiting features.
-				// the process stop ONLY when track variable is 0, it is begin with 1 = at the begining, there is always 1 possibility that there is 1 merge exists.
-			int merg_possibility = 1;
-			int fts_iter_ref=0;
-			while (merg_possibility>0)
-			{
-				for (fts_iter_ref=0; fts_iter_ref< fts_array_size; fts_iter_ref++)
-				{
-					for (fts_iter=0; fts_iter<fts_array_size; fts_iter++)
-					{
-						if (fts_iter_ref!=fts_iter)
-						{
-							if (features_per_tilemap[fts_iter_ref].root!=NULL)
-							{
-								if (features_per_tilemap[fts_iter].root!=NULL)
-								{
-									unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
-									DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
-									// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
-									GAME_FEATURE_NODE_ptr merge_res;
-									merge_res=merging_features(features_per_tilemap[fts_iter_ref].root, features_per_tilemap[fts_iter].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
-									if (merge_res!=NULL)
-									{
-										features_per_tilemap[fts_iter].root=NULL;
-										merg_possibility= merg_possibility+1;
-									}
-									else
-									{
-										// nothing
-									}
-								}
-								else
-								{
-									// nothing
-								}
-							
-							}
-							else
-							{
-								break;
-							}
-						}
-						
-					}
-				}
-				merg_possibility= merg_possibility-1;
-			}
+			check_all_merge_possibilities(features_per_tilemap, fts_array_size);
 		}
 	}
 	
