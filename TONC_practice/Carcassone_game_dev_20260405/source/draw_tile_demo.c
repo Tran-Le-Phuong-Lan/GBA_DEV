@@ -900,15 +900,30 @@ void create_cartilemap_node (u16* flag_array, u16 flag_array_size,
 	}
 }
 
-void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
+void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, 
+							u32* all_cities, u32* finished_cities)
 {
 	s32 iter=0;
-	*result = 0;
+	bool status=false;
+	*all_cities = 0;
+	// *finished_cities=0;
 	for(iter=0; iter<game_city_array_sz; iter++)
 	{
 		if(game_city_array[iter].root!=NULL)
 		{
-			*result= *result+1;
+			*all_cities= *all_cities+1;
+			// bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
+			status = feature_complete_check (game_city_array[iter].root);
+			if (status == true)
+			{
+				*finished_cities=*finished_cities+1;
+				// delete the complete game cities
+				// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
+				unsigned char del_orders[30]={[0 ... 9]= 0}, order[30]={[0 ... 9]= 0};
+				game_city_array[iter].root=delete_whole_feature(game_city_array[iter].root, del_orders, &order[0]);
+				*all_cities= *all_cities-1;
+				
+			}
 		}
 	}
 
@@ -926,12 +941,13 @@ void game_loop()
 	// IMPORTANT: In carcassonne, maximum 4 indepdent features of the same type (city/ street/ field) can exist.
 	// ===
 	u32 amount_features =0;
-	u16 feature_end_open_flgs[10];
+	u16 feature_end_open_flgs[10], prev_feature_end_open_flgs[4];
 		// 0xffff = no info
 		// 0xTRBL; 1=end, 0=open
 		// for example, 0x0000 = all sides are open; 0x1010= only T and B are open
-	u16 feature_flgs_size = 10;
+	u16 feature_flgs_size = 10, prev_feature_flgs_size=4;
 	init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
+	init_feature_flgs(prev_feature_end_open_flgs, prev_feature_flgs_size);
 
 	// tracking cities in game
 	u16 track_game_cities_sz= 20;
@@ -940,7 +956,8 @@ void game_loop()
 	u16 track_game_city_nodes_sz= 10;
 	GAME_FEATURE_NODE_ptr track_game_city_nodes[track_game_city_nodes_sz];
 	init_cartilemap_node_array(track_game_city_nodes,track_game_city_nodes_sz);
-	u32 num_game_cities  =0;
+	u32 num_game_cities=0, prev_num_game_cities=0;
+	u32 num_game_fcities=0, prev_num_game_fcities=0;
 
 	// === Carcassonne data
 	int car_cat_track[32] = {0};
@@ -1161,7 +1178,8 @@ void game_loop()
 			// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 			check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
 			// void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-			report_num_city_game(track_game_cities, track_game_cities_sz, &num_game_cities);
+			report_num_city_game(track_game_cities, track_game_cities_sz, 
+								&num_game_cities, &num_game_fcities);
 
 		}
 
@@ -1578,7 +1596,8 @@ void game_loop()
 							// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 							check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
 							// void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-							report_num_city_game(track_game_cities, track_game_cities_sz, &num_game_cities);
+							report_num_city_game(track_game_cities, track_game_cities_sz, 
+												&num_game_cities, &num_game_fcities);
 
 						}
 
@@ -1754,93 +1773,93 @@ void game_loop()
 		// 	ctile_idx, ctile_idy,
 		// 	tst_rd_tid.x, tst_rd_tid.y);
 
-		bool node_tst_flg[6] = {[0 ... 5]=false}, found_flg= false, insert_flg=false, dlt_flg=false, merg_flg=false;
-		GAME_FEATURE_NODE_ptr tst_tiles[20]= {[0 ... 19]= NULL};
-// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid (VRAM), GAME_FEATURES tile_feature, DIRECTION parent_direction);
-			// feature 1
-		tst_tiles[0] = create_node(0, 0, 20, CITY, NA_DIR);
-		tst_tiles[1] = create_node(1, 0, 14, CITY, NA_DIR);
-		tst_tiles[2] = create_node(2, 0, 14, CITY, NA_DIR);
-		tst_tiles[3] = create_node(1, 1, 14, CITY, NA_DIR);
-		tst_tiles[3]->child_l_lk=&end_node;
-		tst_tiles[4] = create_node(2, 1, 14, CITY, NA_DIR);
-			// feature 2
-		tst_tiles[5]= create_node(0, 2, 21, CITY, NA_DIR);
-		tst_tiles[6]= create_node(1,2,14, CITY, NA_DIR);
-		tst_tiles[7]= create_node(2,2,14,CITY,NA_DIR);
+// 		bool node_tst_flg[6] = {[0 ... 5]=false}, found_flg= false, insert_flg=false, dlt_flg=false, merg_flg=false;
+// 		GAME_FEATURE_NODE_ptr tst_tiles[20]= {[0 ... 19]= NULL};
+// // GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid (VRAM), GAME_FEATURES tile_feature, DIRECTION parent_direction);
+// 			// feature 1
+// 		tst_tiles[0] = create_node(0, 0, 20, CITY, NA_DIR);
+// 		tst_tiles[1] = create_node(1, 0, 14, CITY, NA_DIR);
+// 		tst_tiles[2] = create_node(2, 0, 14, CITY, NA_DIR);
+// 		tst_tiles[3] = create_node(1, 1, 14, CITY, NA_DIR);
+// 		tst_tiles[3]->child_l_lk=&end_node;
+// 		tst_tiles[4] = create_node(2, 1, 14, CITY, NA_DIR);
+// 			// feature 2
+// 		tst_tiles[5]= create_node(0, 2, 21, CITY, NA_DIR);
+// 		tst_tiles[6]= create_node(1,2,14, CITY, NA_DIR);
+// 		tst_tiles[7]= create_node(2,2,14,CITY,NA_DIR);
 		
-		// tst_tiles[8]= create_node(4,1,8,CITY,NA_DIR);
-		// tst_tiles[9]= create_node(4,2,9,CITY,NA_DIR);
-		// tst_tiles[10]= create_node(3,2,10,CITY,NA_DIR);
-		// tst_tiles[11]= create_node(2,2,11,CITY,NA_DIR);
+// 		// tst_tiles[8]= create_node(4,1,8,CITY,NA_DIR);
+// 		// tst_tiles[9]= create_node(4,2,9,CITY,NA_DIR);
+// 		// tst_tiles[10]= create_node(3,2,10,CITY,NA_DIR);
+// 		// tst_tiles[11]= create_node(2,2,11,CITY,NA_DIR);
 
-		// create feature structure
-		GAME_FEATURE_NODE_START feature_structure;
-		GAME_FEATURE_NODE_START feature_structures[10]= {[0 ... 9]= NULL};	
-		// feature_structure.root = tst_tiles[0];
-			// create feature strucutre 1
-		feature_structures[0].root = tst_tiles[0];
-			// create feature structure 2 
-		feature_structures[1].root = tst_tiles[5];
+// 		// create feature structure
+// 		GAME_FEATURE_NODE_START feature_structure;
+// 		GAME_FEATURE_NODE_START feature_structures[10]= {[0 ... 9]= NULL};	
+// 		// feature_structure.root = tst_tiles[0];
+// 			// create feature strucutre 1
+// 		feature_structures[0].root = tst_tiles[0];
+// 			// create feature structure 2 
+// 		feature_structures[1].root = tst_tiles[5];
 
-			// feature 1
-		insert_node(feature_structures[0].root, tst_tiles[1]);
-		finish_features_linking(tst_tiles[1], feature_structures[0].root);
-		insert_node(feature_structures[0].root, tst_tiles[2]);
-		finish_features_linking(tst_tiles[2], feature_structures[0].root);
-		insert_node(feature_structures[0].root, tst_tiles[3]);
-		finish_features_linking(tst_tiles[3], feature_structures[0].root);
-		insert_node(feature_structures[0].root, tst_tiles[4]);
-		finish_features_linking(tst_tiles[4], feature_structures[0].root);
+// 			// feature 1
+// 		insert_node(feature_structures[0].root, tst_tiles[1]);
+// 		finish_features_linking(tst_tiles[1], feature_structures[0].root);
+// 		insert_node(feature_structures[0].root, tst_tiles[2]);
+// 		finish_features_linking(tst_tiles[2], feature_structures[0].root);
+// 		insert_node(feature_structures[0].root, tst_tiles[3]);
+// 		finish_features_linking(tst_tiles[3], feature_structures[0].root);
+// 		insert_node(feature_structures[0].root, tst_tiles[4]);
+// 		finish_features_linking(tst_tiles[4], feature_structures[0].root);
 
-			// feature 2
-		insert_node(feature_structures[1].root, tst_tiles[6]);
-		finish_features_linking(tst_tiles[6], feature_structures[1].root);
-		insert_node(feature_structures[1].root, tst_tiles[7]);
-		finish_features_linking(tst_tiles[7], feature_structures[1].root);
+// 			// feature 2
+// 		insert_node(feature_structures[1].root, tst_tiles[6]);
+// 		finish_features_linking(tst_tiles[6], feature_structures[1].root);
+// 		insert_node(feature_structures[1].root, tst_tiles[7]);
+// 		finish_features_linking(tst_tiles[7], feature_structures[1].root);
 
-		GAME_FEATURE_NODE_ptr found_node, insert_tst=NULL;
-		DIRECTION found_direction=NA_DIR;
-// GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
-		found_node = find_node(feature_structures[1].root, tst_tiles[11], &found_direction);
+// 		GAME_FEATURE_NODE_ptr found_node, insert_tst=NULL;
+// 		DIRECTION found_direction=NA_DIR;
+// // GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
+// 		found_node = find_node(feature_structures[1].root, tst_tiles[11], &found_direction);
 		
-		// if(found_node != NULL
-		// 	// && found_direction == BOT
-		// 	)
-		// {
-		// 	found_flg = true;
-		// 	// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
-		// 	insert_tst = insert_node(feature_structures[1].root, tst_tiles[11]);
-		// 	finish_features_linking(tst_tiles[11], feature_structures[1].root);
+// 		// if(found_node != NULL
+// 		// 	// && found_direction == BOT
+// 		// 	)
+// 		// {
+// 		// 	found_flg = true;
+// 		// 	// GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
+// 		// 	insert_tst = insert_node(feature_structures[1].root, tst_tiles[11]);
+// 		// 	finish_features_linking(tst_tiles[11], feature_structures[1].root);
 
-			if(insert_tst == NULL)
-			{
-				if (
-					// ========
-					// strucutre 1
-					feature_structures[0].root==tst_tiles[0]
-					&& feature_structures[0].root->child_r_lk==tst_tiles[1]
-					&& feature_structures[0].root->child_r_lk->child_r_lk==tst_tiles[2]
-					&& feature_structures[0].root->child_r_lk->child_bot_lk==tst_tiles[3]
-					&& feature_structures[0].root->child_r_lk->child_r_lk->child_bot_lk==tst_tiles[4]
-					&& feature_structures[0].root->child_r_lk->child_bot_lk->child_r_lk==tst_tiles[4]
-					// structure 2
-					&& feature_structures[1].root==tst_tiles[5]
-					)
-				{ 
-					insert_flg = true;
-				}
+// 			if(insert_tst == NULL)
+// 			{
+// 				if (
+// 					// ========
+// 					// strucutre 1
+// 					feature_structures[0].root==tst_tiles[0]
+// 					&& feature_structures[0].root->child_r_lk==tst_tiles[1]
+// 					&& feature_structures[0].root->child_r_lk->child_r_lk==tst_tiles[2]
+// 					&& feature_structures[0].root->child_r_lk->child_bot_lk==tst_tiles[3]
+// 					&& feature_structures[0].root->child_r_lk->child_r_lk->child_bot_lk==tst_tiles[4]
+// 					&& feature_structures[0].root->child_r_lk->child_bot_lk->child_r_lk==tst_tiles[4]
+// 					// structure 2
+// 					&& feature_structures[1].root==tst_tiles[5]
+// 					)
+// 				{ 
+// 					insert_flg = true;
+// 				}
 				
-			}
+// 			}
 
-		// }
+// 		// }
 
-		unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
-		DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
-		// merging test
-		GAME_FEATURE_NODE_ptr merg_res;
-		// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
-		merg_res = merging_features(feature_structures[0].root, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
+// 		unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
+// 		DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
+// 		// merging test
+// 		GAME_FEATURE_NODE_ptr merg_res;
+// 		// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
+// 		merg_res = merging_features(feature_structures[0].root, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
 		// merg_res = merging_features(feature_structures[1].root, merg_res);
 		// merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[1]);
 		// if (merg_res!=NULL)
@@ -1903,14 +1922,14 @@ void game_loop()
 			
 		// }
 
-		if(merg_res!=NULL)
-		{
-			merg_flg=true;
-		}
+		// if(merg_res!=NULL)
+		// {
+		// 	merg_flg=true;
+		// }
 
-		unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
-		//manual delete
-		delete_whole_feature(merg_res, del_orders, &order[0]);
+		// unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
+		// //manual delete
+		// delete_whole_feature(merg_res, del_orders, &order[0]);
 		// delete_whole_feature(feature_structures[1].root, del_orders, &order[0]);
 		// delete_whole_feature(feature_structure.root, del_orders, &order);
 		// delete_whole_feature(feature_structures[0].root, del_orders, &order);
@@ -1931,7 +1950,6 @@ void game_loop()
 		// tte_printf("#{es;P}fdflg-insflg-mgflg-dltflg#:%d/%d/%d/%d\nct_x/y:%ld/%ld",
 		// 	found_flg, insert_flg, merg_flg, dlt_flg,  
 		// 	ctile_idx, ctile_idy);
-		char *s="hello";
 		u32 eo_flgs_iter=0;
 		char* eoflgs[4];
 		for (eo_flgs_iter=0; eo_flgs_iter<4; eo_flgs_iter++)
@@ -1987,10 +2005,40 @@ void game_loop()
 					eoflgs[eo_flgs_iter]="NA";
 			}
 		}
-		tte_printf("#{es;P}tid/#gc:%d/%d\n#city/eoflgs:%d-%s/%s/%s/%s\nct_x/y:%ld/%ld",
-			rand_cat_id, num_game_cities,
+		// cpt =city per tile
+		// oc = open game city
+		// fc = finised game city
+		// tte_printf("#{es;P}tid/#oc/#fc:%d/%d/%d\n#cpt/eoflgs:%d-%s/%s/%s/%s\nct_x/y:%ld/%ld",
+		// 	rand_cat_id, num_game_cities, num_game_fcities,
+		// 	amount_features,eoflgs[0], eoflgs[1], eoflgs[2], eoflgs[3],
+		// 	ctile_idx, ctile_idy);
+		
+		// to make sure that the printed text is not updated every frame!
+		// if the printed text is updated per every frame, which is so fast -> flickering effect.
+		if (prev_num_game_cities!=num_game_cities
+			|| prev_num_game_fcities!=num_game_fcities
+			|| prev_feature_end_open_flgs[0]!=feature_end_open_flgs[0]
+			|| prev_feature_end_open_flgs[1]!=feature_end_open_flgs[1]
+			|| prev_feature_end_open_flgs[2]!=feature_end_open_flgs[2]
+			|| prev_feature_end_open_flgs[3]!=feature_end_open_flgs[3]
+			) 
+		{
+		// cpt =city per tile
+		// oc = open game city
+		// fc = finised game city
+		tte_printf("#{es;P}tid-#oc/#fc:%d-%d/%d\n#cpt/eoflgs:%d-%s/%s/%s/%s\nct_x/y:%ld/%ld",
+			rand_cat_id, num_game_cities, num_game_fcities,
 			amount_features,eoflgs[0], eoflgs[1], eoflgs[2], eoflgs[3],
 			ctile_idx, ctile_idy);
+		prev_num_game_cities= num_game_cities;
+		prev_num_game_fcities= num_game_fcities;
+
+		prev_feature_end_open_flgs[0]=feature_end_open_flgs[0];
+		prev_feature_end_open_flgs[1]=feature_end_open_flgs[1];
+		prev_feature_end_open_flgs[2]=feature_end_open_flgs[2];
+		prev_feature_end_open_flgs[3]=feature_end_open_flgs[3];
+		}
+
 	}
 }
 
