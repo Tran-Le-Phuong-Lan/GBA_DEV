@@ -919,3 +919,39 @@ bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root)
                 
     return true;
 }
+
+bool node_exist (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
+{
+    if(feature_root==NULL || feature_root->game_feature== END_FEATURE)
+    {
+        return false;
+    }
+
+    if ((feature_root->tx==new_node->tx) 
+        && (feature_root->ty==new_node->ty))
+    {
+        return true;
+    }
+
+    if (node_exist(feature_root->child_top_lk, new_node))
+    {
+        return true;
+    }
+    
+    if (node_exist(feature_root->child_r_lk, new_node))
+    {
+        return true;
+    }
+
+    if (node_exist(feature_root->child_bot_lk, new_node))
+    {
+        return true;
+    }
+
+    if (node_exist(feature_root->child_l_lk, new_node))
+    {
+        return true;
+    }
+
+    return false;
+}

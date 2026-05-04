@@ -552,7 +552,8 @@ void insert_nodes_into_existent_ftrs (GAME_FEATURE_NODE_START* ftr_game_array, u
 		// reference: [multiple expression in for-loop condition](https://stackoverflow.com/questions/16859029/multiple-conditions-in-a-c-for-loop)
 		for (new_node_iter=0; new_node_iter<new_node_array_sz; new_node_iter++)
 		{
-			if (new_nodes_array[new_node_iter]!=NULL)
+			// bool node_exist (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
+			if (new_nodes_array[new_node_iter]!=NULL && (~node_exist(ftr_game_array[fts_iter].root, new_nodes_array[new_node_iter])))
 			{
 				if (ftr_game_array[fts_iter].root == NULL)
 				{
@@ -798,6 +799,121 @@ void report_amount_features_per_cartilemap (u16* flag_array, u16 flag_array_size
 	return;
 }
 
+void init_cartilemap_node_array(GAME_FEATURE_NODE_ptr* new_nodes_array, u16 new_node_array_sz)
+{
+	int iter;
+	for (iter=0; iter<new_node_array_sz; iter=iter+1)
+	{
+		new_nodes_array[iter]=NULL;
+	}
+}
+
+// cartilemap (= cartlmp) ~ carcassonne category (car cat)
+// cartilemap id = car cat id = `rand_cat_id`
+// cartilemap coord = car cat coord = `car_coord`
+void create_cartilemap_node (u16* flag_array, u16 flag_array_size, 
+							GAME_FEATURES cartilemap_id, COORD_2D cartilemap_coord,
+							GAME_FEATURE_NODE_ptr* cartilemap_node_array, u16 cartilemap_node_array_sz)
+{
+	// reset the array
+	init_cartilemap_node_array(cartilemap_node_array, cartilemap_node_array_sz);
+	// compute results
+	s32 iter=0, node_iter=0;
+	for(iter=0; iter<flag_array_size; iter++)
+	{
+		if(flag_array[iter]!=0xffff)
+		{
+			// exists an indepedent feature
+			// cartilemap node <> car tile (= graphical tile to create a cartilemap),
+			// but the function `create_node` can be reused for cartilemap node,
+			// as long as the GAME_FEATURES argument <> any existent defined GAME_FEATURES in `tile_vram_description`,
+			// and the tid = car cat id
+			if (node_iter< cartilemap_node_array_sz)
+			{
+				cartilemap_node_array[node_iter]=create_node(cartilemap_coord.x, cartilemap_coord.y, cartilemap_id, NA_FEATURE, NA_DIR);
+				switch(flag_array[iter])
+				{
+					// 	   TRBL
+					case 0x0111: // 273
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x1101: // 4353
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x1110: // 4368
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						break;	
+					case 0x1011: // 4113
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x0101: // 257
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x1010: // 4112
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						break;
+					case 0x0010: // 16
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						break;
+					case 0x0001: // 1
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x1000: // 4096
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						break;
+					case 0x0100: // 256
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						break;
+					case 0x0011: // 17
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x1001: // 4097
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_l_lk=&end_node;
+						break;
+					case 0x1100: // 4352
+						cartilemap_node_array[node_iter]->child_top_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						break;
+					case 0x0110: // 272
+						cartilemap_node_array[node_iter]->child_r_lk=&end_node;
+						cartilemap_node_array[node_iter]->child_bot_lk=&end_node;
+						break;
+					default:
+						// nothing
+				}
+				node_iter= node_iter+1;
+			}
+			
+		}
+	}
+}
+
+void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
+{
+	s32 iter=0;
+	*result = 0;
+	for(iter=0; iter<game_city_array_sz; iter++)
+	{
+		if(game_city_array[iter].root!=NULL)
+		{
+			*result= *result+1;
+		}
+	}
+
+}
+
 // === 
 // 0. MAIN GAME LOOP
 // ===
@@ -807,6 +923,7 @@ void game_loop()
 	// === 
 	// FEATURE REPORT 
 	// 3. variables/flags to report found features 
+	// IMPORTANT: In carcassonne, maximum 4 indepdent features of the same type (city/ street/ field) can exist.
 	// ===
 	u32 amount_features =0;
 	u16 feature_end_open_flgs[10];
@@ -815,8 +932,15 @@ void game_loop()
 		// for example, 0x0000 = all sides are open; 0x1010= only T and B are open
 	u16 feature_flgs_size = 10;
 	init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
-	
-	
+
+	// tracking cities in game
+	u16 track_game_cities_sz= 20;
+	GAME_FEATURE_NODE_START track_game_cities[track_game_cities_sz];
+	init_features_per_tilemap(track_game_cities, track_game_cities_sz);
+	u16 track_game_city_nodes_sz= 10;
+	GAME_FEATURE_NODE_ptr track_game_city_nodes[track_game_city_nodes_sz];
+	init_cartilemap_node_array(track_game_city_nodes,track_game_city_nodes_sz);
+	u32 num_game_cities  =0;
 
 	// === Carcassonne data
 	int car_cat_track[32] = {0};
@@ -1017,6 +1141,28 @@ void game_loop()
 			carcassonne_full_map[carcassonne_number_of_tiles-1].car_tid = 0;
 			carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 			current_game_state = GET_TILE;
+
+			// ===
+			// TRACK GAME CITY
+			// ===
+			init_feature_flgs(feature_end_open_flgs, feature_flgs_size);
+			feature_end_open_flgs[0]=0x0111;
+			// void create_cartilemap_node (u16* flag_array, u16 flag_array_size, 
+			// 				GAME_FEATURES cartilemap_id, COORD_2D cartilemap_coord,
+			// 				GAME_FEATURE_NODE_ptr* cartilemap_node_array, u16 cartilemap_node_array_sz)
+			create_cartilemap_node(feature_end_open_flgs, feature_flgs_size,
+									0, car_coord, 
+									track_game_city_nodes, track_game_city_nodes_sz);
+			// void insert_nodes_into_existent_ftrs (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_sz, 
+			// 							GAME_FEATURE_NODE_ptr* new_nodes_array, u16 new_node_array_sz)
+
+			insert_nodes_into_existent_ftrs(track_game_cities, track_game_cities_sz,
+											track_game_city_nodes, track_game_city_nodes_sz);
+			// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
+			check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
+			// void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
+			report_num_city_game(track_game_cities, track_game_cities_sz, &num_game_cities);
+
 		}
 
 		// allow to get a tile, only if there is still carcassonne tiles to take
@@ -1414,6 +1560,25 @@ void game_loop()
 							carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 							// current_game_state = MEEPLE;
 							current_game_state = GET_TILE;
+
+							// ===
+							// TRACK GAME CITY
+							// ===
+							// void create_cartilemap_node (u16* flag_array, u16 flag_array_size, 
+							// 				GAME_FEATURES cartilemap_id, COORD_2D cartilemap_coord,
+							// 				GAME_FEATURE_NODE_ptr* cartilemap_node_array, u16 cartilemap_node_array_sz)
+							create_cartilemap_node(feature_end_open_flgs, feature_flgs_size,
+													rand_cat_id, car_coord, 
+													track_game_city_nodes, track_game_city_nodes_sz);
+							// void insert_nodes_into_existent_ftrs (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_sz, 
+							// 							GAME_FEATURE_NODE_ptr* new_nodes_array, u16 new_node_array_sz)
+
+							insert_nodes_into_existent_ftrs(track_game_cities, track_game_cities_sz,
+															track_game_city_nodes, track_game_city_nodes_sz);
+							// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
+							check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
+							// void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
+							report_num_city_game(track_game_cities, track_game_cities_sz, &num_game_cities);
 
 						}
 
@@ -1822,8 +1987,8 @@ void game_loop()
 					eoflgs[eo_flgs_iter]="NA";
 			}
 		}
-		tte_printf("#{es;P}tid:%d\n#city/eoflgs:%d-%s/%s/%s/%s\nct_x/y:%ld/%ld",
-			rand_cat_id,
+		tte_printf("#{es;P}tid/#gc:%d/%d\n#city/eoflgs:%d-%s/%s/%s/%s\nct_x/y:%ld/%ld",
+			rand_cat_id, num_game_cities,
 			amount_features,eoflgs[0], eoflgs[1], eoflgs[2], eoflgs[3],
 			ctile_idx, ctile_idy);
 	}
