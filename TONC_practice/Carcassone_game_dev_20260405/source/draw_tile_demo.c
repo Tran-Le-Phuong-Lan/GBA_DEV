@@ -966,6 +966,9 @@ void game_loop()
 	// graphical stored tiles in VRAM.
 	CAR_MAP_INFO carcassonne_full_map[CAR_TILES_MAX];
 	init_map_info (carcassonne_full_map);
+		// carcassonne tracking position
+	COORD_2D prev_ctile_coord;
+
 
 	// === aff bg
 	AFF_SRC_EX asx=
@@ -1159,6 +1162,9 @@ void game_loop()
 			carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 			current_game_state = GET_TILE;
 
+			prev_ctile_coord.x = car_coord.x;
+			prev_ctile_coord.y = car_coord.y;
+			
 			// ===
 			// TRACK GAME CITY
 			// ===
@@ -1746,7 +1752,7 @@ void game_loop()
 
 		// write text
 		s32 ctile_idx=0, ctile_idy=0;
-		s32 render_tile_idx=0, render_tile_idy=0;
+		s32 render_tile_idx=0, render_tile_idy=0;	
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy, true);
 		// tte_printf("#{es;P}Tile ID#:%d\t\nLeft:%d/%d-%d/%d\nctile_dx/y:%ld/%ld",
@@ -2021,6 +2027,8 @@ void game_loop()
 			|| prev_feature_end_open_flgs[1]!=feature_end_open_flgs[1]
 			|| prev_feature_end_open_flgs[2]!=feature_end_open_flgs[2]
 			|| prev_feature_end_open_flgs[3]!=feature_end_open_flgs[3]
+			|| prev_ctile_coord.x != ctile_idx
+			|| prev_ctile_coord.y != ctile_idy
 			) 
 		{
 		// cpt =city per tile
@@ -2030,13 +2038,24 @@ void game_loop()
 			rand_cat_id, num_game_cities, num_game_fcities,
 			amount_features,eoflgs[0], eoflgs[1], eoflgs[2], eoflgs[3],
 			ctile_idx, ctile_idy);
+		
+		// no need to update the rand_cat_id, 
+		// because it is updated automatically with `num_game_cities`  
+		// or `feature_end_open_flgs`
+		
+		// update the num_game_cities
 		prev_num_game_cities= num_game_cities;
 		prev_num_game_fcities= num_game_fcities;
 
+		// update the end/open feature per cartilemap flags
 		prev_feature_end_open_flgs[0]=feature_end_open_flgs[0];
 		prev_feature_end_open_flgs[1]=feature_end_open_flgs[1];
 		prev_feature_end_open_flgs[2]=feature_end_open_flgs[2];
 		prev_feature_end_open_flgs[3]=feature_end_open_flgs[3];
+
+		// update the ctile coord
+		prev_ctile_coord.x = ctile_idx;
+		prev_ctile_coord.y = ctile_idy;
 		}
 
 	}
