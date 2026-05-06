@@ -131,8 +131,50 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
                 }
                 break;
             
-            case STREET:
-                //CODE
+            case STREET: 
+                // in VRAM, 
+                new_node->child_top_lk = NULL;
+                new_node->child_r_lk = NULL;
+                new_node->child_bot_lk = NULL;
+                new_node->child_l_lk = NULL;
+
+                if(tid==3) // ATTENTION These street tile below,
+                         // they can have end node based on their adjacent tile!
+                {
+                    new_node->child_top_lk=&end_node;
+                    new_node->child_bot_lk=&end_node;
+                }
+
+                if(tid==4) // ATTENTION These street tile below,
+                         // they can have end node based on their adjacent tile!
+                {
+                    new_node->child_r_lk=&end_node;
+                    new_node->child_l_lk=&end_node;
+                }
+
+                if(tid==5)
+                {
+                    new_node->child_top_lk=&end_node;
+                    new_node->child_r_lk=&end_node;
+                }
+
+                if(tid==6)
+                {
+                    new_node->child_r_lk=&end_node;
+                    new_node->child_bot_lk=&end_node;
+                }
+
+                if(tid==7)
+                {
+                    new_node->child_bot_lk=&end_node;
+                    new_node->child_l_lk=&end_node;   
+                }
+
+                if(tid==8)
+                {
+                    new_node->child_top_lk=&end_node;
+                    new_node->child_l_lk=&end_node;
+                }
                 break;
             case FIELD:
                 //CODE

@@ -74,6 +74,10 @@ int bg1_height_unit_tile = 64; // [TILE]
 // copy from tonc-example `sbb_reg` (TONC library for GBA),
 // mapping the tile-coordinate to multiple-sbb regular background screen entry index,
 // pitch = bg width (x_axis) in tile unit.
+
+// === 
+// 1. RENDERING 
+// ===
 u32 map_to_reg_se_index(u32 tx, u32 ty, u32 pitch)
 {
 	u32 sbb= ((tx>>5)+(ty>>5)*(pitch>>5));
@@ -386,6 +390,20 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 
 }
 
+void init_map_info(CAR_MAP_INFO* full_map)
+{
+	int iter;
+	for(iter=0; iter < CAR_TILES_MAX; iter+=1)
+	{
+		full_map[iter].car_tid = CAR_BG_ID;
+		full_map[iter].car_map_coord = -1;
+
+	}
+}
+
+// === 
+// 0. MISC 
+// ===
 
 void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 {
@@ -446,17 +464,6 @@ void init_reg_obj ()
 	// tile_mem[4][0] = tiles[0];
 	// first graphic is loaded in the func `draw_func` - game state `PUT_DOWN_TILE`
 
-}
-
-void init_map_info(CAR_MAP_INFO* full_map)
-{
-	int iter;
-	for(iter=0; iter < CAR_TILES_MAX; iter+=1)
-	{
-		full_map[iter].car_tid = CAR_BG_ID;
-		full_map[iter].car_map_coord = -1;
-
-	}
 }
 
 // === 
@@ -590,15 +597,19 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 	// ===
 	//			the tile position is relative within the current carcassonne tile
 	//			therefore, the car_r and car_col is the coord of the tile as well
-	u32 fts_array_size =9;
-	GAME_FEATURE_NODE_START features_per_tilemap[fts_array_size];
-	init_features_per_tilemap(features_per_tilemap, fts_array_size);
+	u32 fts_array_size =9, str_fts_array_sz=9;
+	GAME_FEATURE_NODE_START city_features_per_tilemap[fts_array_size],
+							str_features_per_tilemap[str_fts_array_sz];
+	init_features_per_tilemap(city_features_per_tilemap, fts_array_size);
+	init_features_per_tilemap(str_features_per_tilemap, str_fts_array_sz);
 
 	GAME_FEATURES tile_type;
-	u32 number_new_nodes =2;
+	u32 number_new_nodes =4;
 	GAME_FEATURE_NODE_ptr new_nodes[number_new_nodes];
 	new_nodes[0] = NULL;
 	new_nodes[1] = NULL;
+	new_nodes[2] = NULL;
+	new_nodes[3] = NULL;
 
 	int iter_col, iter_r;
 	for (iter_r = 0; iter_r < 3; iter_r++)
@@ -610,137 +621,284 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 
 			// ===
 			// create nodes
-
-			switch (tile_vram_id)
+			if (
+				new_nodes[0]==NULL
+				&& new_nodes[1]==NULL
+				&& new_nodes[2]==NULL
+				&& new_nodes[3]==NULL
+			)
 			{
-				case 24: // special city tile
-				// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
-					if (new_nodes[0]==NULL
-						&& new_nodes[1]==NULL
-						)
-					{
+				switch (tile_vram_id)
+				{
+					case 3:
+						
 						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-					}
-					// add the end nodes
-					new_nodes[0]->child_r_lk = &end_node;
-					new_nodes[0]->child_bot_lk = &end_node;
-					new_nodes[1]->child_top_lk = &end_node;
-					new_nodes[1]->child_l_lk = &end_node;
-					break;
-				
-				case 25: // speicial city tile
-					if (new_nodes[0]==NULL
-						&& new_nodes[1]==NULL
-						)
-					{
+						
+						// check right
+						unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
+						if (tile_vram_description[r_tile] != STREET)
+						{
+							new_nodes[0]->child_r_lk= &end_node;
+						}
+						// check left
+						unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
+						if (tile_vram_description[l_tile] != STREET)
+						{
+							new_nodes[0]->child_l_lk= &end_node;
+						}
+						break;
+					case 4:
+						
 						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-					}
-					// add the end nodes
-					new_nodes[0]->child_bot_lk = &end_node;
-					new_nodes[0]->child_l_lk = &end_node;
-					new_nodes[1]->child_top_lk = &end_node;
-					new_nodes[1]->child_r_lk = &end_node;
-					break;
-				
-				case 23: // all open, check adjacent tile to determine end point 
-						 // it falls through to case 14, and execute the same thing as in case 14.
-				case 14: // all open, check adjacent tile to determine end point
-					// reference: 
-					// [1](https://alexanderobregon.substack.com/p/c-control-flow-with-if-switch-and)
-					if (new_nodes[0]==NULL
-						&& new_nodes[1]==NULL
-						)
-					{
-						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
-					}
-					// checking on the top side
-					if ((iter_r == 2 && iter_col==0) 
-						|| (iter_r == 2 && iter_col==1)
-						|| (iter_r == 2 && iter_col==2)
-						|| (iter_r == 1 && iter_col==0)
-						|| (iter_r == 1 && iter_col==1)
-						|| (iter_r == 1 && iter_col==2)
-						)
-					{
+						
+						// check top
 						unsigned short top_tile = cur_car_tile_map_asm_id[(iter_r-1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[top_tile] != CITY)
 						{
 							new_nodes[0]->child_top_lk= &end_node;
 						}
-					}
-
-					// checking on the right side
-					if ((iter_r == 0 && iter_col==0) 
-						|| (iter_r == 1 && iter_col==0)
-						|| (iter_r == 2 && iter_col==0)
-						|| (iter_r == 0 && iter_col==1)
-						|| (iter_r == 2 && iter_col==1)
-						|| (iter_r == 1 && iter_col==1)
-						)
-					{
-						unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
-						if (tile_vram_description[r_tile] != CITY)
-						{
-							new_nodes[0]->child_r_lk= &end_node;
-						}
-					}
-
-					// checking on the bot side
-					if ((iter_r == 0 && iter_col==0) 
-						|| (iter_r == 0 && iter_col==1)
-						|| (iter_r == 0 && iter_col==2)
-						|| (iter_r == 1 && iter_col==0)
-						|| (iter_r == 1 && iter_col==1)
-						|| (iter_r == 1 && iter_col==2)
-						)
-					{
+						// check bot
 						unsigned short bot_tile = cur_car_tile_map_asm_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
-						if (tile_vram_description[bot_tile] != CITY)
+						if (tile_vram_description[bot_tile] != STREET)
 						{
 							new_nodes[0]->child_bot_lk= &end_node;
 						}
-					}
-
-					// checking on the left side
-					if ((iter_r == 0 && iter_col==2) 
-						|| (iter_r == 1 && iter_col==2)
-						|| (iter_r == 2 && iter_col==2)
-						|| (iter_r == 0 && iter_col==1)
-						|| (iter_r == 1 && iter_col==1)
-						|| (iter_r == 2 && iter_col==1)
-						)
-					{
-						unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
-						if (tile_vram_description[l_tile] != CITY)
-						{
-							new_nodes[0]->child_l_lk= &end_node;
-						}
-					}
-
-					break;
-				default:
-					
-					if (tile_type == CITY)
-					{
-						if (new_nodes[0]==NULL
-							&& new_nodes[1]==NULL
+						break;
+					case 9: // 3 independent streets
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[2]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add end nodes
+						new_nodes[0]->child_top_lk=&end_node;
+						new_nodes[0]->child_bot_lk=&end_node;
+						new_nodes[0]->child_l_lk=&end_node;
+						new_nodes[1]->child_top_lk=&end_node;
+						new_nodes[1]->child_r_lk=&end_node;
+						new_nodes[1]->child_l_lk=&end_node;
+						new_nodes[2]->child_top_lk=&end_node;
+						new_nodes[2]->child_r_lk=&end_node;
+						new_nodes[2]->child_bot_lk=&end_node;
+						break;
+					case 10: // 3 independent streets
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[2]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add end nodes
+						new_nodes[0]->child_r_lk=&end_node;
+						new_nodes[0]->child_bot_lk=&end_node;
+						new_nodes[0]->child_l_lk=&end_node;
+						new_nodes[1]->child_top_lk=&end_node;
+						new_nodes[1]->child_r_lk=&end_node;
+						new_nodes[1]->child_l_lk=&end_node;
+						new_nodes[2]->child_top_lk=&end_node;
+						new_nodes[2]->child_r_lk=&end_node;
+						new_nodes[2]->child_bot_lk=&end_node;
+						break;
+					case 11: // 3 independent streets
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[2]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add end nodes
+						new_nodes[0]->child_r_lk=&end_node;
+						new_nodes[0]->child_bot_lk=&end_node;
+						new_nodes[0]->child_l_lk=&end_node;
+						new_nodes[1]->child_top_lk=&end_node;
+						new_nodes[1]->child_bot_lk=&end_node;
+						new_nodes[1]->child_l_lk=&end_node;
+						new_nodes[2]->child_top_lk=&end_node;
+						new_nodes[2]->child_r_lk=&end_node;
+						new_nodes[2]->child_bot_lk=&end_node;
+						break;
+					case 12: // 3 independent streets
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[2]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add end nodes
+						new_nodes[0]->child_r_lk=&end_node;
+						new_nodes[0]->child_bot_lk=&end_node;
+						new_nodes[0]->child_l_lk=&end_node;
+						new_nodes[1]->child_top_lk=&end_node;
+						new_nodes[1]->child_bot_lk=&end_node;
+						new_nodes[1]->child_l_lk=&end_node;
+						new_nodes[2]->child_top_lk=&end_node;
+						new_nodes[2]->child_r_lk=&end_node;
+						new_nodes[2]->child_l_lk=&end_node;	
+						break;
+					case 13: // 3 independent streets
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[2]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[3]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add end nodes
+						new_nodes[0]->child_r_lk=&end_node;
+						new_nodes[0]->child_bot_lk=&end_node;
+						new_nodes[0]->child_l_lk=&end_node;
+						new_nodes[1]->child_top_lk=&end_node;
+						new_nodes[1]->child_bot_lk=&end_node;
+						new_nodes[1]->child_l_lk=&end_node;
+						new_nodes[2]->child_top_lk=&end_node;
+						new_nodes[2]->child_r_lk=&end_node;
+						new_nodes[2]->child_l_lk=&end_node;
+						new_nodes[3]->child_top_lk=&end_node;
+						new_nodes[3]->child_r_lk=&end_node;
+						new_nodes[3]->child_bot_lk=&end_node;
+						break;
+					case 24: // special city tile
+					// GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add the end nodes
+						new_nodes[0]->child_r_lk = &end_node;
+						new_nodes[0]->child_bot_lk = &end_node;
+						new_nodes[1]->child_top_lk = &end_node;
+						new_nodes[1]->child_l_lk = &end_node;
+						break;
+					case 25: // speicial city tile
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						new_nodes[1]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// add the end nodes
+						new_nodes[0]->child_bot_lk = &end_node;
+						new_nodes[0]->child_l_lk = &end_node;
+						new_nodes[1]->child_top_lk = &end_node;
+						new_nodes[1]->child_r_lk = &end_node;
+						break;
+					case 23: // all open, check adjacent tile to determine end point 
+							// it falls through to case 14, and execute the same thing as in case 14.
+					case 14: // all open, check adjacent tile to determine end point
+						// reference: 
+						// [1](https://alexanderobregon.substack.com/p/c-control-flow-with-if-switch-and)
+						
+						new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
+						
+						// checking on the top side
+						if ((iter_r == 2 && iter_col==0) 
+							|| (iter_r == 2 && iter_col==1)
+							|| (iter_r == 2 && iter_col==2)
+							|| (iter_r == 1 && iter_col==0)
+							|| (iter_r == 1 && iter_col==1)
+							|| (iter_r == 1 && iter_col==2)
 							)
+						{
+							unsigned short top_tile = cur_car_tile_map_asm_id[(iter_r-1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+							if (tile_vram_description[top_tile] != CITY)
+							{
+								new_nodes[0]->child_top_lk= &end_node;
+							}
+						}
+
+						// checking on the right side
+						if ((iter_r == 0 && iter_col==0) 
+							|| (iter_r == 1 && iter_col==0)
+							|| (iter_r == 2 && iter_col==0)
+							|| (iter_r == 0 && iter_col==1)
+							|| (iter_r == 2 && iter_col==1)
+							|| (iter_r == 1 && iter_col==1)
+							)
+						{
+							unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
+							if (tile_vram_description[r_tile] != CITY)
+							{
+								new_nodes[0]->child_r_lk= &end_node;
+							}
+						}
+
+						// checking on the bot side
+						if ((iter_r == 0 && iter_col==0) 
+							|| (iter_r == 0 && iter_col==1)
+							|| (iter_r == 0 && iter_col==2)
+							|| (iter_r == 1 && iter_col==0)
+							|| (iter_r == 1 && iter_col==1)
+							|| (iter_r == 1 && iter_col==2)
+							)
+						{
+							unsigned short bot_tile = cur_car_tile_map_asm_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+							if (tile_vram_description[bot_tile] != CITY)
+							{
+								new_nodes[0]->child_bot_lk= &end_node;
+							}
+						}
+
+						// checking on the left side
+						if ((iter_r == 0 && iter_col==2) 
+							|| (iter_r == 1 && iter_col==2)
+							|| (iter_r == 2 && iter_col==2)
+							|| (iter_r == 0 && iter_col==1)
+							|| (iter_r == 1 && iter_col==1)
+							|| (iter_r == 2 && iter_col==1)
+							)
+						{
+							unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
+							if (tile_vram_description[l_tile] != CITY)
+							{
+								new_nodes[0]->child_l_lk= &end_node;
+							}
+						}
+
+						break;
+					default:
+						
+						if (tile_type == CITY || STREET)
 						{
 							new_nodes[0]= create_node(iter_col, iter_r, tile_vram_id, tile_type, NA_DIR);
 						}
-					}
+
+				}
 			}
 			
 			// ===
 			// insert node, merge feature, delete the merged feature except the ref feature where everything is merged into.
 				// insert,
-			insert_nodes_into_existent_ftrs(features_per_tilemap, fts_array_size,
+			switch(tile_type)
+			{
+				case CITY:
+					insert_nodes_into_existent_ftrs(city_features_per_tilemap, fts_array_size,
 											new_nodes, number_new_nodes);
-
-				// merge, delete merged features
-			check_all_merge_possibilities(features_per_tilemap, fts_array_size);
+						// merge, delete merged features
+					check_all_merge_possibilities(city_features_per_tilemap, fts_array_size);
+					break;
+				case STREET:
+					insert_nodes_into_existent_ftrs(str_features_per_tilemap, str_fts_array_sz,
+											new_nodes, number_new_nodes);
+						// merge, delete merged features
+					check_all_merge_possibilities(str_features_per_tilemap, str_fts_array_sz);
+					break;	
+				default:
+					if (new_nodes[0]!=NULL)
+					{
+						free(new_nodes[0]);
+						new_nodes[0]=NULL;
+					}
+					if (new_nodes[1]!=NULL)
+					{
+						free(new_nodes[1]);
+						new_nodes[1]=NULL;
+					}
+					if (new_nodes[2]!=NULL)
+					{
+						free(new_nodes[2]);
+						new_nodes[2]=NULL;
+					}
+					if (new_nodes[3]!=NULL)
+					{
+						free(new_nodes[3]);
+						new_nodes[3]=NULL;
+					}
+			}
+						
 		}
 	}
 	
@@ -755,16 +913,16 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 	{
 		MIN_OR_MAX option_max = MAX, option_min= MIN;
 		COORD_2D min_res, max_res;
-		if (features_per_tilemap[fts_iter_a].root!=NULL)
+		if (city_features_per_tilemap[fts_iter_a].root!=NULL)
 		{
 			s32 encounter =0;
 			// bool feature_min_max_coord (GAME_FEATURE_NODE_ptr feature_root, MIN_OR_MAX comp_info, COORD_2D* result, s32* cnt);
-			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_max, &max_res, &encounter);
+			feature_min_max_coord (city_features_per_tilemap[fts_iter_a].root, option_max, &max_res, &encounter);
 			encounter =0;
-			feature_min_max_coord (features_per_tilemap[fts_iter_a].root, option_min, &min_res, &encounter);
+			feature_min_max_coord (city_features_per_tilemap[fts_iter_a].root, option_min, &min_res, &encounter);
 			// void feature_report_per_cartilemap (GAME_FEATURE_NODE_ptr feature_root, u16* report_flag, 
 			//                  COORD_2D feature_min_coord, COORD_2D feature_max_coord)
-			feature_report_per_cartilemap (features_per_tilemap[fts_iter_a].root, &feature_flag_array[eoflg_iter], 
+			feature_report_per_cartilemap (city_features_per_tilemap[fts_iter_a].root, &feature_flag_array[eoflg_iter], 
 								min_res, max_res);
 			eoflg_iter= eoflg_iter+1;
 			
@@ -774,10 +932,10 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array,
 	// delete/ free any feature existing in `features_per_tilemap`
 	for (fts_iter_a=0; fts_iter_a < fts_array_size; fts_iter_a++)
 	{
-		if (features_per_tilemap[fts_iter_a].root!=NULL)
+		if (city_features_per_tilemap[fts_iter_a].root!=NULL)
 		{
 			unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
-			delete_whole_feature(features_per_tilemap[fts_iter_a].root, del_orders, &order[0]);
+			delete_whole_feature(city_features_per_tilemap[fts_iter_a].root, del_orders, &order[0]);
 		}
 		
 	}
@@ -900,7 +1058,7 @@ void create_cartilemap_node (u16* flag_array, u16 flag_array_size,
 	}
 }
 
-void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, 
+void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, 
 							u32* all_cities, u32* finished_cities)
 {
 	s32 iter=0;
@@ -1183,8 +1341,8 @@ void game_loop()
 											track_game_city_nodes, track_game_city_nodes_sz);
 			// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 			check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
-			// void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-			report_num_city_game(track_game_cities, track_game_cities_sz, 
+			// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
+			report_num_game_features(track_game_cities, track_game_cities_sz, 
 								&num_game_cities, &num_game_fcities);
 
 		}
@@ -1601,8 +1759,8 @@ void game_loop()
 															track_game_city_nodes, track_game_city_nodes_sz);
 							// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 							check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
-							// void report_num_city_game (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-							report_num_city_game(track_game_cities, track_game_cities_sz, 
+							// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
+							report_num_game_features(track_game_cities, track_game_cities_sz, 
 												&num_game_cities, &num_game_fcities);
 
 						}
