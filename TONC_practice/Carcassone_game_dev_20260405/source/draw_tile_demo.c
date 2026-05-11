@@ -616,6 +616,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array, u16 
 	new_nodes[3] = NULL;
 
 	int iter_col, iter_r;
+		// CITY + STREETS
 	for (iter_r = 0; iter_r < 3; iter_r++)
 	{
 		for (iter_col=0; iter_col<3; iter_col++)
@@ -922,6 +923,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array, u16 
 					check_all_merge_possibilities(str_features_per_tilemap, str_fts_array_sz);
 					break;	
 				default:
+					// reset all new_nodes
 					if (new_nodes[0]!=NULL)
 					{
 						free(new_nodes[0]);
@@ -946,6 +948,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array, u16 
 						
 		}
 	}
+	
 	
 	// ==== 
 	// FEATURE REPORT
@@ -1235,7 +1238,7 @@ void game_loop()
 	u32 num_game_fcities=0, prev_num_game_fcities=0;
 
 		// STREET
-	u16 track_game_strs_sz= 20;
+	u16 track_game_strs_sz= 50;
 	GAME_FEATURE_NODE_START track_game_strs[track_game_strs_sz];
 	init_features_per_tilemap(track_game_strs, track_game_strs_sz);
 	u16 track_game_str_nodes_sz= 10;

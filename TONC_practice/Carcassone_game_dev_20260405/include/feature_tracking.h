@@ -44,10 +44,6 @@ typedef struct GAME_FEATURE_NODE
     GAME_FEATURES game_feature;             // only consider car_tid, if the game_feature != END,
                                             // END = ending of feature.
     s32 tx, ty;                             // coordinate of the node = screen-entry idx
-	s32 top_coord_x, top_coord_y,           // y-1 
-        right_coord_x, right_coord_y,       // x+1
-        bot_coord_x, bot_coord_y,           // y+1
-        left_coord_x, left_coord_y;         // x-1
 
     // RULE: child and parent lk to the same direction must not be (NOT NULL) at the same time,
     // for example, if child_top_lk != NULL, parent_top_lk must == NULL or vice versa
@@ -63,6 +59,16 @@ typedef struct GAME_FEATURE_NODE_START
     GAME_FEATURE_NODE_ptr root;
 
 } ALIGN4 GAME_FEATURE_NODE_START;
+
+// compute the adjacent coordinates 
+// top: y-1 
+// right: x+1
+// bot: y+1
+// left: x-1
+COORD_2D adj_top_coord(GAME_FEATURE_NODE_ptr curr_node_ptr);
+COORD_2D adj_right_coord(GAME_FEATURE_NODE_ptr curr_node_ptr);
+COORD_2D adj_bot_coord(GAME_FEATURE_NODE_ptr curr_node_ptr);
+COORD_2D adj_left_coord(GAME_FEATURE_NODE_ptr curr_node_ptr);
 
 GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction);
     // return NULL, if no new node created; otherwise, 
@@ -108,5 +114,6 @@ void delete_node (GAME_FEATURE_NODE_ptr node);
 extern GAME_FEATURE_NODE end_node;
 extern u32 number_tile_in_vram;
 extern GAME_FEATURES tile_vram_description[29];
+extern GAME_FEATURES tile_vram_field_description[29];
 
 #endif

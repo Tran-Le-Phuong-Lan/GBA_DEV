@@ -24,58 +24,95 @@ GAME_FEATURES tile_vram_description[29] = // manual update
     // 2
     FIELD,
     // 3
-    STREET,
+    STREET, // +FIELD
     // 4
-    STREET,
+    STREET, // +FIELD
     // 5
-    STREET,
+    STREET, // +FIELD
     // 6
-    STREET,
+    STREET, // +FIELD
     // 7
-    STREET,
+    STREET, // +FIELD
     // 8
-    STREET,
+    STREET, // +FIELD
     // 9
-    STREET,
+    STREET, // +FIELD
     // 10
-    STREET,
+    STREET, // +FIELD
     // 11
-    STREET,
+    STREET, // +FIELD
     // 12
-    STREET,
+    STREET, // +FIELD
     // 13
-    STREET,
+    STREET, // +FIELD
     // 14 (all open, open/end based on the adjacent tiles on the game map)
     CITY,
     // 15
-    CITY,
+    CITY, // +FIELD
     // 16
-    CITY,
+    CITY, // +FIELD
     // 17
-    CITY,
+    CITY, // +FIELD
     // 18
-    CITY,
+    CITY, // +FIELD
     // 19
-    CITY,
+    CITY, // +FIELD
     // 20
-    CITY,
+    CITY, // +FIELD
     // 21
-    CITY,
+    CITY, // +FIELD
     // 22
-    CITY,
+    CITY, // +FIELD
     // 23 (all open, open/end based on the adjacent tiles on the game map)
-    CITY,
+    CITY, 
     // 24 (special, 2 different nodes on the same tile)
-    CITY,
+    CITY, 
     // 25 (special, 2 different nodes on the same tile)
     CITY,
     // 26
-    GARDEN,
+    GARDEN, // +FIELD
     // 27
-    CHURCH,
+    CHURCH, // +FIELD
     // 28
     MEEPLE_TILE
 };
+
+// compute the adjacent coordinates 
+// top: y-1 
+// right: x+1
+// bot: y+1
+// left: x-1
+COORD_2D adj_top_coord(GAME_FEATURE_NODE_ptr curr_node_ptr)
+{
+    COORD_2D result;
+    result.x = curr_node_ptr->tx;
+    result.y = curr_node_ptr->ty-1;
+    return result;
+}
+
+COORD_2D adj_right_coord(GAME_FEATURE_NODE_ptr curr_node_ptr)
+{
+    COORD_2D result;
+    result.x= curr_node_ptr->tx+1;
+    result.y= curr_node_ptr->ty;
+    return result;
+}
+
+COORD_2D adj_bot_coord(GAME_FEATURE_NODE_ptr curr_node_ptr)
+{
+    COORD_2D result;
+    result.x= curr_node_ptr->tx;
+    result.y= curr_node_ptr->ty+1;
+    return result;
+}
+
+COORD_2D adj_left_coord(GAME_FEATURE_NODE_ptr curr_node_ptr)
+{
+    COORD_2D result;
+    result.x= curr_node_ptr->tx-1;
+    result.y= curr_node_ptr->ty;
+    return result;
+}
 
 GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEATURES tile_feature, DIRECTION parent_direction)
 {
@@ -177,8 +214,6 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
                 }
                 break;
             case FIELD:
-                //CODE
-                break;
             default:
                 // CODE
                 new_node->child_top_lk = NULL;
@@ -193,15 +228,6 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
         new_node->tx = tx_coord;
         new_node->ty = ty_coord;
 
-        new_node->top_coord_x = tx_coord;
-        new_node->top_coord_y = ty_coord-1;
-        new_node->right_coord_x = tx_coord+1;
-        new_node->right_coord_y = ty_coord;
-        new_node->bot_coord_x = tx_coord;
-        new_node->bot_coord_y = ty_coord+1;
-        new_node->left_coord_x = tx_coord-1;
-        new_node->left_coord_y = ty_coord;
-
         new_node->parent_top_lk = NULL;
         new_node->parent_r_lk = NULL;
         new_node->parent_bot_lk = NULL;
@@ -210,6 +236,7 @@ GAME_FEATURE_NODE_ptr create_node (s32 tx_coord, s32 ty_coord, u32 tid, GAME_FEA
         return new_node;
     }
 }
+
 
 GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
 {
@@ -223,8 +250,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
     }
 
     if(
-        feature_root->top_coord_x == new_node->tx 
-        && feature_root->top_coord_y == new_node->ty
+        adj_top_coord(feature_root).x == new_node->tx 
+        && adj_top_coord(feature_root).y == new_node->ty
         && feature_root->child_top_lk==NULL
         && feature_root->parent_top_lk==NULL
         && new_node->parent_bot_lk==NULL
@@ -236,8 +263,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
     }
 
     if(
-        feature_root->right_coord_x == new_node->tx 
-        && feature_root->right_coord_y == new_node->ty
+        adj_right_coord(feature_root).x == new_node->tx 
+        && adj_right_coord(feature_root).y == new_node->ty
         && feature_root->child_r_lk==NULL
         && feature_root->parent_r_lk==NULL
         && new_node->parent_l_lk==NULL
@@ -249,8 +276,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
     }
 
     if(
-        feature_root->bot_coord_x == new_node->tx 
-        && feature_root->bot_coord_y == new_node->ty
+        adj_bot_coord(feature_root).x == new_node->tx 
+        && adj_bot_coord(feature_root).y == new_node->ty
         && feature_root->child_bot_lk==NULL
         && feature_root->parent_bot_lk==NULL
         && new_node->parent_top_lk==NULL
@@ -262,8 +289,8 @@ GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATUR
     }
 
     if(
-        feature_root->left_coord_x == new_node->tx 
-        && feature_root->left_coord_y == new_node->ty
+        adj_left_coord(feature_root).x == new_node->tx 
+        && adj_left_coord(feature_root).y == new_node->ty
         && feature_root->child_l_lk==NULL
         && feature_root->parent_l_lk==NULL
         && new_node->parent_r_lk==NULL
@@ -438,8 +465,8 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
     finish_features_linking(new_node, feature_root->child_bot_lk);
     finish_features_linking(new_node, feature_root->child_l_lk);
     
-    if(new_node->top_coord_x == feature_root->tx 
-        && new_node->top_coord_y == feature_root->ty
+    if(adj_top_coord(new_node).x == feature_root->tx 
+        && adj_top_coord(new_node).y == feature_root->ty
         && new_node->parent_top_lk == NULL
         && new_node->child_top_lk == NULL
         && feature_root->child_bot_lk == NULL
@@ -451,8 +478,8 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
             return;
         }
 
-    if(new_node->right_coord_x == feature_root->tx 
-        && new_node->right_coord_y == feature_root->ty
+    if(adj_right_coord(new_node).x == feature_root->tx 
+        && adj_right_coord(new_node).y == feature_root->ty
         && new_node->parent_r_lk == NULL
         && new_node->child_r_lk == NULL
         && feature_root->child_l_lk==NULL
@@ -464,8 +491,8 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
             return;
         }
 
-    if(new_node->bot_coord_x == feature_root->tx 
-        && new_node->bot_coord_y == feature_root->ty
+    if(adj_bot_coord(new_node).x == feature_root->tx 
+        && adj_bot_coord(new_node).y == feature_root->ty
         && new_node->parent_bot_lk == NULL
         && new_node->child_bot_lk == NULL
         && feature_root->child_top_lk==NULL
@@ -477,8 +504,8 @@ void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_
             return;
         }
 
-    if(new_node->left_coord_x == feature_root->tx 
-        && new_node->left_coord_y == feature_root->ty
+    if(adj_left_coord(new_node).x == feature_root->tx 
+        && adj_left_coord(new_node).y == feature_root->ty
         && new_node->parent_l_lk == NULL
         && new_node->child_l_lk == NULL
         && feature_root->child_r_lk==NULL
@@ -997,3 +1024,5 @@ bool node_exist (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_n
 
     return false;
 }
+
+
