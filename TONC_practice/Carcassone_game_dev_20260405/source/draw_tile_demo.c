@@ -514,11 +514,10 @@ void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16
 					{
 						if (ftr_game_array[fts_iter].root!=NULL)
 						{
-							unsigned char merg_tid_order[20]={[0 ... 19]= 0}, mrg_order[20]={[0 ... 19]= 0};
-							DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
-							// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+							
+							// GAME_FEATURE_NODE_ptr merging_features_debug (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
 							GAME_FEATURE_NODE_ptr merge_res;
-							merge_res=merging_features(ftr_game_array[fts_iter_ref].root, ftr_game_array[fts_iter].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
+							merge_res=merging_features(ftr_game_array[fts_iter_ref].root, ftr_game_array[fts_iter].root);
 							if (merge_res!=NULL)
 							{
 								ftr_game_array[fts_iter].root=NULL;
@@ -1021,8 +1020,7 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array, u16 
 	{
 		if (city_features_per_tilemap[fts_iter_a].root!=NULL)
 		{
-			unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
-			delete_whole_feature(city_features_per_tilemap[fts_iter_a].root, del_orders, &order[0]);
+			delete_whole_feature(city_features_per_tilemap[fts_iter_a].root);
 		}
 		
 	}
@@ -1031,8 +1029,8 @@ void feature_report_per_cartilemap_implementation (u16* feature_flag_array, u16 
 	{
 		if (str_features_per_tilemap[fts_iter_a].root!=NULL)
 		{
-			unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
-			delete_whole_feature(str_features_per_tilemap[fts_iter_a].root, del_orders, &order[0]);
+			
+			delete_whole_feature(str_features_per_tilemap[fts_iter_a].root);
 		}
 		
 	}
@@ -1184,9 +1182,8 @@ void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 gam
 			{
 				*finished_cities=*finished_cities+1;
 				// delete the complete game cities
-				// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
-				unsigned char del_orders[30]={[0 ... 9]= 0}, order[30]={[0 ... 9]= 0};
-				game_city_array[iter].root=delete_whole_feature(game_city_array[iter].root, del_orders, &order[0]);
+				// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
+				game_city_array[iter].root=delete_whole_feature(game_city_array[iter].root);
 				*all_cities= *all_cities-1;
 				
 			}
@@ -2191,15 +2188,15 @@ void game_loop()
 // 		DIRECTION merg_dir_order[20]={[0 ... 19]= NA_DIR};
 // 		// merging test
 // 		GAME_FEATURE_NODE_ptr merg_res;
-// 		// GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
-// 		merg_res = merging_features(feature_structures[0].root, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
-		// merg_res = merging_features(feature_structures[1].root, merg_res);
-		// merg_res = merging_features(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[1]);
+// 		// GAME_FEATURE_NODE_ptr merging_features_debug (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2)
+// 		merg_res = merging_features_debug(feature_structures[0].root, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[0]);
+		// merg_res = merging_features_debug(feature_structures[1].root, merg_res);
+		// merg_res = merging_features_debug(merg_res, feature_structures[1].root, merg_tid_order, merg_dir_order, &mrg_order[1]);
 		// if (merg_res!=NULL)
 		// {
 		// 	if (
 		// 			//=============
-		// 			// test case for merging_features(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order);
+		// 			// test case for merging_features_debug(feature_structures[0].root, feature_structure.root, merg_tid_order, merg_dir_order, &mrg_order);
 		// 			merg_res==tst_tiles[6]
 		// 			&& mrg_order[0]==4
 		// 			&& merg_res->child_top_lk==tst_tiles[4]
@@ -2234,7 +2231,7 @@ void game_loop()
 		// 			&& merg_res->child_top_lk->child_top_lk->child_l_lk==tst_tiles[0]
 		// 			&& merg_res->child_top_lk->child_top_lk->parent_bot_lk==tst_tiles[4]
 		// 			//=============
-		// 			// test case for merging_features(merg_res, feature_structures[1].root);
+		// 			// test case for merging_features_debug(merg_res, feature_structures[1].root);
 		// 			&& mrg_order[1]==5
 		// 			// && merg_tid_order[0]==11
 		// 			// && merg_tid_order[1]==10
@@ -2262,11 +2259,11 @@ void game_loop()
 
 		// unsigned char del_orders[10]={[0 ... 9]= 0}, order[10]={[0 ... 9]= 0};
 		// //manual delete
-		// delete_whole_feature(merg_res, del_orders, &order[0]);
-		// delete_whole_feature(feature_structures[1].root, del_orders, &order[0]);
-		// delete_whole_feature(feature_structure.root, del_orders, &order);
-		// delete_whole_feature(feature_structures[0].root, del_orders, &order);
-		// delete_whole_feature(feature_structures[1].root, del_orders, &order[1]);
+		// delete_whole_feature_debug(merg_res, del_orders, &order[0]);
+		// delete_whole_feature_debug(feature_structures[1].root, del_orders, &order[0]);
+		// delete_whole_feature_debug(feature_structure.root, del_orders, &order);
+		// delete_whole_feature_debug(feature_structures[0].root, del_orders, &order);
+		// delete_whole_feature_debug(feature_structures[1].root, del_orders, &order[1]);
 		// if(
 		// 	// del_orders[0] == 16
 		// 	// && del_orders[1] == 14

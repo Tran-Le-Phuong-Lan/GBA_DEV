@@ -88,7 +88,7 @@ GAME_FEATURE_NODE_ptr insert_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEAT
 
     // relink for the newly added node, if any exisiting node in the feature structure is its parent
 void finish_features_linking (GAME_FEATURE_NODE_ptr new_node, GAME_FEATURE_NODE_ptr feature_root);
-GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+GAME_FEATURE_NODE_ptr merging_features (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2);
     // return NULL, if no merge is done.
     // return pointer to the merged feature root, if merge is done     
 
@@ -105,7 +105,7 @@ bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
     // return true, if feature is complete (all direction is ended with `end_node`)
     // return false, otherwise.
 
-GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
+GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
     // free/ delete the whole feature.
     // it uses the `delete_node` function.
     // return NULL, regardless the delete process is successful or not.
@@ -115,5 +115,12 @@ extern GAME_FEATURE_NODE end_node;
 extern u32 number_tile_in_vram;
 extern GAME_FEATURES tile_vram_description[29];
 extern GAME_FEATURES tile_vram_field_description[29];
+
+// === 
+// DEBUG VERSION 
+// ===
+
+GAME_FEATURE_NODE_ptr merging_features_debug (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+GAME_FEATURE_NODE_ptr delete_whole_feature_debug (GAME_FEATURE_NODE_ptr feature_root, unsigned char* debug_del, unsigned char* found_order);
 
 #endif
