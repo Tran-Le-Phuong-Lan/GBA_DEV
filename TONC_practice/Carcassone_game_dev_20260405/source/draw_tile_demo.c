@@ -1256,6 +1256,8 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 			COORD_2D node_coord;
 			node_coord.x=curr_tile_coord_wo_wrap.x + iter_col;
 			node_coord.y=curr_tile_coord_wo_wrap.y + iter_r;
+				// middle tile of cartilemap for checking later
+			unsigned short mid_tile = cur_car_tile_map_asm_id[1*3 + 1]+CAR_TILE_OFFSET_IN_VRAM;
 
 			// ===
 			// create nodes
@@ -1266,7 +1268,6 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 				&& new_nodes[3]==NULL
 			)
 			{
-				unsigned short mid_tile = cur_car_tile_map_asm_id[1*3 + 1]+CAR_TILE_OFFSET_IN_VRAM;
 				switch (tile_vram_id)
 				{
 					case 26: // GARDEN == FIELD
@@ -1342,7 +1343,7 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 					case 23: // ONLY CITY (all open)
 					case 14: // ONLY CITY (all open)
 						// checking the middle tile of the cartilemap
-						unsigned short mid_tile = cur_car_tile_map_asm_id[1*3 + 1]+CAR_TILE_OFFSET_IN_VRAM;
+						// unsigned short mid_tile = cur_car_tile_map_asm_id[1*3 + 1]+CAR_TILE_OFFSET_IN_VRAM;
 						if (tile_vram_description[mid_tile]!=CITY)
 						{
 							// According to carcassonne tile map rule,
@@ -1480,7 +1481,8 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 						// check the middle tile of cartilemap,
 						// if the middle is street/field/garden/church,
 						// one/both of the city side of this tile will be open for field connection
-						if (tile_vram_description[mid_tile]== STREET
+						if ( 
+							tile_vram_description[mid_tile]== STREET
 							|| tile_vram_description[mid_tile]== GARDEN
 							|| tile_vram_description[mid_tile]== CHURCH
 							|| tile_vram_description[mid_tile]== FIELD
@@ -1495,7 +1497,7 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 							if (iter_r==0 && iter_col==2)
 							{
 								// position tr corner
-								new_nodes[0]->child_r_lk=NULL;
+								new_nodes[0]->child_l_lk=NULL;
 							}
 							if (iter_r==2 && iter_col==0)
 							{
@@ -1872,6 +1874,7 @@ void game_loop()
 	init_features_per_tilemap(track_game_fds, track_game_field_sz);
 	u32 num_game_fds=0, prev_num_game_fds=0;
 	u32 num_game_ffds=0, prev_num_game_ffds=0;
+	bool field_debug_flgs=false;
 
 	// === Carcassonne data
 	int car_cat_track[32] = {0};
@@ -2129,7 +2132,31 @@ void game_loop()
 			track_fields_game(track_game_fds, track_game_field_sz,
 								cas_tile_map_id[0], cur_tile_wo_wrap_coord);
 			report_num_game_features(track_game_fds, track_game_field_sz, 
-								&num_game_fds, &num_game_ffds);					
+								&num_game_fds, &num_game_ffds);
+								// === 
+								// DEBUG
+								// === 
+			if (
+				track_game_fds[0].root->car_tid == 16
+				&& track_game_fds[0].root->child_top_lk==&end_node
+				&& track_game_fds[0].root->child_r_lk->car_tid==14
+				&& track_game_fds[0].root->child_r_lk->child_bot_lk==&end_node
+				&& track_game_fds[0].root->child_r_lk->child_top_lk==&end_node
+				&& track_game_fds[0].root->child_r_lk->child_r_lk->car_tid==15
+				&& track_game_fds[0].root->child_r_lk->child_r_lk->child_bot_lk==&end_node
+				&& track_game_fds[0].root->child_r_lk->child_r_lk->child_top_lk==&end_node
+
+				// && track_game_fds[1].root->car_tid == 15
+				// && track_game_fds[1].root->child_l_lk == &end_node // BUG HERE
+				// && track_game_fds[1].root->child_r_lk == NULL
+				// && track_game_fds[1].root->child_bot_lk == &end_node
+				// && track_game_fds[1].root->child_top_lk == &end_node
+
+				&& track_game_fds[1].root->car_tid == 2
+				)
+			{
+				field_debug_flgs = true;
+			}					
 
 		}
 
@@ -2567,6 +2594,17 @@ void game_loop()
 							// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
 							report_num_game_features(track_game_strs, track_game_strs_sz, 
 												&num_game_strs, &num_game_fstrs);
+								
+									// FIELDs
+							// void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_feature_array_sz,
+							// 				unsigned short *cur_car_tile_map_asm_id, COORD_2D curr_tile_coord_wo_wrap)
+							COORD_2D cur_tile_wo_wrap_coord;
+							cur_tile_wo_wrap_coord.x = sae_curr_x;
+							cur_tile_wo_wrap_coord.y = sae_curr_y;
+							track_fields_game(track_game_fds, track_game_field_sz,
+												cas_tile_map_id[rand_cat], cur_tile_wo_wrap_coord);
+							report_num_game_features(track_game_fds, track_game_field_sz, 
+												&num_game_fds, &num_game_ffds);
 
 						}
 
@@ -2929,6 +2967,10 @@ void game_loop()
 		// 	num_game_cities, num_game_fcities, num_game_strs, num_game_fstrs,
 		// 	amount_type_features_percatile[city_idx],feature_end_open_flgs[city_idx*feature_end_open_flgs_width+0], feature_end_open_flgs[city_idx*feature_end_open_flgs_width+1], feature_end_open_flgs[city_idx*feature_end_open_flgs_width+2], feature_end_open_flgs[city_idx*feature_end_open_flgs_width+3],
 		// 	amount_type_features_percatile[str_idx],feature_end_open_flgs[str_idx*feature_end_open_flgs_width+0], feature_end_open_flgs[str_idx*feature_end_open_flgs_width+1], feature_end_open_flgs[str_idx*feature_end_open_flgs_width+2], feature_end_open_flgs[str_idx*feature_end_open_flgs_width+3]
+		// 	);
+
+		// tte_printf("#{es;P}field-debug: %d",
+		// 	field_debug_flgs
 		// 	);
 		
 		// ====
