@@ -1192,6 +1192,14 @@ void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 gam
 
 }
 // !! IN PROGRESS
+bool is_only_city_tile (unsigned short tile_vram_id)
+{
+	return (
+		tile_vram_id == 14 // only city, all open
+		|| tile_vram_id == 23
+	);
+}
+// !! IN PROGRESS
 bool is_city_and_field_tile (unsigned short tile_vram_id)
 {
 	return (
@@ -1227,7 +1235,7 @@ bool valid_adj_for_field_node (unsigned short adj_tile_vram_id)
 	);
 }
 // !! IN PROGRESS
-void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_feature_array_sz,
+void track_fields_game_db (GAME_FEATURE_NODE_START* field_feature_array, u16 field_feature_array_sz,
 							unsigned short *cur_car_tile_map_asm_id, COORD_2D curr_tile_coord_wo_wrap)
 {
 	// RULE:
@@ -1816,6 +1824,627 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 
 }
 
+void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_feature_array_sz,
+							unsigned short *cur_car_tile_map_asm_id, COORD_2D curr_tile_coord_wo_wrap)
+{
+	// RULE:
+	// 1. CITY tile WITH FIELD, IS a FIELD tile node 
+	// with OPEN DIR where FIELD is, END DIR where CITY is 
+	// 1.1 CITY ONLY tile (NO FIELD), number of sides ADJ FIELDS/ STREET = newly created FIELD node,
+	// with OPEN DIR where the tile ADJ FIELD/CITY WITH FIELD, END FIR where tile ADJ CITY/STREET.
+	// 2. STREET type tile is NOT FIELD tile. = end condition for field structure.
+	// 3. GARDEN, CHURCH are FIELD type tile as well.
+	// 4. 1 cartilemap = 4 field node 
+	// => Coordinate of field node.x = Cartilemap coordinate.x /2
+	// && Coordinate of field node.y = Cartilemap coordinate.y /2 
+	GAME_FEATURES tile_type;
+	u32 number_new_nodes =4;
+	GAME_FEATURE_NODE_ptr new_nodes[number_new_nodes];
+	new_nodes[0] = NULL;
+	new_nodes[1] = NULL;
+	new_nodes[2] = NULL;
+	new_nodes[3] = NULL;
+
+	int iter_col, iter_r;
+
+	for (iter_r = 0; iter_r < 3; iter_r++)
+	{
+		for (iter_col=0; iter_col<3; iter_col++)
+		{
+			unsigned short  tile_vram_id = cur_car_tile_map_asm_id[iter_r*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+			tile_type = tile_vram_description[tile_vram_id];
+			COORD_2D car_coord;
+			map_tile_to_ctile(curr_tile_coord_wo_wrap.x, curr_tile_coord_wo_wrap.y, &car_coord.x, &car_coord.y);
+			COORD_2D node_coord;
+			if (iter_r==0 && iter_col==0) // tl tile
+			{
+				node_coord.x=car_coord.x*2;
+				node_coord.y=car_coord.y*2;
+			}
+			else if (iter_r==0 && iter_col==2) // tr tile
+			{
+				node_coord.x=car_coord.x*2+1;
+				node_coord.y=car_coord.y*2;
+			}
+			else if (iter_r==2 && iter_col==0) // bl tile
+			{
+				node_coord.x=car_coord.x*2;
+				node_coord.y=car_coord.y*2+1;
+			}
+			else if (iter_r==2 && iter_col==2) // br tile
+			{
+				node_coord.x=car_coord.x*2+1;
+				node_coord.y=car_coord.y*2+1;
+			}
+			
+				// middle tile of cartilemap for checking later
+			unsigned short mid_tile = cur_car_tile_map_asm_id[1*3 + 1]+CAR_TILE_OFFSET_IN_VRAM;
+
+			// ===
+			// create nodes
+			if (
+				new_nodes[0]==NULL
+				&& new_nodes[1]==NULL
+				&& new_nodes[2]==NULL
+				&& new_nodes[3]==NULL
+			)
+			{
+				// only create/check node only at the corner
+				if ((iter_r==0 && iter_col==0)
+					|| (iter_r==0 && iter_col==2)
+					|| (iter_r==2 && iter_col==0)
+					|| (iter_r==2 && iter_col==2))
+				{
+					switch (tile_vram_id)
+					{
+						case 26: // GARDEN == FIELD
+						case 27: // CHURCH == FIELD
+						case 2: // FIELD, the only field type tile.
+							new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+							
+							// checking on the top side
+							if ((iter_r == 2 && iter_col==0) 
+								|| (iter_r == 2 && iter_col==1)
+								|| (iter_r == 2 && iter_col==2)
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 1 && iter_col==2)
+								)
+							{
+								unsigned short top_tile = cur_car_tile_map_asm_id[(iter_r-1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								if (!valid_adj_for_field_node(top_tile))
+								{
+									new_nodes[0]->child_top_lk= &end_node;
+								}
+							}
+
+							// checking on the right side
+							if ((iter_r == 0 && iter_col==0) 
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 2 && iter_col==0)
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 2 && iter_col==1)
+								|| (iter_r == 1 && iter_col==1)
+								)
+							{
+								unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
+								if (!valid_adj_for_field_node(r_tile))
+								{
+									new_nodes[0]->child_r_lk= &end_node;
+								}
+							}
+
+							// checking on the bot side
+							if ((iter_r == 0 && iter_col==0) 
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 0 && iter_col==2)
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 1 && iter_col==2)
+								)
+							{
+								unsigned short bot_tile = cur_car_tile_map_asm_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								if (!valid_adj_for_field_node(bot_tile))
+								{
+									new_nodes[0]->child_bot_lk= &end_node;
+								}
+							}
+
+							// checking on the left side
+							if ((iter_r == 0 && iter_col==2) 
+								|| (iter_r == 1 && iter_col==2)
+								|| (iter_r == 2 && iter_col==2)
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 2 && iter_col==1)
+								)
+							{
+								unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
+								if (!valid_adj_for_field_node(l_tile))
+								{
+									new_nodes[0]->child_l_lk= &end_node;
+								}
+							}
+							break;
+						case 23: // ONLY CITY (all open)
+						case 14: // ONLY CITY (all open)
+							// checking the middle tile of the cartilemap
+							// unsigned short mid_tile = cur_car_tile_map_asm_id[1*3 + 1]+CAR_TILE_OFFSET_IN_VRAM;
+							if (tile_vram_description[mid_tile]!=CITY)
+							{
+								// According to carcassonne tile map rule,
+								// 1. the position of this tile should either be @
+								// cartilemap corners or
+								// cartile map edge middle.
+								// 2. this city tile is ~ field node/tile
+								new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+								new_nodes[0]->child_top_lk=&end_node;
+								new_nodes[0]->child_r_lk=&end_node;
+								new_nodes[0]->child_bot_lk=&end_node;
+								new_nodes[0]->child_l_lk=&end_node;
+
+								// check open/end dir condition 
+								unsigned short same_row_right_tile = cur_car_tile_map_asm_id[iter_r*3 + 2]+CAR_TILE_OFFSET_IN_VRAM;
+								unsigned short same_row_left_tile = cur_car_tile_map_asm_id[iter_r*3 + 0]+CAR_TILE_OFFSET_IN_VRAM;
+								unsigned short same_col_top_tile = cur_car_tile_map_asm_id[0*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								unsigned short same_col_bot_tile = cur_car_tile_map_asm_id[2*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+									// tile position @ cartilemap corner
+								if (iter_r==0 && iter_col==0)
+								{
+									// tl corner
+									if (is_city_and_field_tile(same_row_right_tile))
+									{
+										new_nodes[0]->child_r_lk=NULL;
+									}
+									if (is_city_and_field_tile(same_col_bot_tile))
+									{
+										new_nodes[0]->child_bot_lk=NULL;
+									}
+								}
+								if (iter_r==0 && iter_col==2)
+								{
+									// tr corner
+									if (is_city_and_field_tile(same_row_left_tile))
+									{
+										new_nodes[0]->child_l_lk=NULL;
+									}
+									if (is_city_and_field_tile(same_col_bot_tile))
+									{
+										new_nodes[0]->child_bot_lk=NULL;
+									}
+								}
+								if (iter_r==2 && iter_col==2)
+								{
+									// br corner
+									if (is_city_and_field_tile(same_row_left_tile))
+									{
+										new_nodes[0]->child_l_lk=NULL;
+									}
+									if (is_city_and_field_tile(same_col_top_tile))
+									{
+										new_nodes[0]->child_top_lk=NULL;
+									}
+								}
+								if (iter_r==2 && iter_col==0)
+								{
+									// bl corner
+									if (is_city_and_field_tile(same_row_right_tile))
+									{
+										new_nodes[0]->child_r_lk=NULL;
+									}
+									if (is_city_and_field_tile(same_col_top_tile))
+									{
+										new_nodes[0]->child_top_lk=NULL;
+									}
+								}
+								if((iter_r==0 && iter_col==1)
+									|| (iter_r==2 && iter_col==1)
+									)
+								{
+									// middle t/b edge
+									if (is_city_and_field_tile(same_row_right_tile)
+										|| is_city_and_field_tile(same_row_left_tile)
+										)
+									{
+										new_nodes[0]->child_r_lk=NULL;
+										new_nodes[0]->child_l_lk=NULL;
+									}
+								}
+								if((iter_r==1 && iter_col==0)
+									|| (iter_r==1 && iter_col==2)
+									)
+								{
+									// middle l/r edge
+									if (is_city_and_field_tile(same_col_top_tile)
+										|| is_city_and_field_tile(same_col_bot_tile)
+										)
+									{
+										new_nodes[0]->child_top_lk=NULL;
+										new_nodes[0]->child_bot_lk=NULL;
+									}
+								}	
+							}
+							break;
+						case 15: // city+filed, field open r&bot
+								// According to carcassonne graphic tile rule,
+								// this type of tile ONLY @ cartilemap corners
+						case 19:
+							new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+							new_nodes[0]->child_top_lk=&end_node;
+							new_nodes[0]->child_l_lk=&end_node;
+							// check adj tile along the field open dir
+								// right dir
+							if ((iter_r == 0 && iter_col==0) 
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 2 && iter_col==0)
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 2 && iter_col==1)
+								|| (iter_r == 1 && iter_col==1)
+								)
+							{
+								unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[r_tile]==STREET)
+								{
+									new_nodes[0]->child_r_lk= &end_node;
+								}
+							}
+								// the bot dir
+							if ((iter_r == 0 && iter_col==0) 
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 0 && iter_col==2)
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 1 && iter_col==2)
+								)
+							{
+								unsigned short bot_tile = cur_car_tile_map_asm_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[bot_tile]==STREET)
+								{
+									new_nodes[0]->child_bot_lk= &end_node;
+								}
+							}
+
+							// check the middle tile of cartilemap,
+							// if the middle is street/field/garden/church,
+							// one/both of the city side of this tile will be open for field connection
+							if ( 
+								tile_vram_description[mid_tile]== STREET
+								|| tile_vram_description[mid_tile]== GARDEN
+								|| tile_vram_description[mid_tile]== CHURCH
+								|| tile_vram_description[mid_tile]== FIELD
+								)
+							{
+								// city side @ t/l side
+								if (iter_r==0 && iter_col==0)
+								{
+									// position tl corner
+									// all city side must stay as `end_node`
+								}
+								if (iter_r==0 && iter_col==2)
+								{
+									// position tr corner
+									new_nodes[0]->child_l_lk=NULL;
+								}
+								if (iter_r==2 && iter_col==0)
+								{
+									// pos bl corner
+									new_nodes[0]->child_top_lk=NULL;
+								}
+								if (iter_r==2 && iter_col==2)
+								{
+									// pos br
+									// ? This not happends according to carcassonne graphic tile rule
+									new_nodes[0]->child_top_lk=NULL;
+									new_nodes[0]->child_l_lk=NULL;
+								}
+							}
+							break;
+						case 16: // city+filed, field open bot&l
+								// According to carcassonne graphic tile rule,
+								// this type of tile ONLY @ cartilemap corners
+						case 20:
+							new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+							new_nodes[0]->child_top_lk=&end_node;
+							new_nodes[0]->child_r_lk=&end_node;
+							// check adj tile along the field open dir
+								// checking on the left side
+							if ((iter_r == 0 && iter_col==2) 
+								|| (iter_r == 1 && iter_col==2)
+								|| (iter_r == 2 && iter_col==2)
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 2 && iter_col==1)
+								)
+							{
+								unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[l_tile]==STREET)
+								{
+									new_nodes[0]->child_l_lk= &end_node;
+								}
+							}
+								// the bot dir
+							if ((iter_r == 0 && iter_col==0) 
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 0 && iter_col==2)
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 1 && iter_col==2)
+								)
+							{
+								unsigned short bot_tile = cur_car_tile_map_asm_id[(iter_r+1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[bot_tile]==STREET)
+								{
+									new_nodes[0]->child_bot_lk= &end_node;
+								}
+							}
+
+							// check the middle tile of cartilemap,
+							// if the middle is street/field/garden/church,
+							// one/both of the city side of this tile will be open for field connection
+							if (tile_vram_description[mid_tile]== STREET
+								|| tile_vram_description[mid_tile]== GARDEN
+								|| tile_vram_description[mid_tile]== CHURCH
+								|| tile_vram_description[mid_tile]== FIELD
+								)
+							{
+								// city side @ t/r side
+								if (iter_r==0 && iter_col==0)
+								{
+									// position tl corner
+									new_nodes[0]->child_r_lk=NULL;
+								}
+								if (iter_r==0 && iter_col==2)
+								{
+									// position tr corner
+									// nothing
+								}
+								if (iter_r==2 && iter_col==0)
+								{
+									// pos bl corner
+									// ? This not happends according to carcassonne graphic tile rule
+									new_nodes[0]->child_top_lk=NULL;
+									new_nodes[0]->child_r_lk=NULL;
+								}
+								if (iter_r==2 && iter_col==2)
+								{
+									// pos br
+									new_nodes[0]->child_top_lk=NULL;
+								}
+							}
+							break;
+						case 17: // city+filed, field open t&l
+								// According to carcassonne graphic tile rule,
+								// this type of tile ONLY @ cartilemap corners
+						case 21:
+							new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+							new_nodes[0]->child_r_lk=&end_node;
+							new_nodes[0]->child_bot_lk=&end_node;
+							// check adj tile along the field open dir
+								// checking on the left side
+							if ((iter_r == 0 && iter_col==2) 
+								|| (iter_r == 1 && iter_col==2)
+								|| (iter_r == 2 && iter_col==2)
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 2 && iter_col==1)
+								)
+							{
+								unsigned short l_tile = cur_car_tile_map_asm_id[iter_r*3 + iter_col-1]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[l_tile]==STREET)
+								{
+									new_nodes[0]->child_l_lk= &end_node;
+								}
+							}
+							// checking on the top side
+							if ((iter_r == 2 && iter_col==0) 
+								|| (iter_r == 2 && iter_col==1)
+								|| (iter_r == 2 && iter_col==2)
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 1 && iter_col==2)
+								)
+							{
+								unsigned short top_tile = cur_car_tile_map_asm_id[(iter_r-1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[top_tile]==STREET)
+								{
+									new_nodes[0]->child_top_lk= &end_node;
+								}
+							}
+
+							// check the middle tile of cartilemap,
+							// if the middle is street/field/garden/church,
+							// one/both of the city side of this tile will be open for field connection
+							if (tile_vram_description[mid_tile]== STREET
+								|| tile_vram_description[mid_tile]== GARDEN
+								|| tile_vram_description[mid_tile]== CHURCH
+								|| tile_vram_description[mid_tile]== FIELD
+								)
+							{
+								// city side @ r&b side
+								if (iter_r==0 && iter_col==0)
+								{
+									// position tl corner
+									// ? This not happends according to carcassonne graphic tile rule
+									new_nodes[0]->child_r_lk=NULL;
+									new_nodes[0]->child_bot_lk=NULL;
+								}
+								if (iter_r==0 && iter_col==2)
+								{
+									// position tr corner
+									new_nodes[0]->child_bot_lk=NULL;
+								}
+								if (iter_r==2 && iter_col==0)
+								{
+									// pos bl corner
+									new_nodes[0]->child_r_lk=NULL;
+								}
+								if (iter_r==2 && iter_col==2)
+								{
+									// pos br
+									// nothing
+								}
+							}
+							break;
+						case 18: // city+filed, field open t&r
+								// According to carcassonne graphic tile rule,
+								// this type of tile ONLY @ cartilemap corners
+						case 22:
+							new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+							new_nodes[0]->child_l_lk=&end_node;
+							new_nodes[0]->child_bot_lk=&end_node;
+							// check adj tile along the field open dir
+								// right dir
+							if ((iter_r == 0 && iter_col==0) 
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 2 && iter_col==0)
+								|| (iter_r == 0 && iter_col==1)
+								|| (iter_r == 2 && iter_col==1)
+								|| (iter_r == 1 && iter_col==1)
+								)
+							{
+								unsigned short r_tile = cur_car_tile_map_asm_id[iter_r*3 + (iter_col+1)]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[r_tile]==STREET)
+								{
+									new_nodes[0]->child_r_lk= &end_node;
+								}
+							}
+							// checking on the top side
+							if ((iter_r == 2 && iter_col==0) 
+								|| (iter_r == 2 && iter_col==1)
+								|| (iter_r == 2 && iter_col==2)
+								|| (iter_r == 1 && iter_col==0)
+								|| (iter_r == 1 && iter_col==1)
+								|| (iter_r == 1 && iter_col==2)
+								)
+							{
+								unsigned short top_tile = cur_car_tile_map_asm_id[(iter_r-1)*3 + iter_col]+CAR_TILE_OFFSET_IN_VRAM;
+								if (tile_vram_description[top_tile]==STREET)
+								{
+									new_nodes[0]->child_top_lk= &end_node;
+								}
+							}
+
+							// check the middle tile of cartilemap,
+							// if the middle is street/field/garden/church,
+							// one/both of the city side of this tile will be open for field connection
+							if (tile_vram_description[mid_tile]== STREET
+								|| tile_vram_description[mid_tile]== GARDEN
+								|| tile_vram_description[mid_tile]== CHURCH
+								|| tile_vram_description[mid_tile]== FIELD
+								)
+							{
+								// city side @ b&l side
+								if (iter_r==0 && iter_col==0)
+								{
+									// position tl corner
+									new_nodes[0]->child_bot_lk=NULL;
+								}
+								if (iter_r==0 && iter_col==2)
+								{
+									// position tr corner
+									// ? This not happends according to carcassonne graphic tile rule
+									new_nodes[0]->child_bot_lk=NULL;
+									new_nodes[0]->child_l_lk=NULL;
+								}
+								if (iter_r==2 && iter_col==0)
+								{
+									// pos bl corner
+									// nothing	
+								}
+								if (iter_r==2 && iter_col==2)
+								{
+									// pos br
+									new_nodes[0]->child_l_lk=NULL;
+								}
+							}
+							break;
+						case 24: // a strand of field in the middle
+								// this tile always @ cartilemap corner positions.
+						case 25:
+							new_nodes[0]= create_node(node_coord.x, node_coord.y, tile_vram_id, NA_FEATURE, NA_DIR);
+							new_nodes[0]->child_top_lk=&end_node;
+							new_nodes[0]->child_r_lk=&end_node;
+							new_nodes[0]->child_bot_lk=&end_node;
+							new_nodes[0]->child_l_lk=&end_node;
+							
+							// Base on the position, the city side will be opened 
+							// to connect to the field
+							if (iter_r==0 && iter_col==0)
+							{
+								// position tl corner
+								// ? according to carcassonne graphic tile rule: 
+								//  only happens for case 25
+								new_nodes[0]->child_bot_lk=NULL;
+								new_nodes[0]->child_r_lk=NULL;
+							}
+							if (iter_r==0 && iter_col==2)
+							{
+								// position tr corner
+								// ? according to carcassonne graphic tile rule: 
+								//  only happens for case 24
+								new_nodes[0]->child_bot_lk=NULL;
+								new_nodes[0]->child_l_lk=NULL;
+							}
+							if (iter_r==2 && iter_col==0)
+							{
+								// pos bl corner
+								// ? according to carcassonne graphic tile rule: 
+								//  only happens for case 24
+								new_nodes[0]->child_top_lk=NULL;
+								new_nodes[0]->child_r_lk=NULL;
+							}
+							if (iter_r==2 && iter_col==2)
+							{
+								// pos br
+								// ? according to carcassonne graphic tile rule: 
+								//  only happens for case 25
+								new_nodes[0]->child_top_lk=NULL;
+								new_nodes[0]->child_l_lk=NULL;
+							}
+							break;
+						default:
+							// do nothing = no new node is created
+
+					}
+				}
+				
+			}
+			
+			// ===
+			// insert node, merge feature, delete the merged feature except the ref feature where everything is merged into.
+				// insert,
+			insert_nodes_into_existent_ftrs(field_feature_array, field_feature_array_sz,
+										new_nodes, number_new_nodes);
+				// merge, delete merged features
+			check_all_merge_possibilities(field_feature_array, field_feature_array_sz);
+				// reset all new_nodes
+			if (new_nodes[0]!=NULL)
+			{
+				free(new_nodes[0]);
+				new_nodes[0]=NULL;
+			}
+			if (new_nodes[1]!=NULL)
+			{
+				free(new_nodes[1]);
+				new_nodes[1]=NULL;
+			}
+			if (new_nodes[2]!=NULL)
+			{
+				free(new_nodes[2]);
+				new_nodes[2]=NULL;
+			}
+			if (new_nodes[3]!=NULL)
+			{
+				free(new_nodes[3]);
+				new_nodes[3]=NULL;
+			}
+						
+		}
+	}
+	/// ====== MOD
+
+}
+
 // === 
 // 0. MAIN GAME LOOP
 // ===
@@ -1859,7 +2488,7 @@ void game_loop()
 	u32 num_game_fcities=0, prev_num_game_fcities=0;
 
 		// STREET
-	u16 track_game_strs_sz= 50;
+	u16 track_game_strs_sz= 30;
 	GAME_FEATURE_NODE_START track_game_strs[track_game_strs_sz];
 	init_features_per_tilemap(track_game_strs, track_game_strs_sz);
 	u16 track_game_str_nodes_sz= 10;
@@ -1869,7 +2498,7 @@ void game_loop()
 	u32 num_game_fstrs=0, prev_num_game_fstrs=0;
 
 		// FIELD
-	u16 track_game_field_sz= 50;
+	u16 track_game_field_sz= 40;
 	GAME_FEATURE_NODE_START track_game_fds[track_game_field_sz];
 	init_features_per_tilemap(track_game_fds, track_game_field_sz);
 	u32 num_game_fds=0, prev_num_game_fds=0;
@@ -2775,6 +3404,7 @@ void game_loop()
 		// 	tst_mvflag, tst_updflg,
 		// 	sae_curr_x, sae_curr_y,
 		// 	ctile_idx, ctile_idy);
+
 		// tte_printf("#{es;P}ctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
 		// 	tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
 		// 	sae_curr_x, sae_curr_y,
@@ -3057,8 +3687,9 @@ void game_loop()
 		// cpt =city per tile
 		// oc = open game city
 		// fc = finised game city
-		tte_printf("#{es;P}tid-ct_x/y-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d\ncpt:%d-%s/%s/%s/%s\nstpt:%d-%s/%s/%s/%s",
-			rand_cat_id, ctile_idx, ctile_idy, 
+		tte_printf("#{es;P}tid-ct_x/y-left-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d-%d/%d\ncpt:%d-%s/%s/%s/%s\nstpt:%d-%s/%s/%s/%s",
+			rand_cat_id, ctile_idx, ctile_idy,
+			carcassonne_number_of_tiles, CAR_TILES_MAX, 
 			num_game_cities, num_game_fcities,
 			num_game_strs, num_game_fstrs,
 			num_game_fds, num_game_ffds,
