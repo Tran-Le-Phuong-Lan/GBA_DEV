@@ -548,7 +548,7 @@ void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16
 	return;
 }
 
-bool check_all_merge_possibilities_for_fields (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size, u16* ftr_merg_flgs)
+bool check_all_merge_possibilities_for_fields (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size, GAME_FEATURE_NODE_ptr new_node)
 {
 	// merge, delete merged features
 	// 	it does not cover all the possibility	
@@ -569,24 +569,29 @@ bool check_all_merge_possibilities_for_fields (GAME_FEATURE_NODE_START* ftr_game
 				{
 					if (ftr_game_array[fts_iter_ref].root!=NULL)
 					{
-						if (ftr_game_array[fts_iter].root!=NULL
-							&& ftr_merg_flgs[fts_iter_ref]==1
-							&& ftr_merg_flgs[fts_iter]==1)
+						if (ftr_game_array[fts_iter].root!=NULL)
 						{
+							DIRECTION find_dir=NA_DIR;
+							if ((find_node(ftr_game_array[fts_iter_ref].root, new_node, &find_dir)!=NULL
+								|| node_exist(ftr_game_array[fts_iter_ref].root, new_node))
+								&& (find_node(ftr_game_array[fts_iter].root, new_node, &find_dir)!=NULL
+								|| node_exist(ftr_game_array[fts_iter].root, new_node)))
+							{
+								// GAME_FEATURE_NODE_ptr merging_features_debug (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
+								GAME_FEATURE_NODE_ptr merge_res;
+								merge_res=merging_features(ftr_game_array[fts_iter_ref].root, ftr_game_array[fts_iter].root);
+								if (merge_res!=NULL)
+								{
+									ftr_game_array[fts_iter].root=NULL;
+									merg_possibility= merg_possibility+1;
+									merg_res = true;
+								}
+								else
+								{
+									// nothing
+								}
+							}	
 							
-							// GAME_FEATURE_NODE_ptr merging_features_debug (GAME_FEATURE_NODE_ptr feature_root_ref, GAME_FEATURE_NODE_ptr feature_root_2, unsigned char* debug_merg_tid, DIRECTION* debug_merg_dir, unsigned char* mrg_order);
-							GAME_FEATURE_NODE_ptr merge_res;
-							merge_res=merging_features(ftr_game_array[fts_iter_ref].root, ftr_game_array[fts_iter].root);
-							if (merge_res!=NULL)
-							{
-								ftr_game_array[fts_iter].root=NULL;
-								merg_possibility= merg_possibility+1;
-								merg_res = true;
-							}
-							else
-							{
-								// nothing
-							}
 						}
 						else
 						{
@@ -611,6 +616,8 @@ bool check_all_merge_possibilities_for_fields (GAME_FEATURE_NODE_START* ftr_game
 void insert_nodes_into_existent_ftrs (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_sz, 
 										GAME_FEATURE_NODE_ptr* new_nodes_array, u16 new_node_array_sz)
 {
+	// if nodes in new_nodes_array are inserted successfully, they are deleted
+	// otherwise, they are kept.
 
 	int fts_iter, new_node_iter=0;
 	for (fts_iter=0; fts_iter < ftr_game_array_sz; fts_iter++)
@@ -3111,62 +3118,12 @@ void track_fields_game (GAME_FEATURE_NODE_START* field_feature_array, u16 field_
 				// insert,
 			if (new_nodes[0]!=NULL)
 			{
+				GAME_FEATURE_NODE_ptr cur_node = new_nodes[0];
 				insert_nodes_into_existent_ftrs(field_feature_array, field_feature_array_sz,
 										new_nodes, number_new_nodes);
 
-				u32 iter_field_feature_arr=0;
-				// u32 iter_field_for_merg_chk=0;
-				// init
-				for (iter_field_feature_arr=0; iter_field_feature_arr< field_feature_array_sz; iter_field_feature_arr++)
-				{
-					field_feature_array_merg_flgs[iter_field_feature_arr]=0;
-				}
-
-				for (iter_field_feature_arr=0; iter_field_feature_arr< field_feature_array_sz; iter_field_feature_arr++)
-				{
-					DIRECTION find_dir=NA_DIR;
-					// GAME_FEATURE_NODE_ptr find_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node, DIRECTION* child_direction)
-					// find_node(field_feature_array[iter_field_feature_arr].root, new_nodes[0], &find_dir);
-					if (find_node(field_feature_array[iter_field_feature_arr].root, new_nodes[0], &find_dir) !=NULL)
-					{
-						// field_for_merg_chk[iter_field_for_merg_chk].root = field_feature_array[iter_field_feature_arr].root;
-						field_feature_array_merg_flgs[iter_field_feature_arr]=1;
-						// idx_field_for_merg_chk_vs_idx_field_feature_arr[iter_field_for_merg_chk]= iter_field_feature_arr;
-						// iter_field_for_merg_chk= iter_field_for_merg_chk+1;
-					}
-					else
-					{
-						// bool node_exist (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
-						if (node_exist(field_feature_array[iter_field_feature_arr].root, new_nodes[0]))
-						{
-							// field_for_merg_chk[iter_field_for_merg_chk].root = field_feature_array[iter_field_feature_arr].root;
-							field_feature_array_merg_flgs[iter_field_feature_arr]=1;
-							// idx_field_for_merg_chk_vs_idx_field_feature_arr[iter_field_for_merg_chk]= iter_field_feature_arr;
-							// iter_field_for_merg_chk= iter_field_for_merg_chk+1;
-						}
-					}
-				}
 				// merge, delete merged features
-				check_all_merge_possibilities_for_fields(field_feature_array, field_feature_array_sz, field_feature_array_merg_flgs);
-				// if (check_all_merge_possibilities_for_fields(field_feature_array, field_feature_array_sz, field_feature_array_merg_flgs))
-				// {
-				// 	// u32 iter;
-				// 	// for (iter=0; iter<iter_field_for_merg_chk; iter++)
-				// 	// {
-				// 	// 	u32 corr_idx = idx_field_for_merg_chk_vs_idx_field_feature_arr[iter];
-				// 	// 	if (field_for_merg_chk[iter].root==NULL)
-				// 	// 	{
-				// 	// 		field_feature_array[corr_idx].root= NULL;
-				// 	// 	}
-						
-				// 	// }	
-				// }
-
-				// reset
-				for (iter_field_feature_arr=0; iter_field_feature_arr< field_feature_array_sz; iter_field_feature_arr++)
-				{
-					field_feature_array_merg_flgs[iter_field_feature_arr]=0;
-				}
+				check_all_merge_possibilities_for_fields(field_feature_array, field_feature_array_sz, cur_node);
 					
 			}
 			// reset all new_nodes
