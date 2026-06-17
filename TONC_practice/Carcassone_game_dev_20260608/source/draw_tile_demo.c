@@ -1939,7 +1939,12 @@ void init_reg_bg1 ()
 // ===
 void game_loop()
 {
-
+	// === 
+	// POINT COUNT 
+	// ===
+	// === reg, bg 1
+	BG_POINT prev_bg1_pt;
+	
 	// === 
 	// FEATURE REPORT 
 	// 3. variables/flags to report found features 
@@ -2005,7 +2010,7 @@ void game_loop()
 
 
 	// === aff bg
-	AFF_SRC_EX asx=
+	AFF_SRC_EX asx_prev, asx=
 	{
 		INIT_BG_X_OFF<<8, INIT_BG_Y_OFF<<8,			// Map coords.
 		0, 0,				// Screen coords.
@@ -2089,7 +2094,7 @@ void game_loop()
 			sae_prev.x = sae_curr_x;
 			sae_prev.y = sae_curr_y;
 
-			if (current_game_state == MEEPLE)
+			if (current_game_state == MEEPLE_DECISION)
 			{
 				// == OBJ, moving relative to the screen = screen is static
 				// left/right
@@ -2204,7 +2209,8 @@ void game_loop()
 			map_tile_to_ctile(sae_curr_x, sae_curr_y, &car_coord.x, &car_coord.y);
 			carcassonne_full_map[carcassonne_number_of_tiles-1].car_tid = 0;
 			carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
-			current_game_state = GET_TILE;
+			// current_game_state = GET_TILE;
+			current_game_state = MEEPLE_START;
 
 			prev_ctile_coord.x = car_coord.x;
 			prev_ctile_coord.y = car_coord.y;
@@ -2264,8 +2270,18 @@ void game_loop()
 			//====
 			// POINT COUNT
 			//====
-			// !IN PROGRESS
 			// draw something on the bg1
+			for (cas_r = 0; cas_r < 3; cas_r++)
+			{
+				for (cas_col=0; cas_col<3; cas_col++)
+				{
+					tile_wrap_coord.x = sae_curr_x + cas_col;
+					tile_wrap_coord.y = sae_curr_y + cas_r;
+					wrapping_tile_coord(&tile_wrap_coord);
+					se_idx = map_to_reg_se_index(tile_wrap_coord.x, tile_wrap_coord.y, bg1_width_unit_tile); 
+					pse_1[se_idx] = bg1_tile_map_id[0][cas_r*3 + cas_col];
+				}
+			}
 
 		}
 
@@ -2663,8 +2679,8 @@ void game_loop()
 							map_tile_to_ctile(sae_curr_x, sae_curr_y, &car_coord.x, &car_coord.y);
 							carcassonne_full_map[carcassonne_number_of_tiles-1].car_tid = rand_cat;
 							carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
-							// current_game_state = MEEPLE;
-							current_game_state = GET_TILE;
+							current_game_state = MEEPLE_START;
+							// current_game_state = GET_TILE;
 
 							// ===
 							// TRACK GAME FEATURE
@@ -2774,54 +2790,79 @@ void game_loop()
 
 			};
 		
-		// if (current_game_state == MEEPLE && carcassonne_number_of_tiles < CAR_TILES_MAX)
-		// {
-		// 		const TILE8 transparent_tiles[1]=
-		// 	{
-		// 		// bg tile8: 8bit/pixel = 2hex/pixel
-		// 		// {{0x10000001, 0x01111110, 0x01111110, 0x01111110,
-		// 		//   0x01111110, 0x01111110, 0x01111110, 0x10000001}},
+		if (current_game_state == MEEPLE_START && carcassonne_number_of_tiles < CAR_TILES_MAX)
+		{
+			// ! IN PROGRESS
+			// current_game_state == MEEPLE_EXPLORE;	
+			// if (current_game_state == MEEPLE_EXPLORE)
+			// {
+				for (cas_r = 0; cas_r < 3; cas_r++)
+				{
+					for (cas_col=0; cas_col<3; cas_col++)
+					{
+						unsigned short tile_bg1_sid = bg1_tile_map_id[0][cas_r*3 + cas_col];
+						//				  CBB TILE_index	
+						memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+							&elem_bg1_tile_set[tile_bg1_sid], 
+							16 // 1 DTILE = 16 x u32
+						);
+					}
+				}
 
-		// 	{{0x00000000, 0x00000000, 
-		// 	  0x00000000, 0x00000000,
-		// 	  0x00000000, 0x00000000, 
-		// 	  0x00000000, 0x00000000,
-		// 	  0x00000000, 0x00000000, 
-		// 	  0x00000000, 0x00000000,
-		// 	  0x00000000, 0x00000000, 
-		// 	  0x00000000, 0x00000000}}
-		// 	};
+				if (key_hit(KEY_B))
+				{
+					// CANCEL THE ACTION
+					// change game state
+					current_game_state = GET_TILE;
 
-		// 	// load the cas graphics into the buffer of the cursor: the meeple
-		// 	for (cas_r = 0; cas_r < 3; cas_r++)
-		// 	{
-		// 		for (cas_col=0; cas_col<3; cas_col++)
-		// 		{
-		// 			if (cas_r == 0 && cas_col == 0)
-		// 			{
-		// 				// meeple TID = 26 [index in .s file]
-		// 				memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-		// 					&elem_cas_tile_set[26], 
-		// 					16 // 1 DTILE = 16 x u32
-		// 				);						
-		// 			}
-		// 			else
-		// 			{
-		// 				//  transparent tile
-		// 				memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-		// 					&transparent_tiles[0], 
-		// 					16 // 1 DTILE = 16 x u32
-		// 				);					
-		// 			}
+					// set the obj position back to original
+					x = INIT_OBJ_X;
+					y = INIT_OBJ_Y;
+				}
 
-		// 		}
-		// 	}
-		// 	if (key_hit(KEY_A))
-		// 	{
-		// 		// put down the meeple -> on another background, otherwise the graphic is BAD
-		// 		// change game state
-		// 	}
-		// }
+			// 	current_game_state == MEEPLE_START;
+			// }
+
+			if(current_game_state == MEEPLE_DECISION)
+			{
+				// load the cas graphics into the buffer of the cursor: the ARROW
+				for (cas_r = 0; cas_r < 3; cas_r++)
+				{
+					for (cas_col=0; cas_col<3; cas_col++)
+					{
+						if (cas_r == 0 && cas_col == 0)
+						{
+							// arrow TID = 10 [index in tiles-bg1.s file]
+							memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+								&elem_bg1_tile_set[10], 
+								16 // 1 DTILE = 16 x u32
+							);						
+						}
+						else
+						{
+							//  transparent tile
+							memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+								&elem_bg1_tile_set[0], 
+								16 // 1 DTILE = 16 x u32
+							);					
+						}
+
+					}
+				}
+
+				if (key_hit(KEY_B))
+				{
+					// CANCEL THE ACTION
+					// change game state
+					current_game_state = GET_TILE;
+
+					// set the obj position back to original
+					x = INIT_OBJ_X;
+					y = INIT_OBJ_Y;
+				}
+			}
+			
+		}
 		
 		if (carcassonne_number_of_tiles == CAR_TILES_MAX)
 		{
