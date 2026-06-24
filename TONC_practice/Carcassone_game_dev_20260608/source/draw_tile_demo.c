@@ -1944,6 +1944,8 @@ void game_loop()
 	// ===
 	// === reg, bg 1
 	BG_POINT prev_bg1_pt;
+	AFF_SRC_EX asx_prev;
+	BG_POINT bg1_pt_prev;
 	
 	// === 
 	// FEATURE REPORT 
@@ -2010,7 +2012,7 @@ void game_loop()
 
 
 	// === aff bg
-	AFF_SRC_EX asx_prev, asx=
+	AFF_SRC_EX asx=
 	{
 		INIT_BG_X_OFF<<8, INIT_BG_Y_OFF<<8,			// Map coords.
 		0, 0,				// Screen coords.
@@ -2123,7 +2125,7 @@ void game_loop()
 			}
 
 			
-			if (current_game_state == PUT_DOWN_TILE | current_game_state == END)
+			if (current_game_state == PUT_DOWN_TILE | current_game_state == END | current_game_state == MEEPLE_EXPLORE)
 			{
 				// === allow bg rolling, sprite static
 				x += 0; // 24*key_tri_horz(); // [pixel]
@@ -2792,76 +2794,92 @@ void game_loop()
 		
 		if (current_game_state == MEEPLE_START && carcassonne_number_of_tiles < CAR_TILES_MAX)
 		{
-			// ! IN PROGRESS
-			// current_game_state == MEEPLE_EXPLORE;	
-			// if (current_game_state == MEEPLE_EXPLORE)
-			// {
-				for (cas_r = 0; cas_r < 3; cas_r++)
-				{
-					for (cas_col=0; cas_col<3; cas_col++)
-					{
-						unsigned short tile_bg1_sid = bg1_tile_map_id[0][cas_r*3 + cas_col];
-						//				  CBB TILE_index	
-						memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-							&elem_bg1_tile_set[tile_bg1_sid], 
-							16 // 1 DTILE = 16 x u32
-						);
-					}
-				}
+			asx_prev = asx;
+			bg1_pt_prev = bg1_pt;
+			current_game_state = MEEPLE_EXPLORE;	
+			
+		}
 
-				if (key_hit(KEY_B))
-				{
-					// CANCEL THE ACTION
-					// change game state
-					current_game_state = GET_TILE;
+		if (current_game_state == MEEPLE_EXPLORE && carcassonne_number_of_tiles < CAR_TILES_MAX)
+		{
 
-					// set the obj position back to original
-					x = INIT_OBJ_X;
-					y = INIT_OBJ_Y;
-				}
-
-			// 	current_game_state == MEEPLE_START;
-			// }
-
-			if(current_game_state == MEEPLE_DECISION)
+			for (cas_r = 0; cas_r < 3; cas_r++)
 			{
-				// load the cas graphics into the buffer of the cursor: the ARROW
-				for (cas_r = 0; cas_r < 3; cas_r++)
+				for (cas_col=0; cas_col<3; cas_col++)
 				{
-					for (cas_col=0; cas_col<3; cas_col++)
-					{
-						if (cas_r == 0 && cas_col == 0)
-						{
-							// arrow TID = 10 [index in tiles-bg1.s file]
-							memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-								&elem_bg1_tile_set[10], 
-								16 // 1 DTILE = 16 x u32
-							);						
-						}
-						else
-						{
-							//  transparent tile
-							memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
-								&elem_bg1_tile_set[0], 
-								16 // 1 DTILE = 16 x u32
-							);					
-						}
-
-					}
-				}
-
-				if (key_hit(KEY_B))
-				{
-					// CANCEL THE ACTION
-					// change game state
-					current_game_state = GET_TILE;
-
-					// set the obj position back to original
-					x = INIT_OBJ_X;
-					y = INIT_OBJ_Y;
+					unsigned short tile_bg1_sid = bg1_tile_map_id[0][cas_r*3 + cas_col];
+					//				  CBB TILE_index	
+					memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+						&elem_bg1_tile_set[tile_bg1_sid], 
+						16 // 1 DTILE = 16 x u32
+					);
 				}
 			}
-			
+
+			if (key_hit(KEY_SELECT))
+			{
+				// CANCEL THE ACTION
+				// change game state
+				current_game_state = MEEPLE_DECISION;
+
+				// set the BGs position back to current putdown tile
+				bg_rotscale_ex(&bgaff, &asx_prev);
+				REG_BG_AFFINE[2]= bgaff;
+				
+				REG_BG_OFS[1]= bg1_pt_prev;
+			}
+
+			if (key_hit(KEY_B))
+			{
+				// CANCEL THE ACTION
+				// change game state
+				current_game_state = GET_TILE;
+
+				// set the obj position back to original
+				x = INIT_OBJ_X;
+				y = INIT_OBJ_Y;
+			}
+		}
+
+		if (current_game_state == MEEPLE_DECISION && carcassonne_number_of_tiles < CAR_TILES_MAX)
+		{
+
+			// load the cas graphics into the buffer of the cursor: the ARROW
+			for (cas_r = 0; cas_r < 3; cas_r++)
+			{
+				for (cas_col=0; cas_col<3; cas_col++)
+				{
+					if (cas_r == 0 && cas_col == 0)
+					{
+						// arrow TID = 10 [index in tiles-bg1.s file]
+						memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+							&elem_bg1_tile_set[10], 
+							16 // 1 DTILE = 16 x u32
+						);						
+					}
+					else
+					{
+						//  transparent tile
+						memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
+							&elem_bg1_tile_set[0], 
+							16 // 1 DTILE = 16 x u32
+						);					
+					}
+
+				}
+			}
+
+			if (key_hit(KEY_B))
+			{
+				// CANCEL THE ACTION
+				// change game state
+				current_game_state = GET_TILE;
+
+				// set the obj position back to original
+				x = INIT_OBJ_X;
+				y = INIT_OBJ_Y;
+			}
+
 		}
 		
 		if (carcassonne_number_of_tiles == CAR_TILES_MAX)
