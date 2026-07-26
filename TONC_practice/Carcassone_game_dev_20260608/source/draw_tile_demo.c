@@ -204,13 +204,16 @@ void map_ctile_to_tile (s32 ctile_x, s32 ctile_y, s32* tile_x, s32* tile_y, bool
 
 }
 
-
 void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y, 
 					CAR_MAP_INFO* car_fmap, SCR_ENTRY *bg_gba,
 					CAR_MAP_INFO* car_fmap_layer1, SCR_ENTRY *bg1_gba, CAS_TILE_MAP* car_fmap_layer1_graphic,
 					// ! the graphical on the layer 1 is dynamic.
 					bool* mv_tflg, bool* update_tfg, COORD_2D* tst_start_ctile,COORD_2D* tst_end_ctile, COORD_2D* tst_render_tid)
 {
+	// This `render_bg_v2` renders the **bg2 aff**
+	// and **bg1 reg**. Both has 8bit/pixel format,
+	// and they share the palette.
+
 	// move 1 ctile step in any direction x/y -> trigger render 1 col/ 1 row
 	s32 SAFE_ZONE_R = (SCR_WIDTH_uPx -INIT_OBJ_X) /24 + 1, // [ctile], 1 ctile = 3x3 tile
 		SAFE_ZONE_L = INIT_OBJ_X /24 +1, 
@@ -433,6 +436,164 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 
 }
 
+void render_cur_screen (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y, 
+	CAR_MAP_INFO* car_fmap_layer1, SCR_ENTRY *bg1_gba, CAS_TILE_MAP* car_fmap_layer1_graphic,
+	bool* mv_tflg, bool* update_tfg, COORD_2D* tst_start_ctile,COORD_2D* tst_end_ctile, COORD_2D* tst_render_tid)
+{
+	// The DIFFERENCE between `render_cur_screen` vs `render_bg_v2`:
+	// - `render_cur_screen` = the inside area defined by the combination of 
+	// `SAFE_ZONE_R`, `SAFE_ZONE_L`, `SAFE_ZONE_T`, `SAFE_ZONE_B` (see the code below)
+	// - `render_bg_v2` = the border area defined by the same combination of parameters above. 
+
+	// This `render_cur_screen` renders the **bg1 reg**
+
+	// move 1 ctile step in any direction x/y -> trigger render 1 col/ 1 row
+	s32 SAFE_ZONE_R = (SCR_WIDTH_uPx -INIT_OBJ_X) /24 + 1, // [ctile], 1 ctile = 3x3 tile
+		SAFE_ZONE_L = INIT_OBJ_X /24 +1, 
+		SAFE_ZONE_T = INIT_OBJ_Y /24 +1,
+		SAFE_ZONE_B = (SCR_HEIGHT_uPx - INIT_OBJ_Y) /24 +1;
+
+	//			  false: not moved, true: moved
+	bool mv_flg = false;
+	
+	if (tile_cur_x != tile_prev_x | tile_cur_y != tile_prev_y)
+	{
+		mv_flg = true;
+	}
+	else
+	{
+		mv_flg = false;
+	}
+
+	
+	*mv_tflg = mv_flg;
+	// -> find ctile coordinate for starting rendering
+	// s32 ctile_x_str, ctile_x_end, ctile_y_str, ctile_y_end; // [ctile]
+	COORD_2D reference_ctile, ctile_str, ctile_end;
+	map_tile_to_ctile(tile_cur_x, tile_cur_y, &reference_ctile.x, &reference_ctile.y); // [ctile]
+	ctile_str.x = reference_ctile.x - (SAFE_ZONE_L+1);
+	ctile_str.y = reference_ctile.y - (SAFE_ZONE_T+1);
+	ctile_end.x = ctile_str.x + (SAFE_ZONE_L + SAFE_ZONE_R +1);
+	ctile_end.y = ctile_str.y + (SAFE_ZONE_T + SAFE_ZONE_B+1);
+	// == DEBUG
+		tst_start_ctile->x = ctile_str.x;
+		tst_start_ctile->y = ctile_str.y;
+		tst_end_ctile->x = ctile_end.x;
+		tst_end_ctile->y = ctile_end.y;
+	
+		// 	COORD_2D tile_curr_coord;
+		// 	// tile_curr_coord.x = tile_cur_x; //ERROR !!! HOW THE RENDER TILE = THE CURRENT TID!!!!
+		// 	// tile_curr_coord.y = tile_cur_y;
+		// 	map_ctile_to_tile(ctile_str.x, ctile_str.y, &tile_curr_coord.x, &tile_curr_coord.y, false);
+		// 	// wrapping_tile_coord(&tile_curr_coord);
+		// 	COORD_2D tile_render_coord;
+		// 			tile_render_coord.x = tile_curr_coord.x + 0;
+		// 			tile_render_coord.y = tile_curr_coord.y + 0;
+		// 			wrapping_tile_coord(&tile_render_coord);
+		// 			int se_idx = 0, sea_idx = 0;
+		// 			sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
+		// tst_render_tid->x = tile_render_coord.x;
+		// tst_render_tid->y = tile_render_coord.y;
+	// == DEBUG
+	if (mv_flg == false) // not moved -> rendering the inside of the screen
+	{
+		*update_tfg = mv_flg;
+		// rendering the inside of 
+		// the (screen+buffer zone (to fix the misalign screen size and conceptual map grid))
+		s32 iter_x_ctile, iter_y_ctile;
+		for (iter_y_ctile = ctile_str.y; iter_y_ctile < ctile_end.y + 1; iter_y_ctile += 1)
+		{
+			for (iter_x_ctile= ctile_str.x; iter_x_ctile < ctile_end.x +1; iter_x_ctile +=1)
+			{
+				int car_map_layer1_id;
+				CAS_TILE_MAP *car_map_layer1_ptr = NULL;
+				int car_map_curr_coord = iter_y_ctile * CAR_MAP_WIDTH_x + iter_x_ctile;
+				// must not use 1d idx to assess the 2d border -> it is wrong
+				if (iter_y_ctile >= 0 && iter_y_ctile < CAR_MAP_HEIGHT_y 
+					&& iter_x_ctile >= 0 && iter_x_ctile < CAR_MAP_WIDTH_x)
+				{
+					// the ctile is within the conceptual map
+					// extract the CAR MAP TID
+					car_map_layer1_id = CAR_BG_ID;
+					int iter =0;
+					for(iter; iter < CAR_TILES_MAX; iter +=1)
+					{
+						if(car_map_curr_coord == car_fmap_layer1[iter].car_map_coord)
+						{
+							// existent a car map tile in the conceptual map
+							car_map_layer1_id = car_fmap_layer1[iter].car_tid;
+						}
+					}
+
+					// carcassonne info map on bg1 reg
+					// if car_map_layer1_id == CAR_BG_ID, 
+					// then no graphical infomation is stored at this position in bg1
+					// it should be transparent
+					if (car_map_layer1_id == CAR_BG_ID)
+					{
+						// reuse tiles from bg2 aff, 
+						// because bg1 reg and bg2 aff share the same graphical tile format.
+						// the `bg_tile_map_id` can be reused for bg1.
+						// Because the transparent tile of bg1 is @ index 0 
+						// (see `TONC_practice/Carcassone_game_dev_20260608/source/tiles-bg1.s`),
+						// `bg_tile_map_id[1]` , if used for bg1, is a transparent ctile 
+						// (see `TONC_practice/Carcassone_game_dev_20260608/include/carcas_infos.h` 
+						// and `TONC_practice/Carcassone_game_dev_20260608/source/carcas_data.s`).
+						car_map_layer1_ptr = bg_tile_map_id;
+						car_map_layer1_id = 1;
+					}
+					else
+					{
+						car_map_layer1_ptr = car_fmap_layer1_graphic;
+					}
+	
+				}
+				else
+				{
+					// bg1
+					car_map_layer1_ptr = bg_tile_map_id;
+					car_map_layer1_id = 1;
+				}
+
+				// inside area of the (screen + buffer zone)
+				if (iter_y_ctile > ctile_str.y & iter_y_ctile < ctile_end.y)
+				{
+					// start render the whole row
+					int se_idx = 0, sea_idx = 0;
+					COORD_2D tile_curr_coord;
+					map_ctile_to_tile(iter_x_ctile, iter_y_ctile, &tile_curr_coord.x, &tile_curr_coord.y, false);
+					COORD_2D tile_render_coord;
+				
+					int cas_r, cas_col;
+					for (cas_r = 0; cas_r < 3; cas_r++)
+					{
+						for (cas_col=0; cas_col<3; cas_col++)
+						{
+							tile_render_coord.x = tile_curr_coord.x + cas_col;
+							tile_render_coord.y = tile_curr_coord.y + cas_r;
+							wrapping_tile_coord(&tile_render_coord);
+
+							// bg1 reg
+							se_idx = map_to_reg_se_index(tile_render_coord.x, tile_render_coord.y, bg1_width_unit_tile); 
+							bg1_gba[se_idx] = car_map_layer1_ptr[car_map_layer1_id][cas_r*3 + cas_col];
+
+						}
+					}
+				}
+
+			}
+
+		}
+
+	}
+	else
+	{
+		// no render
+	}
+
+
+}
+
 void render_bg_v2_ (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cur_y, CAR_MAP_INFO* car_fmap, SCR_ENTRY *bg_gba, 
 	bool* mv_tflg, bool* update_tfg, COORD_2D* tst_start_ctile,COORD_2D* tst_end_ctile, COORD_2D* tst_render_tid)
 {
@@ -615,7 +776,6 @@ void render_bg_v2_ (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_c
 	{
 		// no render
 	}
-
 
 }
 
@@ -2162,6 +2322,20 @@ void init_reg_bg1 ()
 	memcpy32(&tile8_mem[CBB_0_BG1][0], tiles_bg1Tiles, tiles_bg1TilesLen/sizeof(u32));
 }
 
+void init_graphic_arrays (CAS_TILE_MAP* arr, int arr_sz)
+{
+	int iter, iter_in;
+	for (iter=0; iter<arr_sz; iter++)
+	{
+		// because `CAS_TILE_MAP` is an array of 9 unsigned int
+		// (see `TONC_practice/Carcassone_game_dev_20260608/include/carcas_infos.h`)
+		for(iter_in=0; iter_in<9; iter_in++)
+		{
+			arr[iter][iter_in]=0;
+			// arr_sz[iter][iter_in] for storing the vram tile index
+		}
+	}
+}
 // === 
 // 0. MAIN GAME LOOP
 // ===
@@ -2178,6 +2352,8 @@ void game_loop()
 	CAR_MAP_INFO carcassonne_full_map_layer1[CAR_TILES_MAX];
 	init_map_info (carcassonne_full_map_layer1);
 	CAS_TILE_MAP carcassonne_full_map_layer1_graphic[CAR_TILES_MAX];
+	init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+	int cur_drawn_field_idx = 0;
 
 	// === 
 	// FEATURE REPORT 
@@ -3059,6 +3235,29 @@ void game_loop()
 				}
 			}
 
+			// draw the field, and allow to change to another field.
+			// changing to another field by left/right shoulder button.
+			// !!! IN PROGRESS
+			// 1. choose the first field tree -> update the `carcassonne_full_map_layer1_graphic` 
+			// 2. a render function to start filling up the screen area in the bg1 according to the `carcassonne_full_map_layer1_graphic`
+			// in relative to the current position of the cursor.
+			// The cursor is always in the middle of the screen, screen size in [ctile] unit: WxH = 12 x 9
+			// IN ACTION:
+			// Experiment with the render function in 2. 
+			carcassonne_full_map_layer1_graphic[0][0] = 11;
+			carcassonne_full_map_layer1_graphic[0][1] = 11;
+			carcassonne_full_map_layer1_graphic[0][2] = 11;
+			// carcassonne_full_map_layer1_graphic[0][3] = 11;
+			// carcassonne_full_map_layer1_graphic[0][4] = 11;
+			// carcassonne_full_map_layer1_graphic[0][5] = 11;
+			// carcassonne_full_map_layer1_graphic[0][6] = 11;
+			// carcassonne_full_map_layer1_graphic[0][7] = 11;
+			// carcassonne_full_map_layer1_graphic[0][8] = 11;
+			render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
+			carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
+
+			// Change to decision phase
 			if (key_hit(KEY_SELECT))
 			{
 				// CANCEL THE ACTION
@@ -3071,7 +3270,7 @@ void game_loop()
 				
 				REG_BG_OFS[1]= bg1_pt_prev;
 			}
-
+			// cancel the exploration
 			if (key_hit(KEY_B))
 			{
 				// CANCEL THE ACTION
@@ -3081,6 +3280,18 @@ void game_loop()
 				// set the obj position back to original
 				x = INIT_OBJ_X;
 				y = INIT_OBJ_Y;
+
+				// RESET for dynamic infor of bg1 reg
+				// 1. reset the drawn field index to 0.
+				// so that, whenver start in the `MEEPLE_EXPLORE`,
+				// the field drawn indx start from 0. 
+				cur_drawn_field_idx = 0;
+				// 2. reset the graphical graphic information.
+				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+					// apply the effect of the reset graphic array
+				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
+				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
 			}
 		}
 
@@ -3095,6 +3306,7 @@ void game_loop()
 					if (cas_r == 0 && cas_col == 0)
 					{
 						// arrow TID = 10 [index in tiles-bg1.s file]
+						//				  CBB TILE_index
 						memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
 							&elem_bg1_tile_set[10], 
 							16 // 1 DTILE = 16 x u32
@@ -3103,6 +3315,7 @@ void game_loop()
 					else
 					{
 						//  transparent tile
+						//				  CBB TILE_index
 						memcpy32(&tile_mem[4][cas_r*8 + cas_col*2], 
 							&elem_bg1_tile_set[0], 
 							16 // 1 DTILE = 16 x u32
