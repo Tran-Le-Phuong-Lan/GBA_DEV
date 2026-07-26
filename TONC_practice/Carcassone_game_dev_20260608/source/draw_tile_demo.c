@@ -2336,6 +2336,126 @@ void init_graphic_arrays (CAS_TILE_MAP* arr, int arr_sz)
 		}
 	}
 }
+
+void draw_trees (GAME_FEATURE_NODE_ptr feature_root,
+	CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_layer1_graphic)
+{
+	// This function is based on function 
+	// `delete_whole_feature` (see `TONC_practice/Carcassone_game_dev_20260608/source/feature_tracking.c`)
+    
+	// must delete from leaf-node to root
+    if(feature_root == NULL || feature_root->game_feature == END_FEATURE)
+    {
+        return;
+    }
+
+    // if (feature_root->parent_top_lk == NULL)
+    // {
+        // the corresponding child direction might not NULL
+        // = search in that direction
+    	draw_trees(feature_root->child_top_lk, 
+				car_fmap_layer1, car_fmap_layer1_graphic);
+    // }
+    
+    // if (feature_root->parent_r_lk == NULL)
+    // {
+        draw_trees(feature_root->child_r_lk,
+				car_fmap_layer1, car_fmap_layer1_graphic);
+    // }
+
+    // if (feature_root->parent_bot_lk == NULL)
+    // {
+        draw_trees(feature_root->child_bot_lk,
+				car_fmap_layer1, car_fmap_layer1_graphic);
+    // }
+
+    // if (feature_root->parent_l_lk == NULL)
+    // {
+        draw_trees(feature_root->child_l_lk,
+				car_fmap_layer1, car_fmap_layer1_graphic);
+    // }
+
+    // draw the tree
+	s32 convert_coord_field_to_ctile_x, convert_coord_field_to_ctile_y;
+	s32 position_within_ctile_x, position_within_ctile_y; 
+	convert_coord_field_to_ctile_x = feature_root->tx /2;
+	position_within_ctile_x = feature_root->tx %2;
+	convert_coord_field_to_ctile_y = feature_root->ty /2;
+	position_within_ctile_y = feature_root->ty %2;
+	
+	s32 ctile_map_x, ctile_map_y;
+	u32 graphic_idx; 
+	u32 iter;
+	for (iter=0; iter<CAR_TILES_MAX; iter++)
+	{
+		ctile_map_x = car_fmap_layer1[iter].car_map_coord % CAR_MAP_WIDTH_x;
+		ctile_map_y = car_fmap_layer1[iter].car_map_coord / CAR_MAP_WIDTH_x;
+		if (
+			convert_coord_field_to_ctile_x == ctile_map_x
+			&& convert_coord_field_to_ctile_y == ctile_map_y
+		)
+		{
+			graphic_idx = iter;
+			break;
+		}
+	}
+
+	if (
+		// field node coord ~ tl of ctile
+		position_within_ctile_x == 0
+		&& position_within_ctile_y == 0
+	)
+	{
+		// 11 = idx of the shaded vram tile in bg1 tile collection
+		// (see `TONC_practice/Carcassone_game_dev_20260608/source/tiles-bg1.s`)
+		car_fmap_layer1_graphic[graphic_idx][0] = 11;
+		car_fmap_layer1_graphic[graphic_idx][1] = 11;
+		car_fmap_layer1_graphic[graphic_idx][3] = 11;
+		car_fmap_layer1_graphic[graphic_idx][4] = 11;
+	}
+	else if (
+		// field node coord ~ tr of ctile
+		position_within_ctile_x == 1
+		&& position_within_ctile_y == 0
+	)
+	{
+		// 11 = idx of the shaded vram tile in bg1 tile collection
+		// (see `TONC_practice/Carcassone_game_dev_20260608/source/tiles-bg1.s`)
+		car_fmap_layer1_graphic[graphic_idx][1] = 11;
+		car_fmap_layer1_graphic[graphic_idx][2] = 11;
+		car_fmap_layer1_graphic[graphic_idx][4] = 11;
+		car_fmap_layer1_graphic[graphic_idx][5] = 11;
+	}
+	else if (
+		// field node coord ~ bl of ctile
+		position_within_ctile_x == 0
+		&& position_within_ctile_y == 1
+	)
+	{
+		// 11 = idx of the shaded vram tile in bg1 tile collection
+		// (see `TONC_practice/Carcassone_game_dev_20260608/source/tiles-bg1.s`)
+		car_fmap_layer1_graphic[graphic_idx][3] = 11;
+		car_fmap_layer1_graphic[graphic_idx][4] = 11;
+		car_fmap_layer1_graphic[graphic_idx][6] = 11;
+		car_fmap_layer1_graphic[graphic_idx][7] = 11;
+	}
+	else
+	{
+		// field node coord ~ br of ctile
+		// position_within_ctile_x == 1
+		// && position_within_ctile_y == 1
+
+		// 11 = idx of the shaded vram tile in bg1 tile collection
+		// (see `TONC_practice/Carcassone_game_dev_20260608/source/tiles-bg1.s`)
+		car_fmap_layer1_graphic[graphic_idx][4] = 11;
+		car_fmap_layer1_graphic[graphic_idx][5] = 11;
+		car_fmap_layer1_graphic[graphic_idx][7] = 11;
+		car_fmap_layer1_graphic[graphic_idx][8] = 11;
+	}
+	
+    return;
+}
+
 // === 
 // 0. MAIN GAME LOOP
 // ===
@@ -3100,6 +3220,7 @@ void game_loop()
 							map_tile_to_ctile(sae_curr_x, sae_curr_y, &car_coord.x, &car_coord.y);
 							carcassonne_full_map[carcassonne_number_of_tiles-1].car_tid = rand_cat;
 							carcassonne_full_map[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
+							
 							current_game_state = MEEPLE_START;
 							// current_game_state = GET_TILE;
 
@@ -3151,7 +3272,15 @@ void game_loop()
 												cas_tile_map_id[rand_cat], cur_tile_wo_wrap_coord);
 							report_num_game_features(track_game_fds, track_game_field_sz, 
 												&num_game_fds, &num_game_ffds);
-
+							
+							//====
+							// POINT COUNT
+							//====
+							// save to the conceptual carmap upper layer
+							carcassonne_full_map_layer1[carcassonne_number_of_tiles-1].car_tid = carcassonne_number_of_tiles-1;
+							// because the graphical information is stored dynamically in `carcassonne_full_map_layer1_graphic`,
+							// so index into `carcassonne_full_map_layer1_graphic` gives the information to draw the ctile.
+							carcassonne_full_map_layer1[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 						}
 
 					};
@@ -3243,16 +3372,29 @@ void game_loop()
 			// in relative to the current position of the cursor.
 			// The cursor is always in the middle of the screen, screen size in [ctile] unit: WxH = 12 x 9
 			// IN ACTION:
-			// Experiment with the render function in 2. 
-			carcassonne_full_map_layer1_graphic[0][0] = 11;
-			carcassonne_full_map_layer1_graphic[0][1] = 11;
-			carcassonne_full_map_layer1_graphic[0][2] = 11;
-			// carcassonne_full_map_layer1_graphic[0][3] = 11;
-			// carcassonne_full_map_layer1_graphic[0][4] = 11;
-			// carcassonne_full_map_layer1_graphic[0][5] = 11;
-			// carcassonne_full_map_layer1_graphic[0][6] = 11;
-			// carcassonne_full_map_layer1_graphic[0][7] = 11;
-			// carcassonne_full_map_layer1_graphic[0][8] = 11;
+			// Experiment with the render function in 2.
+
+			// find the first not null field.
+			u32 iter_field;
+			for (iter_field=0; iter_field<track_game_field_sz; iter_field++)
+			{
+				if (track_game_fds[iter_field].root!=NULL)
+				{
+					break;
+				}
+			}
+
+			draw_trees (track_game_fds[iter_field].root,
+						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
+			// carcassonne_full_map_layer1_graphic[0][0] = 11;
+			// carcassonne_full_map_layer1_graphic[0][1] = 11;
+			// carcassonne_full_map_layer1_graphic[0][2] = 11;
+			// // carcassonne_full_map_layer1_graphic[0][3] = 11;
+			// // carcassonne_full_map_layer1_graphic[0][4] = 11;
+			// // carcassonne_full_map_layer1_graphic[0][5] = 11;
+			// // carcassonne_full_map_layer1_graphic[0][6] = 11;
+			// // carcassonne_full_map_layer1_graphic[0][7] = 11;
+			// // carcassonne_full_map_layer1_graphic[0][8] = 11;
 			render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 			carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
 			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
