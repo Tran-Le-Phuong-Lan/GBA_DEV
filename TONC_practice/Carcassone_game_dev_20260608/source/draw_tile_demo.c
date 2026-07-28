@@ -2474,6 +2474,7 @@ void game_loop()
 	CAS_TILE_MAP carcassonne_full_map_layer1_graphic[CAR_TILES_MAX];
 	init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
 	int cur_drawn_field_idx = 0;
+	u32 prev_drawn_field=0;
 
 	// === 
 	// FEATURE REPORT 
@@ -3375,8 +3376,8 @@ void game_loop()
 			// Experiment with the render function in 2.
 
 			// find the first not null field.
-			u32 iter_field;
-			for (iter_field=0; iter_field<track_game_field_sz; iter_field++)
+			u32 iter_field=0;
+			for (iter_field=prev_drawn_field; iter_field<track_game_field_sz; iter_field++)
 			{
 				if (track_game_fds[iter_field].root!=NULL)
 				{
@@ -3386,15 +3387,28 @@ void game_loop()
 
 			draw_trees (track_game_fds[iter_field].root,
 						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
-			// carcassonne_full_map_layer1_graphic[0][0] = 11;
-			// carcassonne_full_map_layer1_graphic[0][1] = 11;
-			// carcassonne_full_map_layer1_graphic[0][2] = 11;
-			// // carcassonne_full_map_layer1_graphic[0][3] = 11;
-			// // carcassonne_full_map_layer1_graphic[0][4] = 11;
-			// // carcassonne_full_map_layer1_graphic[0][5] = 11;
-			// // carcassonne_full_map_layer1_graphic[0][6] = 11;
-			// // carcassonne_full_map_layer1_graphic[0][7] = 11;
-			// // carcassonne_full_map_layer1_graphic[0][8] = 11;
+						// DEBUG
+			// GAME_FEATURE_NODE_ptr tst = NULL;
+			// draw_trees (tst,
+			// 			carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
+
+			if (key_hit(KEY_R))
+			{
+				// reset the graphic, so that only 1 field is drawn at a time
+				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+
+				// change to another field, next time.
+				if (iter_field < (track_game_field_sz-2))
+				{
+					prev_drawn_field = iter_field+1;
+				}
+				else
+				{
+					prev_drawn_field = 0;
+				}
+				
+			}
+
 			render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 			carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
 			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
@@ -3434,6 +3448,8 @@ void game_loop()
 				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
 				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
+					// reset
+				prev_drawn_field = 0;
 			}
 		}
 
@@ -3523,12 +3539,15 @@ void game_loop()
 		s32 render_tile_idx=0, render_tile_idy=0;	
 		map_tile_to_ctile(sae_curr_x, sae_curr_y, &ctile_idx, &ctile_idy);
 		map_ctile_to_tile(ctile_idx, ctile_idy, &render_tile_idx, &render_tile_idy, true);
-
-		// tte_printf("#{es;P}ctidx/y:%ld/%ld-ectid:%ld/%ld\ntile_dx/y: %ld/%ld ctile_dx/y: %ld/%ld\nrender_tile_dx/y: %ld/%ld",
-		// 	tst_start_ct.x, tst_start_ct.y, tst_end_ct.x, tst_end_ct.y, 
-		// 	sae_curr_x, sae_curr_y,
-		// 	ctile_idx, ctile_idy,
-		// 	tst_rd_tid.x, tst_rd_tid.y);
+		
+		// tte_printf("#{es;P}tid-ct_x/y-left-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d-%d/%d\nprev_field:%d",
+		// 	rand_cat_id, ctile_idx, ctile_idy,
+		// 	carcassonne_number_of_tiles, CAR_TILES_MAX, 
+		// 	num_game_cities, num_game_fcities,
+		// 	num_game_strs, num_game_fstrs,
+		// 	num_game_fds, num_game_ffds,
+		// 	prev_drawn_field
+		// 	);
 
 		// ====
 		// to make sure that the printed text is not updated every frame!
