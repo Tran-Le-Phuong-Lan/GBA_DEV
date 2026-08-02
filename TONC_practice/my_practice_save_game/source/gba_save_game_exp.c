@@ -12,6 +12,10 @@
 // SAVE GAME
 // ==========
 #define WAITCNT_SRAM			0x0003	//set wait cycles for SRAM in WAITCNT
+// (NOT ADVISED), load saved data in SRAM from ROM code (in our case, 16-bit opcode thumb)
+void load_game(u8* loaded_arr, u32 loaded_arr_sz);
+// (ADVISED), load saved data in SRAM from WRAM code (32-bit opcode arm)
+IWRAM_CODE void load_game_wram(u8* loaded_arr, u32 loaded_arr_sz);
 
 // ===========
 // BG 0 - TEXT 
@@ -46,10 +50,6 @@ void game_loop()
 {
 	u8	count[2] = {0,0};
 
-	// Load the save state
-	count[0] = sram_mem[0];
-	count[1] = sram_mem[1];
-
 	while(1)
 	{
 		VBlankIntrWait(); // check at the end of each frame
@@ -66,6 +66,20 @@ void game_loop()
 			// save game
 			sram_mem[0] = count[0];
 			sram_mem[1] = count[1];
+
+		}
+
+		if (key_hit(KEY_SELECT))
+		{
+			// load game in SRAM from ROM code
+			load_game(count, 2);
+
+		}
+
+		if (key_hit(KEY_START))
+		{
+			// load game in SRAM from WRAM code
+			load_game_wram(count, 2);
 
 		}
 
