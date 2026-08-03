@@ -448,10 +448,10 @@ void render_cur_screen (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 ti
 	// This `render_cur_screen` renders the **bg1 reg**
 
 	// move 1 ctile step in any direction x/y -> trigger render 1 col/ 1 row
-	s32 SAFE_ZONE_R = (SCR_WIDTH_uPx -INIT_OBJ_X) /24 + 1, // [ctile], 1 ctile = 3x3 tile
-		SAFE_ZONE_L = INIT_OBJ_X /24 +1, 
-		SAFE_ZONE_T = INIT_OBJ_Y /24 +1,
-		SAFE_ZONE_B = (SCR_HEIGHT_uPx - INIT_OBJ_Y) /24 +1;
+	s32 SAFE_ZONE_R = (SCR_WIDTH_uPx -INIT_OBJ_X) /24 + 5, // [ctile], 1 ctile = 3x3 tile
+		SAFE_ZONE_L = INIT_OBJ_X /24 +5, 
+		SAFE_ZONE_T = INIT_OBJ_Y /24 +5,
+		SAFE_ZONE_B = (SCR_HEIGHT_uPx - INIT_OBJ_Y) /24 +5;
 
 	//			  false: not moved, true: moved
 	bool mv_flg = false;
@@ -3385,8 +3385,8 @@ void game_loop()
 				}
 			}
 
-			draw_trees (track_game_fds[iter_field].root,
-						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
+			// draw_trees (track_game_fds[iter_field].root,
+			// 			carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
 						// DEBUG
 			// GAME_FEATURE_NODE_ptr tst = NULL;
 			// draw_trees (tst,
@@ -3396,6 +3396,13 @@ void game_loop()
 			{
 				// reset the graphic, so that only 1 field is drawn at a time
 				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+
+				draw_trees (track_game_fds[iter_field].root,
+						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
+
+				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
+				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);				
 
 				// change to another field, next time.
 				if (iter_field < (track_game_field_sz-2))
@@ -3409,9 +3416,9 @@ void game_loop()
 				
 			}
 
-			render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
-			carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
-			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
+			// render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
+			// carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+			// &tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
 
 			// Change to decision phase
 			if (key_hit(KEY_SELECT))
@@ -3528,7 +3535,51 @@ void game_loop()
 						16 // 1 DTILE = 16 x u32
 					);
 				}
-			}	
+			}
+			// draw the field, and allow to change to another field.
+			// changing to another field by left/right shoulder button.
+			// !!! IN PROGRESS
+			// 1. choose the first field tree -> update the `carcassonne_full_map_layer1_graphic` 
+			// 2. a render function to start filling up the screen area in the bg1 according to the `carcassonne_full_map_layer1_graphic`
+			// in relative to the current position of the cursor.
+			// The cursor is always in the middle of the screen, screen size in [ctile] unit: WxH = 12 x 9
+			// IN ACTION:
+			// Experiment with the render function in 2.
+
+			// find the first not null field.
+			u32 iter_field=0;
+			for (iter_field=prev_drawn_field; iter_field<track_game_field_sz; iter_field++)
+			{
+				if (track_game_fds[iter_field].root!=NULL)
+				{
+					break;
+				}
+			}
+
+			if (key_hit(KEY_R))
+			{
+				// reset the graphic, so that only 1 field is drawn at a time
+				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+
+				draw_trees (track_game_fds[iter_field].root,
+						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
+
+				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
+				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);				
+
+				// change to another field, next time.
+				if (iter_field < (track_game_field_sz-2))
+				{
+					prev_drawn_field = iter_field+1;
+				}
+				else
+				{
+					prev_drawn_field = 0;
+				}
+				
+			}
+				
 		}
 	
 		// In this example, there is only 1 sprite of size 64 pixel x 64 pixel (= 8 TILE x 8 TILE)
