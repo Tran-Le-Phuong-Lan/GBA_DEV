@@ -1603,26 +1603,83 @@ void create_cartilemap_node (u16* flag_array, u16 flag_array_size_width, u16 fea
 		}
 	}
 }
-void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, 
+void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz,
+							GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz, 
 							u32* all_cities, u32* finished_cities)
 {
+	// This function is used for all features
+	// 1. Street (no save for finished street)
+	// 2. Field (want to save the finished field)
+	// 3. City (want to save the finished city)
+
+	s32 iter=0;
+	bool status=false;
+	*all_cities = 0;
+	
+	for(iter=0; iter<game_uf_array_sz; iter++)
+	{
+		if(game_uf_array[iter].root!=NULL)
+		{
+			*all_cities= *all_cities+1;
+			// bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
+			status = feature_complete_check (game_uf_array[iter].root);
+			if (status == true)
+			{
+				*finished_cities=*finished_cities+1;
+				*all_cities= *all_cities-1;
+
+				if ((game_f_array_sz!=0)
+					&& game_f_array == NULL)
+				{
+				// features, which the finished feature must be saved
+
+					// Move the complete (i.e finished) game cities into the finished feature array
+					if ((*finished_cities) < (game_f_array_sz+1))
+					{
+						game_f_array[(*finished_cities-1)].root =  game_uf_array[iter].root;
+					}
+					// Remove the complete cities from the unfinished feature array
+					game_uf_array[iter].root=NULL;
+
+				}
+				else
+				{
+				// features, which the finished feature can be deleted
+					// delete the complete game cities
+					// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
+					game_uf_array[iter].root=delete_whole_feature(game_uf_array[iter].root);
+				}
+								
+			}
+		}
+	}
+
+}
+void report_num_game_features_ (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, 
+							u32* all_cities, u32* finished_cities)
+{
+	// This function is used for all features
+	// 1. Street (no save for finished street)
+	// 2. Field (want to save the finished field)
+	// 3. City (want to save the finished city)
+
 	s32 iter=0;
 	bool status=false;
 	*all_cities = 0;
 	// *finished_cities=0;
-	for(iter=0; iter<game_city_array_sz; iter++)
+	for(iter=0; iter<game_uf_array_sz; iter++)
 	{
-		if(game_city_array[iter].root!=NULL)
+		if(game_uf_array[iter].root!=NULL)
 		{
 			*all_cities= *all_cities+1;
 			// bool feature_complete_check (GAME_FEATURE_NODE_ptr feature_root);
-			status = feature_complete_check (game_city_array[iter].root);
+			status = feature_complete_check (game_uf_array[iter].root);
 			if (status == true)
 			{
 				*finished_cities=*finished_cities+1;
 				// delete the complete game cities
 				// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
-				game_city_array[iter].root=delete_whole_feature(game_city_array[iter].root);
+				game_uf_array[iter].root=delete_whole_feature(game_uf_array[iter].root);
 				*all_cities= *all_cities-1;
 				
 			}
@@ -2505,7 +2562,9 @@ void game_loop()
 		// CITY
 	u16 track_game_cities_sz= 20;
 	GAME_FEATURE_NODE_START track_game_cities[track_game_cities_sz];
+	GAME_FEATURE_NODE_START track_game_fcities[track_game_cities_sz];
 	init_features_per_tilemap(track_game_cities, track_game_cities_sz);
+	init_features_per_tilemap(track_game_fcities, track_game_cities_sz);
 	u16 track_game_city_nodes_sz= 10;
 	GAME_FEATURE_NODE_ptr track_game_city_nodes[track_game_city_nodes_sz];
 	init_cartilemap_node_array(track_game_city_nodes,track_game_city_nodes_sz);
@@ -2523,9 +2582,11 @@ void game_loop()
 	u32 num_game_fstrs=0, prev_num_game_fstrs=0;
 
 		// FIELD
-	u16 track_game_field_sz= 40;
+	u16 track_game_field_sz= 40, track_game_ffield_sz=10;
 	GAME_FEATURE_NODE_START track_game_fds[track_game_field_sz];
+	GAME_FEATURE_NODE_START track_game_ffds[track_game_ffield_sz];
 	init_features_per_tilemap(track_game_fds, track_game_field_sz);
+	init_features_per_tilemap(track_game_ffds, track_game_ffield_sz);
 	u32 num_game_fds=0, prev_num_game_fds=0;
 	u32 num_game_ffds=0, prev_num_game_ffds=0;
 
@@ -2769,8 +2830,9 @@ void game_loop()
 											track_game_city_nodes, track_game_city_nodes_sz);
 			// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 			check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
-			// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-			report_num_game_features(track_game_cities, track_game_cities_sz, 
+			// void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, u32* result)
+			report_num_game_features(track_game_cities, track_game_cities_sz,
+								track_game_fcities,  track_game_cities_sz,
 								&num_game_cities, &num_game_fcities);
 
 				// STREET
@@ -2787,8 +2849,9 @@ void game_loop()
 											track_game_str_nodes, track_game_str_nodes_sz);
 			// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 			check_all_merge_possibilities(track_game_strs, track_game_strs_sz);
-			// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-			report_num_game_features(track_game_strs, track_game_strs_sz, 
+			// void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, u32* result)
+			report_num_game_features(track_game_strs, track_game_strs_sz,
+								NULL, 0, 
 								&num_game_strs, &num_game_fstrs);
 			
 				// FIELDs
@@ -2799,7 +2862,8 @@ void game_loop()
 			cur_tile_wo_wrap_coord.y = sae_curr_y;
 			track_fields_game(track_game_fds, track_game_field_sz,
 								cas_tile_map_id[0], cur_tile_wo_wrap_coord);
-			report_num_game_features(track_game_fds, track_game_field_sz, 
+			report_num_game_features(track_game_fds, track_game_field_sz,
+								track_game_ffds,  track_game_ffield_sz,
 								&num_game_fds, &num_game_ffds);
 			
 			//====
@@ -3242,8 +3306,9 @@ void game_loop()
 															track_game_city_nodes, track_game_city_nodes_sz);
 							// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 							check_all_merge_possibilities(track_game_cities, track_game_cities_sz);
-							// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-							report_num_game_features(track_game_cities, track_game_cities_sz, 
+							// void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, u32* result)
+							report_num_game_features(track_game_cities, track_game_cities_sz,
+												track_game_fcities, track_game_cities_sz, 
 												&num_game_cities, &num_game_fcities);
 								// STREET
 							// void create_cartilemap_node (u16* flag_array, u16 flag_array_size_width, u16 feature_type_idx,
@@ -3259,8 +3324,9 @@ void game_loop()
 															track_game_str_nodes, track_game_str_nodes_sz);
 							// void check_all_merge_possibilities (GAME_FEATURE_NODE_START* ftr_game_array, u16 ftr_game_array_size)
 							check_all_merge_possibilities(track_game_strs, track_game_strs_sz);
-							// void report_num_game_features (GAME_FEATURE_NODE_START* game_city_array, u16 game_city_array_sz, u32* result)
-							report_num_game_features(track_game_strs, track_game_strs_sz, 
+							// void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, u32* result)
+							report_num_game_features(track_game_strs, track_game_strs_sz,
+												NULL, 0, 
 												&num_game_strs, &num_game_fstrs);
 								
 									// FIELDs
@@ -3271,7 +3337,8 @@ void game_loop()
 							cur_tile_wo_wrap_coord.y = sae_curr_y;
 							track_fields_game(track_game_fds, track_game_field_sz,
 												cas_tile_map_id[rand_cat], cur_tile_wo_wrap_coord);
-							report_num_game_features(track_game_fds, track_game_field_sz, 
+							report_num_game_features(track_game_fds, track_game_field_sz,
+												track_game_ffds, track_game_ffield_sz, 
 												&num_game_fds, &num_game_ffds);
 							
 							//====
