@@ -111,6 +111,10 @@ GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
     // return NULL, regardless the delete process is successful or not.
 void delete_node (GAME_FEATURE_NODE_ptr node);
 
+GAME_FEATURE_NODE_ptr node_exist_return_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
+    // return pointer to node, if node already exists in the feature; otherwise,
+    // return NULL
+
 extern GAME_FEATURE_NODE end_node;
 extern u32 number_tile_in_vram;
 extern GAME_FEATURES tile_vram_description[29];
