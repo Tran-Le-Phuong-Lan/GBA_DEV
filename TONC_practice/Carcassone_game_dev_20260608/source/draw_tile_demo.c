@@ -2523,7 +2523,6 @@ void draw_trees_field (GAME_FEATURE_NODE_ptr feature_root,
 u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_layer1_graphic,
 						GAME_FEATURE_NODE_START* fcity_arr, u16 fcity_arr_sz)
 {
-	// !!!! IN PROGRESS
 
 	// the city node has the 2D coordinate of the carcarssonne game tile coordinate (x:0->90; y:0->90)
 	u32 num_fcities=0;
@@ -2568,15 +2567,59 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 						// -> compare to the field graphic
 						// if overlap, set encouter[iter_fc]=1 && num_fcities+1;
 						// otherwise, do nothing
+							// set encouter[iter_fc]=1
+						if (found_node->child_top_lk != &end_node)
+						{
+							if(car_fmap_layer1_graphic[iter_field][0]==11
+								|| car_fmap_layer1_graphic[iter_field][1]==11
+								|| car_fmap_layer1_graphic[iter_field][2]==11)
+							{
+								encountered_fcities[iter_fc]=1; 
+							}
+						}
+						if (found_node->child_r_lk != &end_node)
+						{
+							if(car_fmap_layer1_graphic[iter_field][2]==11
+							|| car_fmap_layer1_graphic[iter_field][5]==11
+							|| car_fmap_layer1_graphic[iter_field][8]==11)
+							{
+								encountered_fcities[iter_fc]=1; 
+							}
+						}
+						if (found_node->child_bot_lk != &end_node)
+						{
+							if(car_fmap_layer1_graphic[iter_field][6]==11
+							|| car_fmap_layer1_graphic[iter_field][7]==11
+							|| car_fmap_layer1_graphic[iter_field][8]==11)
+							{
+								encountered_fcities[iter_fc]=1; 
+							}
+						}
+						if (found_node->child_l_lk != &end_node)
+						{
+							if(car_fmap_layer1_graphic[iter_field][0]==11
+							|| car_fmap_layer1_graphic[iter_field][3]==11
+							|| car_fmap_layer1_graphic[iter_field][6]==11)
+							{
+								encountered_fcities[iter_fc]=1; 
+							}
+						}
+						// num_fcities+1 ?
+						if (encountered_fcities[iter_fc]==1)
+						{
+							num_fcities = num_fcities +1;
+						}
+						
 					}
+				
 				}
 				
-
 			}
 				 
 		}
 
 	}
+	return (num_fcities*3);
 
 }
 
@@ -2599,6 +2642,7 @@ void game_loop()
 	init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
 	int cur_drawn_field_idx = 0;
 	u32 prev_drawn_field=0;
+	u32 field_points =0, prev_field_points =0;
 
 	// === 
 	// FEATURE REPORT 
@@ -3499,7 +3543,6 @@ void game_loop()
 
 			// draw the field, and allow to change to another field.
 			// changing to another field by left/right shoulder button.
-			// !!! IN PROGRESS
 			// 1. choose the first field tree -> update the `carcassonne_full_map_layer1_graphic` 
 			// 2. a render function to start filling up the screen area in the bg1 according to the `carcassonne_full_map_layer1_graphic`
 			// in relative to the current position of the cursor.
@@ -3534,7 +3577,13 @@ void game_loop()
 
 				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
-				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);				
+				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);	
+				
+				// count the fcity points in the current field
+					// u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_layer1_graphic,
+					// 		GAME_FEATURE_NODE_START* fcity_arr, u16 fcity_arr_sz)
+				field_points = count_field_points (carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic,
+						track_game_fcities, track_game_cities_sz);
 
 				// change to another field, next time.
 				if (iter_field < (track_game_field_sz-2))
@@ -3589,6 +3638,7 @@ void game_loop()
 				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
 					// reset
 				prev_drawn_field = 0;
+				field_points = 0;
 			}
 		}
 
@@ -3670,7 +3720,6 @@ void game_loop()
 			}
 			// draw the field, and allow to change to another field.
 			// changing to another field by left/right shoulder button.
-			// !!! IN PROGRESS
 			// 1. choose the first field tree -> update the `carcassonne_full_map_layer1_graphic` 
 			// 2. a render function to start filling up the screen area in the bg1 according to the `carcassonne_full_map_layer1_graphic`
 			// in relative to the current position of the cursor.
@@ -3811,6 +3860,7 @@ void game_loop()
 			|| prev_ctile_coord.y != ctile_idy
 			|| prev_num_game_fds!=num_game_fds
 			|| prev_num_game_ffds!=num_game_ffds
+			|| prev_field_points != field_points
 			) 
 		{
 		// cpt =city per tile
@@ -3826,13 +3876,19 @@ void game_loop()
 		// 	amount_type_features_percatile[str_idx],eoflgs[str_idx*4+0], eoflgs[str_idx*4+1], eoflgs[str_idx*4+2], eoflgs[str_idx*4+3]
 		// 	);
 		
-		tte_printf("#{es;P}tid-ct_x/y-left-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d-%d/%d",
+		tte_printf("#{es;P}tid-ct_x/y-left-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d-%d/%d\nfield points:%d",
 			rand_cat_id, ctile_idx, ctile_idy,
 			carcassonne_number_of_tiles, CAR_TILES_MAX, 
 			num_game_cities, num_game_fcities,
 			num_game_strs, num_game_fstrs,
-			num_game_fds, num_game_ffds
+			num_game_fds, num_game_ffds,
+			field_points
 			);
+		
+		// POINT COUNT
+		prev_field_points = field_points;
+
+		// TRACKING
 		
 		// no need to update the rand_cat_id, 
 		// because it is updated automatically with `num_game_cities`  
