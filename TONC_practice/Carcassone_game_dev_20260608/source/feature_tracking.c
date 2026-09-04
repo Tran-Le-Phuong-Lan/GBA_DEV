@@ -990,7 +990,7 @@ bool node_exist (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_n
     return false;
 }
 
-GAME_FEATURE_NODE_ptr node_exist_return_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node)
+GAME_FEATURE_NODE_ptr node_exist_return_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr input_node, GAME_FEATURE_NODE_ptr *found_node)
     // return pointer to node, if node already exists in the feature; otherwise,
     // return NULL
 {
@@ -999,30 +999,31 @@ GAME_FEATURE_NODE_ptr node_exist_return_node (GAME_FEATURE_NODE_ptr feature_root
         return NULL;
     }
 
-    if ((feature_root->tx==new_node->tx) 
-        && (feature_root->ty==new_node->ty))
+    if ((feature_root->tx==input_node->tx) 
+        && (feature_root->ty==input_node->ty))
     {
+        *found_node = feature_root;
         return feature_root;
     }
 
-    if (node_exist(feature_root->child_top_lk, new_node))
+    if (node_exist_return_node(feature_root->child_top_lk, input_node, found_node))
     {
-        return feature_root;
+        return feature_root->child_top_lk;
     }
     
-    if (node_exist(feature_root->child_r_lk, new_node))
+    if (node_exist_return_node(feature_root->child_r_lk, input_node, found_node))
     {
-        return feature_root;
+        return feature_root->child_r_lk;
     }
 
-    if (node_exist(feature_root->child_bot_lk, new_node))
+    if (node_exist_return_node(feature_root->child_bot_lk, input_node, found_node))
     {
-        return feature_root;
+        return feature_root->child_bot_lk;
     }
 
-    if (node_exist(feature_root->child_l_lk, new_node))
+    if (node_exist_return_node(feature_root->child_l_lk, input_node, found_node))
     {
-        return feature_root;
+        return feature_root->child_l_lk;
     }
 
     return NULL;

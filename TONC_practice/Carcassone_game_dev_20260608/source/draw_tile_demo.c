@@ -2551,17 +2551,17 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 			ctile_map_x = car_fmap_layer1[iter_field].car_map_coord % CAR_MAP_WIDTH_x;
 			ctile_map_y = car_fmap_layer1[iter_field].car_map_coord / CAR_MAP_WIDTH_x;
 			GAME_FEATURE_NODE_ptr temp_node = create_node(ctile_map_x, ctile_map_y, 0, NA_FEATURE, NA_DIR);
-			GAME_FEATURE_NODE_ptr found_node =NULL;
+			GAME_FEATURE_NODE_ptr found_node_cond =NULL, found_node=NULL;
 			u32 iter_fc=0;
-			for (iter_fc=0; iter_fc<20; iter_fc++)
+			for (iter_fc=0; iter_fc<fcity_arr_sz; iter_fc++)
 			{
 				if (encountered_fcities[iter_fc]==0)
 				{
-					found_node = node_exist_return_node(fcity_arr[iter_fc].root, temp_node);
+					found_node_cond = node_exist_return_node(fcity_arr[iter_fc].root, temp_node, &found_node);
 					// delete the temp node
 					delete_node(temp_node);
 
-					if (found_node!=NULL)
+					if (found_node_cond !=NULL)
 					{
 						// check the found node is open
 						// -> compare to the field graphic
@@ -2574,7 +2574,11 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 								|| car_fmap_layer1_graphic[iter_field][1]==11
 								|| car_fmap_layer1_graphic[iter_field][2]==11)
 							{
-								encountered_fcities[iter_fc]=1; 
+								encountered_fcities[iter_fc]=1;
+									// DEBUG
+								car_fmap_layer1_graphic[iter_field][0]=10;
+								car_fmap_layer1_graphic[iter_field][1]=10;
+								car_fmap_layer1_graphic[iter_field][2]=10; 
 							}
 						}
 						if (found_node->child_r_lk != &end_node)
@@ -2583,7 +2587,11 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 							|| car_fmap_layer1_graphic[iter_field][5]==11
 							|| car_fmap_layer1_graphic[iter_field][8]==11)
 							{
-								encountered_fcities[iter_fc]=1; 
+								encountered_fcities[iter_fc]=1;
+									// DEBUG
+								car_fmap_layer1_graphic[iter_field][2]=10;
+								car_fmap_layer1_graphic[iter_field][5]=10;
+								car_fmap_layer1_graphic[iter_field][8]=10; 
 							}
 						}
 						if (found_node->child_bot_lk != &end_node)
@@ -2592,7 +2600,11 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 							|| car_fmap_layer1_graphic[iter_field][7]==11
 							|| car_fmap_layer1_graphic[iter_field][8]==11)
 							{
-								encountered_fcities[iter_fc]=1; 
+								encountered_fcities[iter_fc]=1;
+									// DEBUG
+								car_fmap_layer1_graphic[iter_field][6]=10;
+								car_fmap_layer1_graphic[iter_field][7]=10;
+								car_fmap_layer1_graphic[iter_field][8]=10; 
 							}
 						}
 						if (found_node->child_l_lk != &end_node)
@@ -2601,10 +2613,14 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 							|| car_fmap_layer1_graphic[iter_field][3]==11
 							|| car_fmap_layer1_graphic[iter_field][6]==11)
 							{
-								encountered_fcities[iter_fc]=1; 
+								encountered_fcities[iter_fc]=1;
+									// DEBUG
+								car_fmap_layer1_graphic[iter_field][0]=10;
+								car_fmap_layer1_graphic[iter_field][3]=10;
+								car_fmap_layer1_graphic[iter_field][6]=10; 
 							}
 						}
-						// num_fcities+1 ?
+							// num_fcities+1 ?
 						if (encountered_fcities[iter_fc]==1)
 						{
 							num_fcities = num_fcities +1;
@@ -3747,7 +3763,13 @@ void game_loop()
 
 				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
-				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);				
+				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);	
+				
+				// count the fcity points in the current field
+					// u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_layer1_graphic,
+					// 		GAME_FEATURE_NODE_START* fcity_arr, u16 fcity_arr_sz)
+				field_points = count_field_points (carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic,
+						track_game_fcities, track_game_cities_sz);
 
 				// change to another field, next time.
 				if (iter_field < (track_game_field_sz-2))

@@ -111,9 +111,10 @@ GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
     // return NULL, regardless the delete process is successful or not.
 void delete_node (GAME_FEATURE_NODE_ptr node);
 
-GAME_FEATURE_NODE_ptr node_exist_return_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr new_node);
-    // return pointer to node, if node already exists in the feature; otherwise,
+GAME_FEATURE_NODE_ptr node_exist_return_node (GAME_FEATURE_NODE_ptr feature_root, GAME_FEATURE_NODE_ptr input_node, GAME_FEATURE_NODE_ptr *found_node);
+    // return pointer to node, if input_node already exists in the feature; otherwise,
     // return NULL
+    // The exact matched node to the input_node is returned in found_node
 
 extern GAME_FEATURE_NODE end_node;
 extern u32 number_tile_in_vram;
