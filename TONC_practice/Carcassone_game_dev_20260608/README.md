@@ -1,3 +1,17 @@
+# Convention
+
+- The technical term for programming graphic in GBA system is tile (the same as in TONC document). The carcassonne game tile is called `tiles_gbcMap_v2` as in [tiles-walllite.s](./source/tiles-walllite.s) or game tile map or 9-tile map.
+
+- The graphical tile idx order on a carcassonne game tile
+
+```
+0 1 2
+3 4 5
+6 7 8
+```
+
+# Game Background, and cursor
+
 - Mode 1: bg 0 - reg, bg 1 - reg, bg 2 - aff, bg 3 - not used
 
 - bg2 -aff = carcassonne game background, linear map layout (using array row*w + col for addressing SE), 256 color pallete only
@@ -253,7 +267,7 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
         4. based on 1. and 2., a function to map ctile to tile: for rendering when the bg rolls.
 
-- **IMPORTANT**: bg1 has not been rolled to the same position as bg2 yet, at the moment (by default) bg1 top left corner = screen top left corner (while bg2 due to the game development, it has been rolled to another position). **Regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp**.
+# Feature tracking (street, city, field)
 
 - To implement the feature tracking (street, city, church, field) in carcassonne games:
 
@@ -264,24 +278,22 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
     a feature (city, street, field) tree-like data structure. Each node has ID = SE id; parent: top link, bot link, right link, left link; child: top/bot/right/left link. There are two special node: Start node (pointing to the root node of the whole feature), End node (indicating the end of the feature in a certain direction).
 
     **Actions:** 
+
+    - **Commond rules**
+
+        1. time chronical respect: later added node into an existing structure must be child of other existent nodes in the structure.
         
     1. create the new node: initialize all of the child links to NULL, **except:** if that direction is END (i.e feature can not expand in that direction) then the child link to the END direction is initiated to END node.
 
     2. insert the new node: into the feature structure based on the adjacent position to the exisitng nodes, for example whether the new node is adjacent to top/ right/ bot/ left of any exisiting node, then the exsisitng node child link in that direction points to the new node.
 
-    3. Finish linking: check the NULL direction of the new node, if any exisiting node has the same position to that NULL direction, then the new node child link in that direction points to the exisitng node.
+    3. Finish linking: Link appropriate child links of other existent nodes in the structure to the added new node.
 
-    4. Checking whether exisitng feature structure can be merged together: for example, feature 3 checked against feature 2, if mergable  then merge, the merged feature is then checked against feature 1, etc.
+    4. Merging algorithm: an existent feature structure is used as reference - called structure ref, another existent structure- called structure 2- will be rebuilt to be integrated into the reference structure. The procedure: during the traversing of structure 2 (must be along the child link), at leaf node of structure 2, check whether it could be linked (i.e merged) to the reference structure. If yes, the leaf node from structure 2 is linked as a new child node into the appropriate position in structure ref, and being cut from from structure 2. If no, the algorithm recurse back to the leaf parent, and the same merge check applied to the leaf parent node. If this leaf parent node is linked as a child to the sturcture ref and being cut off from structure 2, all of its children also become childrens of the structure reference. Therfore the if the structure 2 is mergeable with structure ref, with this merge algorithm, the structure 2 is integrated into the structure reference with all of the nodes in the final merge structure respecting the commond rules.   
 
-    5. Perform only on the merged feature: starting from the merging node, the parent and child link must be switched (so that the starting point of one of the merge feature is kept) -> then, all the nodes of the feature whose parent and child link is swapped must be relink to the other feature: perform step 3- finish linking- for every node of the feature with parent and child swapping against the other feature.
+    5. Checking the finishing state of the exisitng feature. the direction with END node or with exisiting parent link is finished. if all direction top/right/bot/left of the feature is finished, then the feature is complete.
 
-    6. Checking the finishing state of the exisitng feature, especially the one whose has just been merged. the direction with END node or with exisiting parent link is finished. if all direction top/right/bot/left of the root node of the feature is finished, then the feature is complete.
-
-    7. Checking the feature on a signal carcasonne tile (i.e carcassonne maps in this context) -> to check whether the feature open/end on which direction, for example, for the right most direction, searching for the node on the most right direction = node x-coord largest among all the nodes in the feature, then check their right child link, if the right child link = end/ open, then the feature is end/ open on the right most direction on that carcasonne tile. => we only need to store the carcasonne tile node: on this carcasonne tile coord, we have a city for example open/end on the right most direction.
-
-    **Counting points of finish cities within the owned field**
-    
-    Possible solution: any finish city -> save only the four corner coordinates -> check whether one of these coordinates falls within the area defined by the field. The field area must be converted to ctile (carcassonne tile) unit.
+    6. Only for Street and City: a node in a city- or street- feature structure represents one carcassonne game tile (i.e 9-tile map in the code context). If on a carcassonne game tile has 1 city open to top and/or bottom and/or left and/or right, then a node opening to corresponding opening directions is created, its location (i.e coordinate) is the carcassonne game tile location (i.e the conceptual 2D coordinate x & y map for the game, in the section **Game Background, and cursor** above). If on a carcassone game tile has 2 independents cities, then two independent nodes with the same location are created, and because of the carcassonne game design, the two node will have the opposite opening directions. **The city/ street node DOES NOT have the infomation of graphical tile IDs (the ID defined in [`tiles_gbcMap_v2`](./source/tiles-walllite.s)), of which it is made.**
 
 - **game data feature**
 
@@ -300,6 +312,24 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 | 24 - city             | if linked through child  right/ bot -> right/ bot  **(a)**// if linked through child top/ left-> top/ left **(c)**             |
 | 25 - city             | if linked through child bot/ left-> bot/ left **(b)**// if linked through child top/ right-> top/ right **(d)**            |
 
+# POINT COUNTS
+
+- **IMPORTANT**: bg1 has not been rolled to the same position as bg2 yet, at the moment (by default) bg1 top left corner = screen top left corner (while bg2 due to the game development, it has been rolled to another position). **Regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp**.
+
+    - The bg1 is already implemented as BG 1, regular, 8bpp. The bg1 is already rolled to the same initial position as bg2 affine. The bg1 has tile set defined in [`tiles-bg1.h`](./source/tiles-bg1.h) and[`tiles-bg1.s`](./source/tiles-bg1.s).
+
+    - The bg1 shares the already loaded palette of bg2.
+
+    - The bg1 at the moment is used for indicating each field area existing on the carcassone game.
+
+- **Counting points of finish cities within a field**
+    
+    Solution: there is a graphical tile information array for each field. For each finished city, a node is check whether it belongs to a carcassonne game tile where the current field is examined through the graphical information array. If yes, based on the opening of the city node, we could know which tile indices on the carcassonne game tile map belong to the finished city, and whether they are also belong to the examined field. If yes, then the city belong the field, and field points are counted for that finished city,
+
+# General C language
+
 - if a standard `.c` lib is included more than twice, there is no problem, because it is always guarded by `#ifndef .. #define .. #endif`?
 
     - sources [1](https://www.quora.com/In-C-language-if-we-include-the-same-header-file-twice-what-will-happen), [2](https://stackoverflow.com/questions/38504840/is-there-a-reason-why-someone-would-include-stdlib-h-twice), [3](https://softwareengineering.stackexchange.com/questions/384775/is-it-a-bad-practice-to-include-stdlib-header-file-from-a-header-file-correspond).
+
+- the guarded `#ifndef .. #define .. #endif` in a `.c` lib, in modern c compilers, can be replaced with the directive `# pragma once`
