@@ -267,7 +267,9 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
         4. based on 1. and 2., a function to map ctile to tile: for rendering when the bg rolls.
 
-# Feature tracking (street, city, field)
+# Feature tracking
+
+- To track all strees, cities, fields created during the games
 
 - To implement the feature tracking (street, city, church, field) in carcassonne games:
 
@@ -293,11 +295,11 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
     5. Checking the finishing state of the exisitng feature. the direction with END node or with exisiting parent link is finished. if all direction top/right/bot/left of the feature is finished, then the feature is complete.
 
-    6. Only for Street and City: a node in a city- or street- feature structure represents one carcassonne game tile (i.e 9-tile map in the code context). If on a carcassonne game tile has 1 city open to top and/or bottom and/or left and/or right, then a node opening to corresponding opening directions is created, its location (i.e coordinate) is the carcassonne game tile location (i.e the conceptual 2D coordinate x & y map for the game, in the section **Game Background, and cursor** above). If on a carcassone game tile has 2 independents cities, then two independent nodes with the same location are created, and because of the carcassonne game design, the two node will have the opposite opening directions. **The city/ street node DOES NOT have the infomation of graphical tile IDs (the ID defined in [`tiles_gbcMap_v2`](./source/tiles-walllite.s)), of which it is made.**
+    6. Only for Street and City: a node in a city- or street- feature structure represents one carcassonne game tile (i.e 9-tile map in the code context). If on a carcassonne game tile has 1 city open to top and/or bottom and/or left and/or right, then a node opening to corresponding opening directions is created, its location (i.e coordinate) is the carcassonne game tile location (i.e the conceptual 2D coordinate x & y map for the game, in the section **Game Background, and cursor** above). If on a carcassone game tile has 2 independents cities, then two independent nodes with the same location are created, and because of the carcassonne game design, the two node will have the opposite opening directions. **The city/ street node DOES have the infomation of graphical game tile IDs (the ID defined in [`tiles_gbcMap_v2`](./source/carcas_data.s)), of which it is made.**
 
-- **game data feature**
+- **tile data feature**
 
-| TID in VRAM - type    | END DIR (x = no end in all direction)|
+| [TID in VRAM][link] - type    | END DIR (x = no end in all direction)|
 | --------              | -------               |
 | 14 - city             | x                     |
 | 15 - city             | right/ bot **(a)**               |
@@ -310,11 +312,13 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 | 22 - city             | bot/ left   **(b)**           |
 | 23 - city             | x               |
 | 24 - city             | if linked through child  right/ bot -> right/ bot  **(a)**// if linked through child top/ left-> top/ left **(c)**             |
-| 25 - city             | if linked through child bot/ left-> bot/ left **(b)**// if linked through child top/ right-> top/ right **(d)**            |
+| 25 - city             | if linked through child bot/ left-> bot/ left **(b)**// if linked through child top/ right-> top/ right **(d)**|
 
-# POINT COUNTS
+[link]: ./source/tiles-walllite.h 
 
-- **IMPORTANT**: bg1 has not been rolled to the same position as bg2 yet, at the moment (by default) bg1 top left corner = screen top left corner (while bg2 due to the game development, it has been rolled to another position). **Regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp**.
+# Point Counts
+
+- **IMPORTANT**: (by default) bg1 top left corner = screen top left corner (while bg2 due to the game development, it has been rolled to another position). **Regular background SE is always 16-bit, whether reg background is 4bpp/ 8pp**.
 
     - The bg1 is already implemented as BG 1, regular, 8bpp. The bg1 is already rolled to the same initial position as bg2 affine. The bg1 has tile set defined in [`tiles-bg1.h`](./source/tiles-bg1.h) and[`tiles-bg1.s`](./source/tiles-bg1.s).
 
@@ -322,9 +326,50 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
     - The bg1 at the moment is used for indicating each field area existing on the carcassone game.
 
+- To display a field
+
+    - use 2 arrays
+
+        - `carcassonne_full_map_layer1`: each element to contain the game tile location (`.car_map_coord`) and its index (`.car_tid`) into the corresponding field graphic stored in `carcassonne_full_map_layer1_graphic`
+
+        - `carcassonne_full_map_layer1_graphic`: each element to store the graphical tile by tile (9 tiles) of the game tiles constituting the current field.
+
 - **Counting points of finish cities within a field**
     
     Solution: there is a graphical tile information array for each field. For each finished city, a node is check whether it belongs to a carcassonne game tile where the current field is examined through the graphical information array. If yes, based on the opening of the city node, we could know which tile indices on the carcassonne game tile map belong to the finished city, and whether they are also belong to the examined field. If yes, then the city belong the field, and field points are counted for that finished city,
+
+- **Counting points for cities, streets**
+
+    - as mentioned in [section Feature tracking](#Feature-tracking), each node in the city/ street structure contains the carcassonne game tile ID. [The carcassonne game data] contains **the game tile IDs** and **their visual description in words**, and [their rotations are in another file][The carcassonne game data rotation]. All of carcassonne game data and their rotations are translated, and stored in the [assembly file][The carcassonne game data in assembly] without the visual description in words. **The game tile ID in [The carcassonne game data] and [their rotations][The carcassonne game data rotation] are the same**. **The visual images of each game tile ID** (but no corresponding IDs to the [The carcassonne game data]) are in the [The carcassonne game tile images]. **HOWEVER**, the game tile ID in [assembly file][The carcassonne game data in assembly] corresponds to the game tile id in [The carcassonne game data] as the [table-1](#table-1).
+
+    <!-- Anchor Target -->
+    <a id="table-1"></a>
+    |   GTID in assembly|   GITD in excel data|
+    |   ----|   ----|
+    |**0**  |   **17**|
+    |**1**  |   **1**|
+    |2  |   2|
+    |3  |   3|
+    |.. |   ..|
+    |16 |   16|
+    |**17** |   **18**|
+    |18 |   19|
+    |19 |   20|
+    |20 |   21|
+    |.. |   ..|
+    |31 |   32|   
+
+
+    [The carcassonne game data]: ../../Carcassone_Data/carcassonne-tiles.xlsx
+    [The carcassonne game data rotation]: ../../Carcassone_Data/tile-map.xlsx
+    [The carcassonne game data in assembly]: ./source/carcas_data.s
+    [The carcassonne game tile images]: ../../Carcassone_Data/CarcassoneTileGraphics.jpeg  
+
+    - each node in city/street has their node id = the `rand_cat_id`. The game tile id without including its rotation relatives is `rand_cat_id` (i.e *CARCAS CAT TILE* - carcassonne category tile), while `rand_cat` indicates the game tile id with its rotation relatives (i.e exacetly the same idexing as in [`tiles_gbcMap_v2`](./source/carcas_data.s)). **Values of `rand_cat_id` = game tile IDs in [the assembly version of the game data][The carcassonne game data in assembly]. THIS IS WHAT USED IN THE GAME DEVELOPMENT.**
+
+    -  
+    
+
 
 # General C language
 

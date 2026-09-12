@@ -1607,12 +1607,17 @@ void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_
 							GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz, 
 							u32* all_cities, u32* finished_cities)
 {
-	// This function is used for all features
-	// 1. Street (no save for finished street)
-	// 2. Field (want to save the finished field)
-	// 3. City (want to save the finished city)
+	// TODO
 
-	s32 iter=0;
+	// This function is used for all features
+	// 1. Street (no save for finished street) 
+	// = (game_f_array=NULL, game_f_array_sz= 0)
+	// 2. Field (want to keep the finished field in the original array) 
+	// = (game_f_array=NULL, game_f_array_sz= any integer)
+	// 3. City (want to save the finished city in a seperate array) 
+	// = (game_f_array!=NULL, game_f_array_sz > 5)
+
+	s32 iter=0, iter_game_f_array=0;
 	bool status=false;
 	*all_cities = 0;
 	
@@ -1626,7 +1631,7 @@ void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_
 			if (status == true)
 			{
 
-				if ((game_f_array_sz!=0)
+				if ((game_f_array_sz > 5)
 					&& (game_f_array != NULL))
 				{
 					*finished_cities=*finished_cities+1;
@@ -1650,6 +1655,21 @@ void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_
 					// delete the complete game cities
 					// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
 					game_uf_array[iter].root=delete_whole_feature(game_uf_array[iter].root);
+				}
+				else if ((game_f_array_sz < 5)
+					&& (game_f_array != NULL))
+				{
+					*finished_cities=*finished_cities+1;
+					*all_cities= *all_cities-1;
+					// features, which the finished feature must be saved
+					// Move the complete (i.e finished) game cities into the finished feature array
+					if (iter_game_f_array < game_f_array_sz)
+					{
+						game_f_array[iter_game_f_array].root =  game_uf_array[iter].root;
+						iter_game_f_array = iter_game_f_array +1;
+					}
+					// Remove the complete cities from the unfinished feature array
+					game_uf_array[iter].root=NULL;
 				}
 				else
 				{
@@ -2639,6 +2659,411 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 
 }
 
+u32 traverse_and_count(GAME_FEATURE_NODE_ptr feature_root, DIRECTION parent_dir, GAME_FEATURES feature,
+						GAME_FEATURE_NODE_ptr street_junc_tile_node_arr, u16 street_junc_tile_node_arr_sz)
+{
+	//TODO
+	u32 total =0;
+	DIRECTION parent_dir_info = parent_dir;
+	// similar to the `delete_whole_feature`, accumulate from leaf-nodes to root-node
+	// copy and modified from `delete_whole_feature`
+    if(feature_root == NULL || feature_root->game_feature == END_FEATURE)
+    {
+        return 0;
+    }
+
+	total= total + traverse_and_count(feature_root->child_top_lk, BOT, feature, 
+										street_junc_tile_node_arr, street_junc_tile_node_arr_sz);
+	total= total + traverse_and_count(feature_root->child_r_lk, LEFT, feature, 
+										street_junc_tile_node_arr, street_junc_tile_node_arr_sz);
+	total= total + traverse_and_count(feature_root->child_bot_lk, TOP, feature, 
+										street_junc_tile_node_arr, street_junc_tile_node_arr_sz);
+	total= total + traverse_and_count(feature_root->child_l_lk, RIGHT, feature, 
+										street_junc_tile_node_arr, street_junc_tile_node_arr_sz);
+
+	switch (feature)
+	{
+		case CITY:
+			{
+				
+				// using game tile id in the assembly file `carcas_data.s`
+				/*
+				Game tile ID contains emblem:
+					for GTID (game tile id > 17). 
+				GTID with in excel - 1 = GTID in the assembly 
+				20-1
+				22-1
+				24-1
+				26-1
+				27-1
+				29-1
+				32-1
+				*/
+				if ((feature_root->car_tid == (20-1))
+					|| (feature_root->car_tid == (22-1))
+					|| (feature_root->car_tid == (24-1))
+					|| (feature_root->car_tid == (26-1))
+					|| (feature_root->car_tid == (27-1))
+					|| (feature_root->car_tid == (29-1))
+					|| (feature_root->car_tid == (32-1)))
+				{
+					// each game tile in a finished city counts as 2.
+					// each game tile with emblem in a finished city counts as 4.
+					total = total + 2; 
+				}
+				else if ( // same as street, there are city junctions, for which can be wrongly counted multiple times.
+					feature_root->car_tid == 13
+					|| feature_root->car_tid == 14
+					|| feature_root->car_tid == 15
+					|| feature_root->car_tid == 16)
+				{
+					u32 iter_strjuc_arr=0;
+					for (iter_strjuc_arr=0; iter_strjuc_arr< street_junc_tile_node_arr_sz; iter_strjuc_arr++)
+					{
+						if (street_junc_tile_node_arr[iter_strjuc_arr].tx == -1)
+							break;
+					}
+
+					if (iter_strjuc_arr == street_junc_tile_node_arr_sz)
+					{
+						// all of the possible different city junction node already registered.
+						total = total+0;
+					}
+					else
+					{
+						// check whether the current city junction node already registered?
+						u32 iter_exist =0;
+						for (iter_exist=0; iter_exist< (iter_strjuc_arr+1); iter_exist++)
+						{
+							if ((street_junc_tile_node_arr[iter_exist].car_tid == feature_root->car_tid)
+								&& (street_junc_tile_node_arr[iter_exist].tx == feature_root->tx)
+								&& (street_junc_tile_node_arr[iter_exist].ty == feature_root->ty))
+								break;
+						}
+						
+						if (iter_exist == (iter_strjuc_arr+1))
+						{
+							// register the current street junction node
+							street_junc_tile_node_arr[iter_strjuc_arr].car_tid = feature_root->car_tid;
+							street_junc_tile_node_arr[iter_strjuc_arr].tx = feature_root->tx;
+							street_junc_tile_node_arr[iter_strjuc_arr].ty = feature_root->ty;
+							// count the node
+							total = total+1;
+						}
+						else
+						{
+							// the current street junction node already registered
+							// not count the node
+							total = total+0;
+						}
+							
+					}
+
+				}
+				else
+				{
+					total = total+1;
+				}
+				break;
+			}
+		case STREET:
+			{				
+				// if the same street junction game tile id
+				// are at the same location in the same structure 
+				// (due to how the street nodes are created for street junction game tile in the tracking algorithm,
+				// and when street structure with these special nodes are merged), 
+				// it must be acounted only 1 time.
+				// By passing in the `street_junc_tiles_coord` = (-1, -1),
+				// the street junc game tile at the same location will be counted only once,
+				// for its first time encountered;
+				// later encounter of it in the same structure is skipped,
+				// due to its location already registered in `street_junc_tiles_coord`.
+				/*
+				Game tile id contain street junctions:
+					for GTID (0< game tile id < 17)
+				GTID with in excel = GTID in the assembly 
+				5
+				6
+					for GTID (game tile id > 17)
+				GTID with in excel - 1 = GTID in the assembly 
+				18-1
+				*/
+				
+				if (feature_root->car_tid == (18-1)
+					|| feature_root->car_tid == 6
+					|| feature_root->car_tid == 5)
+				{
+					u32 iter_strjuc_arr=0;
+					for (iter_strjuc_arr=0; iter_strjuc_arr< street_junc_tile_node_arr_sz; iter_strjuc_arr++)
+					{
+						if (street_junc_tile_node_arr[iter_strjuc_arr].tx == -1)
+							break;
+					}
+
+					if (iter_strjuc_arr == street_junc_tile_node_arr_sz)
+					{
+						// all of the possible different street junction node already registered.
+						total = total+0;
+					}
+					else
+					{
+						// 	// DEBUG
+						// if (iter_strjuc_arr == 0)
+						// {
+						// 	total = total + 10;
+						// 	// 	register the current street junction node
+						// 	street_junc_tile_node_arr[iter_strjuc_arr].car_tid = feature_root->car_tid;
+						// 	street_junc_tile_node_arr[iter_strjuc_arr].tx = feature_root->tx;
+						// 	street_junc_tile_node_arr[iter_strjuc_arr].ty = feature_root->ty;
+						// }
+						// else if (iter_strjuc_arr == 1) 
+						// {
+						// 	if ((street_junc_tile_node_arr[0].tx != feature_root->tx)
+						// 		|| (street_junc_tile_node_arr[0].ty != feature_root->ty))
+						// 	{
+						// 		total = total + 20;
+						// 	}
+						// 	else if ((street_junc_tile_node_arr[0].tx == feature_root->tx)
+						// 		&& (street_junc_tile_node_arr[0].ty == feature_root->ty))
+						// 	{
+						// 		total = total + 30;
+						// 	}
+						// 	else
+						// 	{
+						// 		total = total + 40;
+						// 	}
+						// }
+						// else
+						// {
+						// 	total = total + 30;
+						// }
+
+							// RELEASE
+						// check whether the current street junction node already registered?
+						u32 iter_exist =0;
+						for (iter_exist=0; iter_exist< (iter_strjuc_arr+1); iter_exist++)
+						{
+							if ((street_junc_tile_node_arr[iter_exist].car_tid == feature_root->car_tid)
+								&& (street_junc_tile_node_arr[iter_exist].tx == feature_root->tx)
+								&& (street_junc_tile_node_arr[iter_exist].ty == feature_root->ty))
+								break;
+						}
+						
+						if (iter_exist == (iter_strjuc_arr+1))
+						{
+							// register the current street junction node
+							street_junc_tile_node_arr[iter_strjuc_arr].car_tid = feature_root->car_tid;
+							street_junc_tile_node_arr[iter_strjuc_arr].tx = feature_root->tx;
+							street_junc_tile_node_arr[iter_strjuc_arr].ty = feature_root->ty;
+							// count the node
+							total = total+1;
+						}
+						else
+						{
+							// the current street junction node already registered
+							// not count the node
+							total = total+0;
+						}
+							
+					}
+
+				}
+				else
+				{
+					// each game tile in a finished/unfinished street counts as 1.
+					total = total+1;
+				}
+
+				break;
+			}
+		default:
+			{
+				break;
+			}
+	}
+
+    // must make sure that current node only counted once even though it has many parents, 
+    // otherwise the node is counted more than once -> wrong logic.
+	// Solution: only count the total points of the node from 1 parent direction.
+    u32 num_parents =0;
+	if (feature_root->parent_top_lk!=NULL)
+	{
+		num_parents= num_parents+1;
+	}
+	if (feature_root->parent_r_lk!=NULL)
+	{
+		num_parents= num_parents+1;
+	}
+	if (feature_root->parent_bot_lk!=NULL)
+	{
+		num_parents= num_parents+1;
+	}
+	if (feature_root->parent_l_lk!=NULL)
+	{
+		num_parents= num_parents+1;
+	}
+
+	switch (num_parents)
+	{
+		case 2:
+			{
+				// TR
+				// TL
+				// TB
+				if ((feature_root->parent_top_lk!=NULL
+					&& feature_root->parent_r_lk!=NULL)
+					|| (feature_root->parent_top_lk!=NULL
+					&& feature_root->parent_l_lk!=NULL)
+					|| (feature_root->parent_top_lk!=NULL
+					&& feature_root->parent_bot_lk!=NULL))
+				{
+					if (parent_dir_info == TOP)
+					{
+						return total;
+					}
+				}
+
+				// RL
+				// RB
+				if ((feature_root->parent_r_lk!=NULL
+					&& feature_root->parent_l_lk!=NULL)
+					|| (feature_root->parent_r_lk!=NULL
+					&& feature_root->parent_bot_lk!=NULL))
+				{
+					if (parent_dir_info == RIGHT)
+					{
+						return total;
+					}
+					
+				}
+				
+				// LB
+				if (feature_root->parent_l_lk!=NULL
+					&& feature_root->parent_bot_lk!=NULL)
+				{
+					if (parent_dir_info == LEFT)
+					{
+						return total;
+					}
+				}
+				return 0;
+			}
+		case 3:
+			{
+				// TRB
+				// TRL
+				// TBL
+				if ((feature_root->parent_top_lk!=NULL
+					&& feature_root->parent_r_lk!=NULL
+					&& feature_root->parent_bot_lk!=NULL)
+					|| (feature_root->parent_top_lk!=NULL
+					&& feature_root->parent_r_lk!=NULL
+					&& feature_root->parent_l_lk!=NULL)
+					|| (feature_root->parent_top_lk!=NULL
+					&& feature_root->parent_bot_lk!=NULL
+					&& feature_root->parent_l_lk!=NULL))
+				{
+					if (parent_dir_info == TOP)
+					{
+						return total;
+					}
+					
+				}
+
+				// RBL
+				if (feature_root->parent_r_lk!=NULL
+					&& feature_root->parent_bot_lk!=NULL
+					&& feature_root->parent_l_lk!=NULL)
+				{
+					if (parent_dir_info == RIGHT)
+					{
+						return total;
+					}
+					
+				}
+
+				return 0;
+			}
+		case 4:
+			{
+				// TRBL
+				if (parent_dir_info == TOP)
+				{
+					return total;
+				}
+
+				return 0;
+			}
+		default:
+			{
+				return total;
+			}
+			
+	}
+
+}
+
+u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
+								u8* encountered_array, GAME_FEATURES array_feature)
+{
+	//TODO
+	
+	// This function closely related to function `report_num_game_features`.
+
+	// `encountered_array`: each element 0 = not encountered, 1 = encountered
+	// `encountered_array` must have the same size as the `game_f_array`
+	u32 total=0;
+	u32 iter=0;
+	for(iter=0; iter < game_f_array_sz; iter++)
+	{
+		if (encountered_array[iter]==0
+			&& game_f_array[iter].root!=NULL)
+		{
+			// u32 traverse_and_count(GAME_FEATURE_NODE_ptr feature_root, DIRECTION parent_dir, GAME_FEATURES feature)
+			DIRECTION pdir = NA_DIR;
+			GAME_FEATURE_NODE encountered_strjucs_arr[6]=
+			{
+				{0, NA_FEATURE, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+				{0, NA_FEATURE, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+				{0, NA_FEATURE, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+				{0, NA_FEATURE, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+				{0, NA_FEATURE, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
+				{0, NA_FEATURE, -1, -1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL}
+			};
+			total = total + traverse_and_count(game_f_array[iter].root, pdir, array_feature,
+												encountered_strjucs_arr, 6);
+			encountered_array[iter]=1; 
+		}
+	}
+	
+	return total;
+}
+
+void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
+{
+	//TODO
+	u32 iter=0;
+	for (iter=0; iter< game_f_array_sz; iter++)
+	{
+		if (game_f_array[iter].root!=NULL)
+		{
+			// GAME_FEATURE_NODE_ptr delete_whole_feature (GAME_FEATURE_NODE_ptr feature_root);
+			game_f_array[iter].root=delete_whole_feature(game_f_array[iter].root);
+		}
+	
+	}
+	return;
+}
+
+void init_array (u8* array, u16 array_sz)
+{
+	u32 iter =0;
+	for (iter=0; iter< array_sz; iter++)
+	{
+		array[iter]=0;
+	}
+	return;
+}
 // === 
 // 0. MAIN GAME LOOP
 // ===
@@ -2659,6 +3084,9 @@ void game_loop()
 	int cur_drawn_field_idx = 0;
 	u32 prev_drawn_field=0;
 	u32 field_points =0, prev_field_points =0;
+	// TODO
+	u32 fcity_points=0, fstr_points=0;
+	u32 ufcity_points=0, ufstr_points=0;
 
 	// === 
 	// FEATURE REPORT 
@@ -2686,11 +3114,13 @@ void game_loop()
 	init_feature_flgs(prev_feature_end_open_flgs, prev_feature_flgs_size);
 
 	// tracking features in game
+	// TODO
 		// CITY
 	u16 track_game_cities_sz= 20;
 	GAME_FEATURE_NODE_START track_game_cities[track_game_cities_sz];
 	GAME_FEATURE_NODE_START track_game_fcities[track_game_cities_sz];
 	init_features_per_tilemap(track_game_cities, track_game_cities_sz);
+	u8 encountered_fcities[20] = {0}, encountered_ufcities[20] = {0};
 	init_features_per_tilemap(track_game_fcities, track_game_cities_sz);
 	u16 track_game_city_nodes_sz= 10;
 	GAME_FEATURE_NODE_ptr track_game_city_nodes[track_game_city_nodes_sz];
@@ -2699,9 +3129,12 @@ void game_loop()
 	u32 num_game_fcities=0, prev_num_game_fcities=0;
 
 		// STREET
-	u16 track_game_strs_sz= 30;
+	u16 track_game_strs_sz= 30, track_game_fstrs_sz=4;
 	GAME_FEATURE_NODE_START track_game_strs[track_game_strs_sz];
+	GAME_FEATURE_NODE_START track_game_fstrs[track_game_fstrs_sz];
 	init_features_per_tilemap(track_game_strs, track_game_strs_sz);
+	u8 encountered_fstrs[4]= {0}, encountered_ufstrs[20] = {0};
+	init_features_per_tilemap(track_game_fstrs, track_game_fstrs_sz);
 	u16 track_game_str_nodes_sz= 10;
 	GAME_FEATURE_NODE_ptr track_game_str_nodes[track_game_str_nodes_sz];
 	init_cartilemap_node_array(track_game_str_nodes,track_game_str_nodes_sz);
@@ -2976,7 +3409,7 @@ void game_loop()
 			check_all_merge_possibilities(track_game_strs, track_game_strs_sz);
 			// void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, u32* result)
 			report_num_game_features(track_game_strs, track_game_strs_sz,
-								NULL, 0, 
+								track_game_fstrs, track_game_fstrs_sz, 
 								&num_game_strs, &num_game_fstrs);
 			
 				// FIELDs
@@ -2994,6 +3427,7 @@ void game_loop()
 			//====
 			// POINT COUNT
 			//====
+				// FIELD
 			// draw something on the bg1
 			for (cas_r = 0; cas_r < 3; cas_r++)
 			{
@@ -3013,7 +3447,24 @@ void game_loop()
 			// because the graphical information is stored dynamically in `carcassonne_full_map_layer1_graphic`,
 			// so index into `carcassonne_full_map_layer1_graphic` gives the information to draw the ctile.
 			carcassonne_full_map_layer1[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
+				
+			//TODO
+				//CITY
+			// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
+			// 					u8* encountered_array, GAME_FEATURES array_feature)
+			fcity_points = fcity_points 
+							+ 2*count_newly_fcity_fstreet_points(track_game_fcities, track_game_cities_sz,
+																encountered_fcities, CITY);
+				//STREET
+			fstr_points = fstr_points
+							+ count_newly_fcity_fstreet_points(track_game_fstrs, track_game_fstrs_sz,
+																encountered_fstrs, STREET);
 			
+			// void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
+			delete_array_finished_structures(track_game_fstrs, track_game_fstrs_sz);
+			init_array(encountered_fstrs, track_game_fstrs_sz);
+		
+			 
 		}
 
 		// allow to get a tile, only if there is still carcassonne tiles to take
@@ -3451,7 +3902,7 @@ void game_loop()
 							check_all_merge_possibilities(track_game_strs, track_game_strs_sz);
 							// void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_uf_array_sz, u32* result)
 							report_num_game_features(track_game_strs, track_game_strs_sz,
-												NULL, 0, 
+												track_game_fstrs, track_game_fstrs_sz, 
 												&num_game_strs, &num_game_fstrs);
 								
 									// FIELDs
@@ -3474,6 +3925,23 @@ void game_loop()
 							// because the graphical information is stored dynamically in `carcassonne_full_map_layer1_graphic`,
 							// so index into `carcassonne_full_map_layer1_graphic` gives the information to draw the ctile.
 							carcassonne_full_map_layer1[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
+							
+							//TODO
+								//CITY
+							// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
+							// 					u8* encountered_array, GAME_FEATURES array_feature)
+							fcity_points = fcity_points 
+											+ 2*count_newly_fcity_fstreet_points(track_game_fcities, track_game_cities_sz,
+																				encountered_fcities, CITY);
+								//STREET
+							fstr_points = fstr_points
+											+ count_newly_fcity_fstreet_points(track_game_fstrs, track_game_fstrs_sz,
+																				encountered_fstrs, STREET);
+							
+							// void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
+							delete_array_finished_structures(track_game_fstrs, track_game_fstrs_sz);
+							init_array(encountered_fstrs, track_game_fstrs_sz);
+
 						}
 
 					};
@@ -3529,7 +3997,7 @@ void game_loop()
 						// void report_amount_features_per_cartilemap (u16* flag_array, u16 flag_array_size, u16* result, u16 result_sz)
 					report_amount_features_per_cartilemap(feature_end_open_flgs, feature_flgs_size, amount_type_features_percatile, amount_type_features_percatile_sz);
 			
-						};
+				};
 
 			};
 		
@@ -3782,6 +4250,22 @@ void game_loop()
 				}
 				
 			}
+
+			//TODO
+				//CITY
+			// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
+			// 					u8* encountered_array, GAME_FEATURES array_feature)
+			ufcity_points = ufcity_points 
+							+ count_newly_fcity_fstreet_points(track_game_cities, track_game_cities_sz,
+																encountered_ufcities, CITY);
+				//STREET
+			ufstr_points = ufstr_points
+							+ count_newly_fcity_fstreet_points(track_game_strs, track_game_strs_sz,
+																encountered_ufstrs, STREET);
+			
+			// // void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
+			// delete_array_finished_structures(track_game_fstrs, track_game_fstrs_sz);
+			// init_array(encountered_fstrs, track_game_fstrs_sz);
 				
 		}
 	
@@ -3898,13 +4382,14 @@ void game_loop()
 		// 	amount_type_features_percatile[str_idx],eoflgs[str_idx*4+0], eoflgs[str_idx*4+1], eoflgs[str_idx*4+2], eoflgs[str_idx*4+3]
 		// 	);
 		
-		tte_printf("#{es;P}tid-ct_x/y-left-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d-%d/%d\nfield points:%d",
+		tte_printf("#{es;P}tid-ct_x/y-left-oc/fc-ost/fst-of/ff:\n%d-%ld/%ld-%d/%d-%d/%d-%d/%d-%d/%d\npoints-field:%d-fc:%d-fstr:%d\n-ufc:%d-ufstrs:%d",
 			rand_cat_id, ctile_idx, ctile_idy,
 			carcassonne_number_of_tiles, CAR_TILES_MAX, 
 			num_game_cities, num_game_fcities,
 			num_game_strs, num_game_fstrs,
 			num_game_fds, num_game_ffds,
-			field_points
+			field_points, fcity_points, fstr_points,
+			ufcity_points, ufstr_points
 			);
 		
 		// POINT COUNT
