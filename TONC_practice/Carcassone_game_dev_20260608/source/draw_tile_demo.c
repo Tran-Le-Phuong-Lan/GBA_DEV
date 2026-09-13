@@ -4056,9 +4056,13 @@ void game_loop()
 				// reset the graphic, so that only 1 field is drawn at a time
 				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
 
-				draw_trees_field (track_game_fds[iter_field].root,
+				if ((iter_field < track_game_field_sz)
+					&& track_game_fds[iter_field].root != NULL)
+				{
+					draw_trees_field (track_game_fds[iter_field].root,
 						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
-
+				}
+				
 				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
 				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);	
@@ -4202,6 +4206,23 @@ void game_loop()
 					);
 				}
 			}
+				//TODO
+				//CITY
+			// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
+			// 					u8* encountered_array, GAME_FEATURES array_feature)
+			ufcity_points = ufcity_points 
+							+ count_newly_fcity_fstreet_points(track_game_cities, track_game_cities_sz,
+																encountered_ufcities, CITY);
+				//STREET
+			ufstr_points = ufstr_points
+							+ count_newly_fcity_fstreet_points(track_game_strs, track_game_strs_sz,
+																encountered_ufstrs, STREET);
+			
+			// // void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
+			// delete_array_finished_structures(track_game_fstrs, track_game_fstrs_sz);
+			// init_array(encountered_fstrs, track_game_fstrs_sz);
+
+				//FIELD
 			// draw the field, and allow to change to another field.
 			// changing to another field by left/right shoulder button.
 			// 1. choose the first field tree -> update the `carcassonne_full_map_layer1_graphic` 
@@ -4226,8 +4247,12 @@ void game_loop()
 				// reset the graphic, so that only 1 field is drawn at a time
 				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
 
-				draw_trees_field (track_game_fds[iter_field].root,
+				if ((iter_field < track_game_field_sz)
+					&& track_game_fds[iter_field].root != NULL)
+				{
+					draw_trees_field (track_game_fds[iter_field].root,
 						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
+				}
 
 				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
 				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
@@ -4250,22 +4275,6 @@ void game_loop()
 				}
 				
 			}
-
-			//TODO
-				//CITY
-			// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
-			// 					u8* encountered_array, GAME_FEATURES array_feature)
-			ufcity_points = ufcity_points 
-							+ count_newly_fcity_fstreet_points(track_game_cities, track_game_cities_sz,
-																encountered_ufcities, CITY);
-				//STREET
-			ufstr_points = ufstr_points
-							+ count_newly_fcity_fstreet_points(track_game_strs, track_game_strs_sz,
-																encountered_ufstrs, STREET);
-			
-			// // void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
-			// delete_array_finished_structures(track_game_fstrs, track_game_fstrs_sz);
-			// init_array(encountered_fstrs, track_game_fstrs_sz);
 				
 		}
 	
