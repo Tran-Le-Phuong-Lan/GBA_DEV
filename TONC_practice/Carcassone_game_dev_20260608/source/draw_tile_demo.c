@@ -265,8 +265,8 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 	if (mv_flg == true) 
 	{
 		*update_tfg = mv_flg;
-		// rendering the whole surrounding of 
-		// the (screen+buffer zone (to fix the misalign screen size and conceptual map grid))
+		// rendering the whole of 
+		// the (screen+buffer zone)
 		s32 iter_x_ctile, iter_y_ctile;
 		for (iter_y_ctile = ctile_str.y; iter_y_ctile < ctile_end.y + 1; iter_y_ctile += 1)
 		{
@@ -343,8 +343,8 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 					car_map_layer1_id = 1;
 				}
 
-				if (iter_y_ctile == ctile_str.y | iter_y_ctile == ctile_end.y)
-				{
+				// if (iter_y_ctile == ctile_str.y | iter_y_ctile == ctile_end.y)
+				// {
 					// start render the whole row
 					int se_idx = 0, sea_idx = 0;
 					COORD_2D tile_curr_coord;
@@ -381,48 +381,48 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 
 						}
 					}
-				}
+				// }
 
 			
-				if (iter_x_ctile == ctile_str.x | iter_x_ctile == ctile_end.x)
-				{
-					// render the whole column
-					// start render
-					int se_idx = 0, sea_idx = 0;
-					COORD_2D tile_curr_coord;
-					map_ctile_to_tile(iter_x_ctile, iter_y_ctile, &tile_curr_coord.x, &tile_curr_coord.y, false);
-					COORD_2D tile_render_coord;
+				// if (iter_x_ctile == ctile_str.x | iter_x_ctile == ctile_end.x)
+				// {
+					// // render the whole column
+					// // start render
+					// int se_idx = 0, sea_idx = 0;
+					// COORD_2D tile_curr_coord;
+					// map_ctile_to_tile(iter_x_ctile, iter_y_ctile, &tile_curr_coord.x, &tile_curr_coord.y, false);
+					// COORD_2D tile_render_coord;
 				
-					int cas_r, cas_col;
-					for (cas_r = 0; cas_r < 3; cas_r++)
-					{
-						for (cas_col=0; cas_col<3; cas_col++)
-						{
-							tile_render_coord.x = tile_curr_coord.x + cas_col;
-							tile_render_coord.y = tile_curr_coord.y + cas_r;
-							wrapping_tile_coord(&tile_render_coord);
+					// int cas_r, cas_col;
+					// for (cas_r = 0; cas_r < 3; cas_r++)
+					// {
+					// 	for (cas_col=0; cas_col<3; cas_col++)
+					// 	{
+					// 		tile_render_coord.x = tile_curr_coord.x + cas_col;
+					// 		tile_render_coord.y = tile_curr_coord.y + cas_r;
+					// 		wrapping_tile_coord(&tile_render_coord);
 
-							// bg2 aff
-							sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
-							se_idx = sea_idx >> 1;
-							if (sea_idx % 2 == 0)
-							{
-								// write to lower 8-bit of pse, preseve the higher 8-bit of pse
-								//														0 = CARCASONNE CAT 0 = STARTER TILE
-								bg_gba[se_idx] = (bg_gba[se_idx] & 0xFF00) | ((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram) & 0x00FF);
-							}
-							else
-							{
-								// write higer 8-bit of pse, preserve the lower 8 bit of pse
-								bg_gba[se_idx] = (bg_gba[se_idx] & 0x00FF) | (((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram)<<8)  & 0xFF00);
-							}
+					// 		// bg2 aff
+					// 		sea_idx = tile_render_coord.y*map_width_unit_tile + tile_render_coord.x; 
+					// 		se_idx = sea_idx >> 1;
+					// 		if (sea_idx % 2 == 0)
+					// 		{
+					// 			// write to lower 8-bit of pse, preseve the higher 8-bit of pse
+					// 			//														0 = CARCASONNE CAT 0 = STARTER TILE
+					// 			bg_gba[se_idx] = (bg_gba[se_idx] & 0xFF00) | ((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram) & 0x00FF);
+					// 		}
+					// 		else
+					// 		{
+					// 			// write higer 8-bit of pse, preserve the lower 8 bit of pse
+					// 			bg_gba[se_idx] = (bg_gba[se_idx] & 0x00FF) | (((car_map_ptr[car_map_id][cas_r*3 + cas_col]+car_off_vram)<<8)  & 0xFF00);
+					// 		}
 
-							// bg1 reg
-							se_idx = map_to_reg_se_index(tile_render_coord.x, tile_render_coord.y, bg1_width_unit_tile); 
-							bg1_gba[se_idx] = car_map_layer1_ptr[car_map_layer1_id][cas_r*3 + cas_col];
-						}
-					}
-				}
+					// 		// bg1 reg
+					// 		se_idx = map_to_reg_se_index(tile_render_coord.x, tile_render_coord.y, bg1_width_unit_tile); 
+					// 		bg1_gba[se_idx] = car_map_layer1_ptr[car_map_layer1_id][cas_r*3 + cas_col];
+					// 	}
+					// }
+				// }
 			}
 
 		} 
@@ -498,8 +498,8 @@ void render_cur_screen (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 ti
 	if (mv_flg == false) // not moved -> rendering the inside of the screen
 	{
 		*update_tfg = mv_flg;
-		// rendering the inside of 
-		// the (screen+buffer zone (to fix the misalign screen size and conceptual map grid))
+		// rendering the whole 
+		// the (screen+buffer zone)
 		s32 iter_x_ctile, iter_y_ctile;
 		for (iter_y_ctile = ctile_str.y; iter_y_ctile < ctile_end.y + 1; iter_y_ctile += 1)
 		{
@@ -556,8 +556,8 @@ void render_cur_screen (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 ti
 				}
 
 				// inside area of the (screen + buffer zone)
-				if (iter_y_ctile > ctile_str.y & iter_y_ctile < ctile_end.y)
-				{
+				// if (iter_y_ctile > ctile_str.y & iter_y_ctile < ctile_end.y)
+				// {
 					// start render the whole row
 					int se_idx = 0, sea_idx = 0;
 					COORD_2D tile_curr_coord;
@@ -579,7 +579,7 @@ void render_cur_screen (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 ti
 
 						}
 					}
-				}
+				// }
 
 			}
 
@@ -1607,8 +1607,6 @@ void report_num_game_features (GAME_FEATURE_NODE_START* game_uf_array, u16 game_
 							GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz, 
 							u32* all_cities, u32* finished_cities)
 {
-	// TODO
-
 	// This function is used for all features
 	// 1. Street (no save for finished street) 
 	// = (game_f_array=NULL, game_f_array_sz= 0)
@@ -2662,7 +2660,6 @@ u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_la
 u32 traverse_and_count(GAME_FEATURE_NODE_ptr feature_root, DIRECTION parent_dir, GAME_FEATURES feature,
 						GAME_FEATURE_NODE_ptr street_junc_tile_node_arr, u16 street_junc_tile_node_arr_sz)
 {
-	//TODO
 	u32 total =0;
 	DIRECTION parent_dir_info = parent_dir;
 	// similar to the `delete_whole_feature`, accumulate from leaf-nodes to root-node
@@ -3006,7 +3003,6 @@ u32 traverse_and_count(GAME_FEATURE_NODE_ptr feature_root, DIRECTION parent_dir,
 u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
 								u8* encountered_array, GAME_FEATURES array_feature)
 {
-	//TODO
 	
 	// This function closely related to function `report_num_game_features`.
 
@@ -3041,7 +3037,6 @@ u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16
 
 void delete_array_finished_structures (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz)
 {
-	//TODO
 	u32 iter=0;
 	for (iter=0; iter< game_f_array_sz; iter++)
 	{
@@ -3084,7 +3079,6 @@ void game_loop()
 	int cur_drawn_field_idx = 0;
 	u32 prev_drawn_field=0;
 	u32 field_points =0, prev_field_points =0;
-	// TODO
 	u32 fcity_points=0, fstr_points=0;
 	u32 ufcity_points=0, ufstr_points=0;
 
@@ -3114,7 +3108,6 @@ void game_loop()
 	init_feature_flgs(prev_feature_end_open_flgs, prev_feature_flgs_size);
 
 	// tracking features in game
-	// TODO
 		// CITY
 	u16 track_game_cities_sz= 20;
 	GAME_FEATURE_NODE_START track_game_cities[track_game_cities_sz];
@@ -3448,7 +3441,6 @@ void game_loop()
 			// so index into `carcassonne_full_map_layer1_graphic` gives the information to draw the ctile.
 			carcassonne_full_map_layer1[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 				
-			//TODO
 				//CITY
 			// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
 			// 					u8* encountered_array, GAME_FEATURES array_feature)
@@ -3926,7 +3918,6 @@ void game_loop()
 							// so index into `carcassonne_full_map_layer1_graphic` gives the information to draw the ctile.
 							carcassonne_full_map_layer1[carcassonne_number_of_tiles-1].car_map_coord = car_coord.y*CAR_MAP_WIDTH_x + car_coord.x;
 							
-							//TODO
 								//CITY
 							// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
 							// 					u8* encountered_array, GAME_FEATURES array_feature)
@@ -4096,11 +4087,21 @@ void game_loop()
 				// change game state
 				current_game_state = MEEPLE_DECISION;
 
+				// TODO
 				// set the BGs position back to current putdown tile
 				bg_rotscale_ex(&bgaff, &asx_prev);
 				REG_BG_AFFINE[2]= bgaff;
 				
 				REG_BG_OFS[1]= bg1_pt_prev;
+
+				// reset the graphic, so that only 1 field is drawn at a time
+				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+				render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, 
+				carcassonne_full_map, pse,
+				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
+
+				
 			}
 			// cancel the exploration
 			if (key_hit(KEY_B))
@@ -4110,8 +4111,8 @@ void game_loop()
 				current_game_state = GET_TILE;
 
 				// set the obj position back to original
-				x = INIT_OBJ_X;
-				y = INIT_OBJ_Y;
+				// x = INIT_OBJ_X;
+				// y = INIT_OBJ_Y;
 
 				// RESET for dynamic infor of bg1 reg
 				// 1. reset the drawn field index to 0.
@@ -4166,6 +4167,11 @@ void game_loop()
 				// change game state
 				current_game_state = GET_TILE;
 
+				// TODO
+				// set the BGs to the just-put-down tile
+				asx = asx_prev;
+				bg1_pt= bg1_pt_prev;
+
 				// set the obj position back to original
 				x = INIT_OBJ_X;
 				y = INIT_OBJ_Y;
@@ -4206,7 +4212,6 @@ void game_loop()
 					);
 				}
 			}
-				//TODO
 				//CITY
 			// u32 count_newly_fcity_fstreet_points (GAME_FEATURE_NODE_START* game_f_array, u16 game_f_array_sz,
 			// 					u8* encountered_array, GAME_FEATURES array_feature)

@@ -369,7 +369,49 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 
     -  
     
+# Meeple
 
+- at the moment, the background 1 has 
+
+    - `carcassonne_full_map_layer1`: how many carcassonne tiles (3 x 3 tile) drawn and ther corresponding coordinates
+
+    - `carcassonne_full_map_layer1_graphic`: their corresponding graphic
+
+- at `MEEPLE_EXPLORE` : 
+    
+    - To sweep through the current fields: `KEY_R`
+        
+        - the `carcassonne_full_map_layer1_graphic` is updated -> drawn
+    
+    - to exit to the `GET_TILE`, `KEY_B`
+
+    - to `MEEPLE_DECISION`, key select: before switch to `MEEPLE_DECISION`: there is a function (but BUGGY) to jump back the carcasonne tile just-put-down
+
+        - The bug is probably when we move too far: when move back to the previous position, the bg2 (the carcassonne game graphic) is NOT RENDERED accordingly
+
+            - solution:
+
+                1. making the `render_cur_screen` and `render_bg_v2` to render the whole area (screen + buffer zone)
+
+                2. and, render the (screen + buffer zone) on both bg2 + bg1 before switch to `MEEPLE_DECISION`
+
+- at `MEEPLE_DECISION`
+
+    - The cursor becomes arrow of size 1 tile, and can only within the carcasonne tile just-put-down
+
+    - to exit to the `GET_TILE`, `KEY_B`
+
+        - because in this function, the cursor is moved in relative to the screen/camera, when exit, the cursor must be positioned back to its previous relative to the screen/camera (i.e ~ the center of the screen/camera)
+
+        - The bug
+            
+            - the position returns to the position before pressing the key select in `MEEPLE_DECISION`. Reasons: in `MEEPLE_DECISION`, we are in move in the position reference to `asx_prev`; but when exit to `GET_TILE`, we return to move according to the old `asx` (i.e position during `MEEPLE_EXPLORE`)
+
+                - solution:
+
+                    1. at the exit step, update the old `asx`: `asx = asx_prev;`. BUT this solution causes another BUG: when moving the cursor further away from the main current game area, if we press R to see the available file in shaded red, then the shaded is totally off from the current game area.
+
+                        - solution: because the shading is on the bg1, when we updating the old `asx`, we only update bg2 (i.e the game area), while the bg1 still referred to the old `bg1_pt` therfore there is the off shaded field between the game area. to fix, we also update the old `bg1_pt`: `bg1_pt= bg1_pt_prev;`
 
 # General C language
 
