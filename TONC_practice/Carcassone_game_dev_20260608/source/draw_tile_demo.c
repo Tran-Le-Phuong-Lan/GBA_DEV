@@ -4110,9 +4110,6 @@ void game_loop()
 				// change game state
 				current_game_state = GET_TILE;
 
-				// set the obj position back to original
-				// x = INIT_OBJ_X;
-				// y = INIT_OBJ_Y;
 
 				// RESET for dynamic infor of bg1 reg
 				// 1. reset the drawn field index to 0.
@@ -4165,7 +4162,7 @@ void game_loop()
 			{
 				// CANCEL THE ACTION
 				// change game state
-				current_game_state = GET_TILE;
+				current_game_state = MEEPLE_EXPLORE;
 
 				// TODO
 				// set the BGs to the just-put-down tile

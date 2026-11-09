@@ -398,20 +398,32 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
 - at `MEEPLE_DECISION`
 
     - The cursor becomes arrow of size 1 tile, and can only within the carcasonne tile just-put-down
+    
+    - Version 20261107
 
-    - to exit to the `GET_TILE`, `KEY_B`
+        - to exit to the `GET_TILE`, `KEY_B`
 
-        - because in this function, the cursor is moved in relative to the screen/camera, when exit, the cursor must be positioned back to its previous relative to the screen/camera (i.e ~ the center of the screen/camera)
+            - because in this function, the cursor is moved in relative to the screen/camera, when exit, the cursor must be positioned back to its previous relative to the screen/camera (i.e ~ the center of the screen/camera)
 
-        - The bug
+            - The bug
+                
+                - the position returns to the position before pressing the key select in `MEEPLE_DECISION`. Reasons: in `MEEPLE_DECISION`, we are in move in the position reference to `asx_prev`; but when exit to `GET_TILE`, we return to move according to the old `asx` (i.e position during `MEEPLE_EXPLORE`)
+
+                    - solution:
+
+                        1. at the exit step, update the old `asx`: `asx = asx_prev;`. BUT this solution causes another BUG: when moving the cursor further away from the main current game area, if we press R to see the available file in shaded red, then the shaded is totally off from the current game area.
+
+                            - solution: because the shading is on the bg1, when we updating the old `asx`, we only update bg2 (i.e the game area), while the bg1 still referred to the old `bg1_pt` therfore there is the off shaded field between the game area. to fix, we also update the old `bg1_pt`: `bg1_pt= bg1_pt_prev;`
+    
+    - version 20261109
+
+        - put down a meeple: `KEY_A`
+        
+        - to not put down a meeple, `KEY_B` 
             
-            - the position returns to the position before pressing the key select in `MEEPLE_DECISION`. Reasons: in `MEEPLE_DECISION`, we are in move in the position reference to `asx_prev`; but when exit to `GET_TILE`, we return to move according to the old `asx` (i.e position during `MEEPLE_EXPLORE`)
-
-                - solution:
-
-                    1. at the exit step, update the old `asx`: `asx = asx_prev;`. BUT this solution causes another BUG: when moving the cursor further away from the main current game area, if we press R to see the available file in shaded red, then the shaded is totally off from the current game area.
-
-                        - solution: because the shading is on the bg1, when we updating the old `asx`, we only update bg2 (i.e the game area), while the bg1 still referred to the old `bg1_pt` therfore there is the off shaded field between the game area. to fix, we also update the old `bg1_pt`: `bg1_pt= bg1_pt_prev;`
+            - MUST: at the exit step, update the old `asx`: `asx = asx_prev;`, `bg1_pt= bg1_pt_prev;`
+            
+            - then, get back to `MEEPLE_EXPLORE`
 
 # General C language
 
