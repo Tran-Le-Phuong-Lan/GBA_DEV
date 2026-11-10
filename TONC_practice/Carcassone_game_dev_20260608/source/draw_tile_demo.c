@@ -223,16 +223,17 @@ void render_bg_v2 (s32 tile_prev_x, s32 tile_prev_y, s32 tile_cur_x, s32 tile_cu
 	//			  false: not moved, true: moved
 	bool mv_flg = false;
 	
-	if (tile_cur_x != tile_prev_x | tile_cur_y != tile_prev_y)
-	{
-		mv_flg = true;
-	}
-	else
-	{
-		mv_flg = false;
-	}
+	// TODO
+	mv_flg = true;
+	// if (tile_cur_x != tile_prev_x | tile_cur_y != tile_prev_y)
+	// {
+	// 	mv_flg = true;
+	// }
+	// else
+	// {
+	// 	mv_flg = false;
+	// }
 
-	
 	*mv_tflg = mv_flg;
 	// -> find ctile coordinate for starting rendering
 	// s32 ctile_x_str, ctile_x_end, ctile_y_str, ctile_y_end; // [ctile]
@@ -3059,6 +3060,22 @@ void init_array (u8* array, u16 array_sz)
 	}
 	return;
 }
+
+// TODO
+void copy_graphic_arrays (CAS_TILE_MAP* arr_sc, int arr_sz_sc, CAS_TILE_MAP* arr_des, int arr_sz_des)
+{
+	int iter, iter_in;
+	for (iter=0; iter<arr_sz_sc; iter++)
+	{
+		// because `CAS_TILE_MAP` is an array of 9 unsigned int
+		// (see `TONC_practice/Carcassone_game_dev_20260608/include/carcas_infos.h`)
+		for(iter_in=0; iter_in<9; iter_in++)
+		{
+			arr_des[iter][iter_in]=arr_sc[iter][iter_in];
+			// arr_sz[iter][iter_in] for storing the vram tile index
+		}
+	}
+}
 // === 
 // 0. MAIN GAME LOOP
 // ===
@@ -3076,6 +3093,9 @@ void game_loop()
 	init_map_info (carcassonne_full_map_layer1);
 	CAS_TILE_MAP carcassonne_full_map_layer1_graphic[CAR_TILES_MAX];
 	init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+	// TODO
+	CAS_TILE_MAP carcassonne_full_map_layer1_graphic_meeple[CAR_TILES_MAX];
+	init_graphic_arrays(carcassonne_full_map_layer1_graphic_meeple, CAR_TILES_MAX);
 	int cur_drawn_field_idx = 0;
 	u32 prev_drawn_field=0;
 	u32 field_points =0, prev_field_points =0;
@@ -3308,14 +3328,27 @@ void game_loop()
 
 
 		bool tst_mvflag, tst_updflg;
-		COORD_2D tst_start_ct, tst_end_ct, tst_rd_tid;		
+		COORD_2D tst_start_ct, tst_end_ct, tst_rd_tid;
+		// RENDERING AT THE BEGINNING OF EACH FRAME ===
 		// render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, carcassonne_full_map, pse, 
 		// 	&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
-		render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, 
+		// TODO
+		if (current_game_state == MEEPLE_EXPLORE)
+		{
+			render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, 
 			carcassonne_full_map, pse,
 			carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
 			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
-
+		}
+		else
+		{
+			render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, 
+			carcassonne_full_map, pse,
+			carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic_meeple,
+			&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
+		}
+		
+		// FINTE-STATE GAME LOOP START ===
 		int cas_r, cas_col;
 		int rand_cat, rand_cat_min, rand_cat_max, rand_cat_id;
 		
@@ -4042,10 +4075,12 @@ void game_loop()
 			// draw_trees_field (tst,
 			// 			carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
 
+
 			if (key_hit(KEY_R))
 			{
 				// reset the graphic, so that only 1 field is drawn at a time
 				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+
 
 				if ((iter_field < track_game_field_sz)
 					&& track_game_fds[iter_field].root != NULL)
@@ -4054,9 +4089,10 @@ void game_loop()
 						carcassonne_full_map_layer1, carcassonne_full_map_layer1_graphic);
 				}
 				
-				render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
-				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
-				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);	
+				// TODO
+				// render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
+				// carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
+				// &tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);	
 				
 				// count the fcity points in the current field
 					// u32 count_field_points (CAR_MAP_INFO* car_fmap_layer1, CAS_TILE_MAP* car_fmap_layer1_graphic,
@@ -4076,9 +4112,15 @@ void game_loop()
 				
 			}
 
-			// render_cur_screen(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y,
-			// carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
-			// &tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
+			// TODO 
+			if (key_hit(KEY_L))
+			{
+				// copy the bg1_graphic_meeple into the bg1_graphic,
+				// in order to show the placed-down meeple on the game area.
+				copy_graphic_arrays(carcassonne_full_map_layer1_graphic_meeple, CAR_TILES_MAX,
+									carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
+
+			}
 
 			// Change to decision phase
 			if (key_hit(KEY_SELECT))
@@ -4093,13 +4135,6 @@ void game_loop()
 				REG_BG_AFFINE[2]= bgaff;
 				
 				REG_BG_OFS[1]= bg1_pt_prev;
-
-				// reset the graphic, so that only 1 field is drawn at a time
-				init_graphic_arrays(carcassonne_full_map_layer1_graphic, CAR_TILES_MAX);
-				render_bg_v2(sae_prev.x, sae_prev.y, sae_curr_x, sae_curr_y, 
-				carcassonne_full_map, pse,
-				carcassonne_full_map_layer1, pse_1, carcassonne_full_map_layer1_graphic,
-				&tst_mvflag, &tst_updflg, &tst_start_ct, &tst_end_ct, &tst_rd_tid);
 
 				
 			}
@@ -4156,6 +4191,29 @@ void game_loop()
 					}
 
 				}
+			}
+
+			if (key_hit(KEY_A))
+			{
+				// TODO
+				// put down a meeple.
+				// 1. update the graphic info for bg1 about meeple
+				// draw something on the bg1
+				u32 meeple_x=0, meeple_y=0;
+				meeple_x = (x-obj_x_min)/8;
+				meeple_y = (y-obj_y_min)/8;
+				// in tiles-bg1.s, index of meeple tile is the 12.
+				carcassonne_full_map_layer1_graphic_meeple[carcassonne_number_of_tiles-1][(meeple_y)*3 + meeple_x]= 12;
+				// 2. update the bg scroll position, and the correct cursor relative to screen position
+				asx = asx_prev;
+				bg1_pt= bg1_pt_prev;
+					// set the obj position back to original
+				x = INIT_OBJ_X;
+				y = INIT_OBJ_Y;
+				// 3. change current_game_state (because of not allowing putting down another meeple)
+				current_game_state = GET_TILE;
+				
+
 			}
 
 			if (key_hit(KEY_B))

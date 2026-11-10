@@ -383,6 +383,8 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
         
         - the `carcassonne_full_map_layer1_graphic` is updated -> drawn
     
+    - To show the placed-down meeple on the game area, `KEY_L` (only once) 
+    
     - to exit to the `GET_TILE`, `KEY_B`
 
     - to `MEEPLE_DECISION`, key select: before switch to `MEEPLE_DECISION`: there is a function (but BUGGY) to jump back the carcasonne tile just-put-down
@@ -418,7 +420,16 @@ void win_textbox(int bgnr, int left, int top, int right, int bottom, int bldy)
     - version 20261109
 
         - put down a meeple: `KEY_A`
-        
+
+            - with the current way of working of `carcassonne_full_map`: the just-put-down carcassonne tile has the highest index. An element of `carcassonne_full_map` has the exact index of the cacarssonne graphic tile (i.e `rand_cat` = idx into elem of [`tiles_gbcMap_v2`](./source/carcas_data.s)) + its corresponding location in the game graphic area. 
+
+            - ? how to match the cursor position  `sae_curr_x` to the matching tile in the just-put-down carcassonne tile ? (object/cursor move within the screen while the bg2+bg1 are static) -> test this out tomorrow instead of deducting?
+
+                - Solution: no need to care about `sae_curr_x`, we just need to update the `carcassonne_full_map_layer1_graphic_meeple`, then the `render_bg_v2` is reused to render the meeple at the correct position.
+            
+            - after putting down the meeple, as the game rule (1 meeple /1 carcassonne game tile), the game state must be `GET_TILE`. BUT before exit to `GET_TILE`, we must update the cursor/screen relative position and the background scroll positions as in  `MEEPLE_EXPLORE` - `KEY_B`
+
+
         - to not put down a meeple, `KEY_B` 
             
             - MUST: at the exit step, update the old `asx`: `asx = asx_prev;`, `bg1_pt= bg1_pt_prev;`
